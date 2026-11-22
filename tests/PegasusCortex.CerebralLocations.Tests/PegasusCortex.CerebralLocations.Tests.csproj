@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>PegasusCortex.CerebralLocations.Tests</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\PegasusCortex.Product\PegasusCortex.Product.csproj" />
+    <!-- Existing product provider closure only; no package restore or live provider. -->
+    <Reference Include="Microsoft.Data.Sqlite"><HintPath>..\..\artifacts\release\unified\bin\semantics\Microsoft.Data.Sqlite.dll</HintPath></Reference>
+    <Reference Include="SQLitePCLRaw.core"><HintPath>..\..\artifacts\release\unified\bin\semantics\SQLitePCLRaw.core.dll</HintPath></Reference>
+    <Reference Include="SQLitePCLRaw.batteries_v2"><HintPath>..\..\artifacts\release\unified\bin\semantics\SQLitePCLRaw.batteries_v2.dll</HintPath></Reference>
+    <Reference Include="SQLitePCLRaw.provider.e_sqlite3"><HintPath>..\..\artifacts\release\unified\bin\semantics\SQLitePCLRaw.provider.e_sqlite3.dll</HintPath></Reference>
+    <None Include="..\..\artifacts\release\unified\bin\semantics\e_sqlite3.dll" Link="e_sqlite3.dll" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

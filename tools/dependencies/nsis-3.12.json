@@ -1,0 +1,34 @@
+{
+  "contract": "pegasus-cortex-build-dependency",
+  "version": 1,
+  "name": "nsis",
+  "productVersion": "3.12",
+  "releasedAt": "2026-04-19",
+  "releaseData": "https://github.com/NSIS-Dev/release-data/blob/main/data/versions.json",
+  "archive": {
+    "fileName": "nsis-3.12.zip",
+    "canonicalUrl": "https://downloads.sourceforge.net/project/nsis/NSIS%203/3.12/nsis-3.12.zip",
+    "downloadUrls": [
+      "https://phoenixnap.dl.sourceforge.net/project/nsis/NSIS%203/3.12/nsis-3.12.zip",
+      "https://pilotfiber.dl.sourceforge.net/project/nsis/NSIS%203/3.12/nsis-3.12.zip",
+      "https://downloads.sourceforge.net/project/nsis/NSIS%203/3.12/nsis-3.12.zip"
+    ],
+    "length": 2362938,
+    "sha1": "364fd795b0cafc1fbff3e966f103a8f8fc8fb7f1",
+    "sha256": "56581f90db321581c5381193d796fffcf2d24b2f8fed2160a6c6a3baa67f2c4f",
+    "sha512": "d339933767b3c3f99a3c0df154688197642486e69a6679f3bf6d004441cfed046c5335d151358fa03d7b4ccfa596849f6eeb2aefbded66a2ab1e264d0a4ea30a"
+  },
+  "distributionRoot": "nsis-3.12",
+  "compiler": {
+    "relativePath": "Bin/makensis.exe",
+    "length": 468992,
+    "sha256": "25d1aa7081db1a9de9690b59983f9652b7409a189c3444328cc1841eff693e8d",
+    "versionArgument": "/VERSION",
+    "expectedVersion": "v3.12",
+    "authenticode": "NotSigned"
+  },
+  "license": {
+    "relativePath": "COPYING",
+    "reference": "https://nsis.sourceforge.io/Docs/AppendixI.html"
+  }
+}

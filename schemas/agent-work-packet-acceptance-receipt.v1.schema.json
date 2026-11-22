@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pegasus.local/schemas/cortex/agent-work-packet-acceptance-receipt.v1.schema.json",
+  "title": "Pegasus passive agent work-packet acceptance receipt v1",
+  "description": "Passive caller-authored assertion naming an intended owner's acceptance of one exact handoff. Matching hashes prove byte linkage only, not authenticated observation, and grant no authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "contractId", "canonicalization", "receiptId", "handoffReceiptId",
+    "handoffReceiptHash", "workId", "idempotencyKey", "packetStage", "packetRevision",
+    "packetHash", "disposition", "acceptedBy", "acceptedAt", "reason",
+    "contentTreatment", "executable", "grantsSchedulingAuthority", "grantsTaskClaim",
+    "grantsAuthority", "receiptHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "pegasus.agent-work-packet-acceptance-receipt/1.0" },
+    "canonicalization": { "const": "pegasus-canonical-json-v1" },
+    "receiptId": { "$ref": "#/$defs/identifier" },
+    "handoffReceiptId": { "$ref": "#/$defs/identifier" },
+    "handoffReceiptHash": { "$ref": "#/$defs/hash" },
+    "workId": { "$ref": "#/$defs/identifier" },
+    "idempotencyKey": { "$ref": "#/$defs/identifier" },
+    "packetStage": { "enum": ["start", "continue", "closeout"] },
+    "packetRevision": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+    "packetHash": { "$ref": "#/$defs/hash" },
+    "disposition": { "enum": ["accepted", "rejected"] },
+    "acceptedBy": { "$ref": "#/$defs/owner" },
+    "acceptedAt": { "$ref": "#/$defs/utcDateTime" },
+    "reason": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "contentTreatment": { "const": "untrusted_data" },
+    "executable": { "const": false },
+    "grantsSchedulingAuthority": { "const": false },
+    "grantsTaskClaim": { "const": false },
+    "grantsAuthority": { "const": false },
+    "receiptHash": {
+      "$ref": "#/$defs/hash",
+      "description": "SHA-256 of canonical JSON for this receipt with receiptHash replaced by 64 lowercase zero characters."
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string", "minLength": 1, "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "utcDateTime": {
+      "type": "string", "format": "date-time", "pattern": "(?:Z|\\+00:00)$"
+    },
+    "owner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["authorityId", "subjectId", "serviceId"],
+      "properties": {
+        "authorityId": { "$ref": "#/$defs/identifier" },
+        "subjectId": { "$ref": "#/$defs/identifier" },
+        "serviceId": { "$ref": "#/$defs/identifier" }
+      }
+    }
+  }
+}

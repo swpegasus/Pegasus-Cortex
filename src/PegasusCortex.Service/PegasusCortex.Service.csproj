@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>PegasusCortex.Service</AssemblyName>
+    <RootNamespace>Pegasus.Cortex.Service</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RestoreLockedMode>true</RestoreLockedMode>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql" Version="[10.0.3]" />
+    <ProjectReference Include="..\PegasusCortex.Persistence.PostgreSql\PegasusCortex.Persistence.PostgreSql.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\licenses\Npgsql-10.0.3-LICENSE.txt"
+          Link="licenses\Npgsql-10.0.3-LICENSE.txt"
+          CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="Always" />
+    <None Include="..\..\licenses\Microsoft.Extensions-10.0.0-LICENSE.txt"
+          Link="licenses\Microsoft.Extensions-10.0.0-LICENSE.txt"
+          CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="Always" />
+    <None Include="..\..\licenses\DEPENDENCY_PROVENANCE.json"
+          Link="licenses\DEPENDENCY_PROVENANCE.json"
+          CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="Always" />
+    <None Include="$(NuGetPackageRoot)\microsoft.extensions.logging.abstractions\10.0.0\THIRD-PARTY-NOTICES.TXT"
+          Link="licenses\Microsoft.Extensions-10.0.0-THIRD-PARTY-NOTICES.txt"
+          CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="Always" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="PegasusCortex.Service.Tests" />
+    <InternalsVisibleTo Include="PegasusCortex.Persistence.PostgreSql.IntegrationTests" />
+  </ItemGroup>
+</Project>

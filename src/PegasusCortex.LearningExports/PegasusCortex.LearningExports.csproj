@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageId>Pegasus.Cortex.LearningExports</PackageId>
+    <Title>Pegasus Cortex Learning Exports</Title>
+    <Description>Provider-neutral, approval-gated, reproducible learning dataset planning and export.</Description>
+    <Authors>Pegasus</Authors>
+    <IsPackable>true</IsPackable>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageReadmeFile>CHECKPOINT_1.2026.07.13.22.42.A.md</PackageReadmeFile>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)..\..\artifacts\packages\$(PegasusReleaseVersion)</PackageOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PegasusCortex.Contracts\PegasusCortex.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Pegasus.Shared" Version="[1.20260711.421-a]" />
+    <None Include="..\..\docs\CHECKPOINT_1.2026.07.13.22.42.A.md"
+          Pack="true"
+          PackagePath="\" />
+    <None Include="..\..\VERSION.json" Pack="true" PackagePath="\" />
+    <None Include="..\..\schemas\learning-dataset-manifest.v1.schema.json"
+          Pack="true"
+          PackagePath="schemas\" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,1 @@
+Separate namespace selection, project/chat/task identity and semantic tags. Preserve source scope and provenance. Human preferences and personality are separate from assistant persona, project facts and task state. Relevant projections and user correction do not expand tool permissions. Private user records do not become public starter data.

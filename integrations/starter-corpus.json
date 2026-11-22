@@ -1,0 +1,23 @@
+{
+  "schema": "pegasus.cortex.starter-corpus/1.0",
+  "corpusId": "pegasus-cortex-starter-20260828",
+  "description": "Portable starter knowledge for the canonical Knowledge.Shared geometric space. Project tasks, user knowledge, machine history, validation evidence, and local database state are excluded.",
+  "packs": [
+    {
+      "namespace": "knowledge.shared",
+      "path": "general-knowledge"
+    },
+    {
+      "namespace": "knowledge.shared",
+      "path": "generalized-programming-tenets"
+    },
+    {
+      "namespace": "knowledge.shared",
+      "path": "cerebral-guides"
+    },
+    {
+      "namespace": "knowledge.shared",
+      "path": "windows-operational-knowledge"
+    }
+  ]
+}

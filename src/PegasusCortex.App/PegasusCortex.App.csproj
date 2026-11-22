@@ -1,0 +1,75 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>PegasusCortex</AssemblyName>
+    <RootNamespace>Pegasus.Cortex.App</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <UseAppHost>true</UseAppHost>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <SelfContained Condition="'$(RuntimeIdentifier)' != ''">true</SelfContained>
+    <PublishSingleFile>false</PublishSingleFile>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RestoreLockedMode>true</RestoreLockedMode>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PegasusCortex.Mcp.Local\PegasusCortex.Mcp.Local.csproj" />
+    <ProjectReference Include="..\PegasusCortex.Product\PegasusCortex.Product.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\..\assets\icons\chat-v1\catalog.ini"
+             Link="asset-packs\chat-icons\catalog.ini" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\assets\icons\chat-v1\Licensing\Fluent-System-Icons-LICENSE.txt;..\..\assets\icons\chat-v1\Licensing\Fluent-System-Icons-NOTICE.txt"
+             Link="asset-packs\chat-icons\Licensing\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\assets\icons\chat-v1\svg\*.svg"
+             Link="asset-packs\chat-icons\svg\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\integrations\starter-corpus.json"
+             Link="behavior-packs\starter-corpus.json"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\integrations\file-cortex-v2\behavior-pack.json"
+             Link="behavior-packs\generalized-programming-tenets\behavior-pack.json"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\integrations\file-cortex-v2\records\**\*"
+             Link="behavior-packs\generalized-programming-tenets\records\%(RecursiveDir)%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\integrations\general-knowledge-v1\behavior-pack.json"
+             Link="behavior-packs\general-knowledge\behavior-pack.json"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\integrations\general-knowledge-v1\records\**\*"
+             Link="behavior-packs\general-knowledge\records\%(RecursiveDir)%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\integrations\cerebral-guides-v1\behavior-pack.json"
+             Link="behavior-packs\cerebral-guides\behavior-pack.json"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\integrations\cerebral-guides-v1\adoption.*.json"
+             Link="behavior-packs\cerebral-guides\%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\integrations\cerebral-guides-v1\records\**\*"
+             Link="behavior-packs\cerebral-guides\records\%(RecursiveDir)%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\integrations\windows-operational-knowledge-v1\behavior-pack.json"
+             Link="behavior-packs\windows-operational-knowledge\behavior-pack.json"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\integrations\windows-operational-knowledge-v1\records\**\*"
+             Link="behavior-packs\windows-operational-knowledge\records\%(RecursiveDir)%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\integrations\codex\pegasus-cortex-client\guidance\pegasus-cortex-agents.v2.md"
+             Link="guidance\pegasus-cortex-agents.v2.md"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\integrations\codex\pegasus-cortex-client\guidance\pegasus-cortex-pao.v1.md"
+             Link="guidance\pegasus-cortex-pao.v1.md"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageId>Pegasus.Cortex.OfflineJournal.Platform.Linux</PackageId>
+    <Title>Pegasus Cortex Offline Journal Linux Platform</Title>
+    <Description>Linux handle-relative filesystem boundary for the Pegasus Cortex offline journal with no native runtime package dependency.</Description>
+    <Authors>Pegasus</Authors>
+    <IsPackable>true</IsPackable>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageReadmeFile>CHECKPOINT_1.2026.07.14.18.28.A.md</PackageReadmeFile>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)..\..\artifacts\packages\$(PegasusReleaseVersion)</PackageOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PegasusCortex.OfflineJournal\PegasusCortex.OfflineJournal.csproj" />
+    <None Include="..\..\docs\CHECKPOINT_1.2026.07.14.18.28.A.md"
+          Pack="true"
+          PackagePath="\" />
+    <None Include="..\..\docs\CORTEX_SYNC_AND_LEGACY_MIGRATION_V1.md"
+          Pack="true"
+          PackagePath="\" />
+  </ItemGroup>
+</Project>

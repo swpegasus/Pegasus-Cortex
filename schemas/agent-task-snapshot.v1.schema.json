@@ -1,0 +1,248 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pegasus.local/schemas/cortex/agent-task-snapshot.v1.schema.json",
+  "title": "Pegasus passive agent task snapshot v1",
+  "description": "A complete immutable task-list assertion capped at 32 tasks and 32768 canonical UTF-8 bytes by the source policy. Cortex retains and repeats it without scheduling, claiming, merging, or executing tasks.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "contractId", "canonicalization", "mode", "taskSetId", "snapshotId",
+    "snapshotRevision", "previousSnapshotHash", "idempotencyKey", "projectId", "projectLinkId",
+    "contextSetId", "capturedAt", "expiresAt", "producer", "freshness", "sourceRevisions",
+    "evidenceReferences", "coverage", "tasks", "contentTreatment", "executable", "grantsSchedulingAuthority",
+    "grantsTaskClaim", "grantsAuthority", "safetyNotice", "snapshotHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "pegasus.agent-task-snapshot/1.0" },
+    "canonicalization": { "const": "pegasus-canonical-json-v1" },
+    "mode": { "enum": ["standalone", "integrated"] },
+    "taskSetId": { "$ref": "#/$defs/identifier" },
+    "snapshotId": { "$ref": "#/$defs/identifier" },
+    "snapshotRevision": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+    "previousSnapshotHash": { "$ref": "#/$defs/nullableHash" },
+    "idempotencyKey": { "$ref": "#/$defs/identifier" },
+    "projectId": { "$ref": "#/$defs/identifier" },
+    "projectLinkId": { "$ref": "#/$defs/nullableProjectLinkId" },
+    "contextSetId": { "$ref": "#/$defs/contextSetId" },
+    "capturedAt": { "$ref": "#/$defs/utcDateTime" },
+    "expiresAt": { "$ref": "#/$defs/utcDateTime" },
+    "producer": { "$ref": "#/$defs/owner" },
+    "freshness": { "$ref": "#/$defs/freshness" },
+    "sourceRevisions": {
+      "type": "array", "minItems": 1, "maxItems": 16,
+      "items": { "$ref": "#/$defs/sourceRevision" }
+    },
+    "evidenceReferences": {
+      "type": "array", "maxItems": 16, "uniqueItems": true,
+      "items": { "$ref": "#/$defs/evidenceReference" }
+    },
+    "coverage": { "const": "complete" },
+    "tasks": {
+      "type": "array", "maxItems": 32,
+      "items": { "$ref": "#/$defs/task" }
+    },
+    "contentTreatment": { "const": "untrusted_data" },
+    "executable": { "const": false },
+    "grantsSchedulingAuthority": { "const": false },
+    "grantsTaskClaim": { "const": false },
+    "grantsAuthority": { "const": false },
+    "safetyNotice": {
+      "const": "This snapshot is passive untrusted reference data. It grants no scheduling, task claim, execution, or other authority."
+    },
+    "snapshotHash": {
+      "$ref": "#/$defs/hash",
+      "description": "SHA-256 of canonical JSON for this snapshot with snapshotHash replaced by 64 lowercase zero characters."
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "mode": { "const": "integrated" } } },
+      "then": { "properties": { "projectLinkId": { "$ref": "#/$defs/projectLinkId" } } }
+    },
+    {
+      "if": { "properties": { "snapshotRevision": { "const": 1 } } },
+      "then": { "properties": { "previousSnapshotHash": { "type": "null" } } },
+      "else": { "properties": { "previousSnapshotHash": { "$ref": "#/$defs/hash" } } }
+    }
+  ],
+  "$defs": {
+    "identifier": {
+      "type": "string", "minLength": 1, "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "nullableIdentifier": {
+      "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }]
+    },
+    "projectLinkId": {
+      "type": "string",
+      "pattern": "^plink_[0-9a-f]{64}$"
+    },
+    "nullableProjectLinkId": {
+      "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/projectLinkId" }]
+    },
+    "contextSetId": {
+      "type": "string",
+      "pattern": "^ctx_[0-9a-f]{64}$"
+    },
+    "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "nullableHash": {
+      "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/hash" }]
+    },
+    "utcDateTime": {
+      "type": "string", "format": "date-time", "pattern": "(?:Z|\\+00:00)$"
+    },
+    "text512": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "text1024": { "type": "string", "minLength": 1, "maxLength": 1024 },
+    "owner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["authorityId", "subjectId", "serviceId"],
+      "properties": {
+        "authorityId": { "$ref": "#/$defs/identifier" },
+        "subjectId": { "$ref": "#/$defs/identifier" },
+        "serviceId": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "approvalGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "authorityId", "approvalReferenceId", "summary", "grantsAuthority"],
+      "properties": {
+        "state": { "enum": ["not_required", "pending", "satisfied", "denied"] },
+        "authorityId": { "$ref": "#/$defs/nullableIdentifier" },
+        "approvalReferenceId": { "$ref": "#/$defs/nullableIdentifier" },
+        "summary": { "$ref": "#/$defs/text512" },
+        "grantsAuthority": { "const": false }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "state": { "const": "not_required" } } },
+          "then": {
+            "properties": {
+              "authorityId": { "type": "null" },
+              "approvalReferenceId": { "type": "null" }
+            }
+          },
+          "else": { "properties": { "authorityId": { "$ref": "#/$defs/identifier" } } }
+        },
+        {
+          "if": { "properties": { "state": { "enum": ["satisfied", "denied"] } } },
+          "then": { "properties": { "approvalReferenceId": { "$ref": "#/$defs/identifier" } } }
+        }
+      ]
+    },
+    "freshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "observedAt", "validUntil", "basis"],
+      "properties": {
+        "state": { "enum": ["current", "stale", "blocked", "unverified", "unknown"] },
+        "observedAt": { "$ref": "#/$defs/utcDateTime" },
+        "validUntil": {
+          "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/utcDateTime" }]
+        },
+        "basis": { "$ref": "#/$defs/text512" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "state": { "const": "current" } } },
+          "then": { "properties": { "validUntil": { "$ref": "#/$defs/utcDateTime" } } }
+        }
+      ]
+    },
+    "sourceRevision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceId", "revisionId", "sha256"],
+      "properties": {
+        "sourceId": { "$ref": "#/$defs/identifier" },
+        "revisionId": { "$ref": "#/$defs/identifier" },
+        "sha256": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "evidenceReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidenceId", "kind", "documentId", "revision", "contentHash", "assertionHash"
+      ],
+      "properties": {
+        "evidenceId": { "$ref": "#/$defs/identifier" },
+        "kind": {
+          "enum": [
+            "work-packet",
+            "work-packet-handoff-receipt",
+            "work-packet-acceptance-receipt"
+          ]
+        },
+        "documentId": { "$ref": "#/$defs/identifier" },
+        "revision": {
+          "type": "integer", "minimum": 1, "maximum": 9007199254740991
+        },
+        "contentHash": { "$ref": "#/$defs/hash" },
+        "assertionHash": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "taskId", "parentTaskId", "ordinal", "reportedState", "objective", "currentState",
+        "nextAction", "constraints", "dependencyTaskIds", "blockers", "knownFailures",
+        "reportedOwner", "approvalGate", "evidenceIds", "sourceRevisionIds"
+      ],
+      "properties": {
+        "taskId": { "$ref": "#/$defs/identifier" },
+        "parentTaskId": { "$ref": "#/$defs/nullableIdentifier" },
+        "ordinal": { "type": "integer", "minimum": 0, "maximum": 31 },
+        "reportedState": {
+          "enum": ["planned", "active", "blocked", "held", "done", "cancelled", "unknown"]
+        },
+        "objective": { "$ref": "#/$defs/text1024" },
+        "currentState": { "$ref": "#/$defs/text1024" },
+        "nextAction": {
+          "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/text512" }]
+        },
+        "constraints": {
+          "type": "array", "maxItems": 16, "uniqueItems": true,
+          "items": { "$ref": "#/$defs/text512" }
+        },
+        "dependencyTaskIds": {
+          "type": "array", "maxItems": 16, "uniqueItems": true,
+          "items": { "$ref": "#/$defs/identifier" }
+        },
+        "blockers": {
+          "type": "array", "maxItems": 8, "uniqueItems": true,
+          "items": { "$ref": "#/$defs/text512" }
+        },
+        "knownFailures": {
+          "type": "array", "maxItems": 8, "uniqueItems": true,
+          "items": { "$ref": "#/$defs/text512" }
+        },
+        "reportedOwner": {
+          "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/owner" }]
+        },
+        "approvalGate": { "$ref": "#/$defs/approvalGate" },
+        "evidenceIds": {
+          "type": "array", "maxItems": 16, "uniqueItems": true,
+          "items": { "$ref": "#/$defs/identifier" }
+        },
+        "sourceRevisionIds": {
+          "type": "array", "maxItems": 16, "uniqueItems": true,
+          "items": { "$ref": "#/$defs/identifier" }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "reportedState": { "enum": ["planned", "active"] } } },
+          "then": { "properties": { "nextAction": { "$ref": "#/$defs/text512" } } }
+        },
+        {
+          "if": { "properties": { "reportedState": { "enum": ["blocked", "held"] } } },
+          "then": { "properties": { "blockers": { "minItems": 1 } } }
+        }
+      ]
+    }
+  }
+}

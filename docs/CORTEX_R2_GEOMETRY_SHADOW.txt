@@ -1,0 +1,189 @@
+Cortex geometry shadow: resident source integration
+Task 01a12d3b-79fa-7582-aa10-461ab3506979.
+Phase r2-geometry-shadow-integration.
+
+Current disposition
+Common source now wires the qualified optional collector into the resident owner
+composition. The affected forward build and7 direct composition check groups
+passed. Collection is absent/OFF by default; experimental ranking publication
+remains OFF. No current installed config/connection/database/service was changed,
+and no installed collection was activated. Named-pipe/live-host/install acceptance
+remains outside these source checks. The prior negative ranking-quality result
+and qualified Native87/Shadow11 evidence are reused without rerunning cohorts.
+
+Lifetime and call path
+Only CortexResidentRuntime.RunCurrentAsync explicitly reads the owner's
+configuration and passes its selection to CreateGeneralAsync. That resident
+composition is built once before CortexResidentServer accepts clients.
+It owns one CortexShadowResearchHost and attachment, used by all its clients.
+Adapter, offline, doctor and ordinary CreateGeneralAsync callers retain the
+defaultnull selection; no ambient configuration is read by those database opens.
+The original provider, actor and personal-profile provider remain unchanged.
+The decorator forwards ICortexKnowledgeSpaceMapper to the original provider,
+including legacy shared aliases. Search results receive no research fields.
+Research cleanup runs before provider disposal, with finally-based provider
+cleanup on both initialization failure and shutdown.
+
+Concrete owner-private opt-in configuration
+Location: <registered current owner's ConfigDirectory>/geometry-shadow.v1.json.
+The host reads it once on its next normal startup in a qualified NEW baseline.
+There is no watcher, automatic host restart, current config write or new service.
+Missing file means absent; minimal explicit OFF configuration is:
+  {"schema":"cortex.shadow.host-config/1","enabled":false}
+Neither path resolves/creates the research root.
+
+An enabled configuration has this shape (replace placeholders with reviewed
+actual coordinates/IDs; this is a format example, not an activation file):
+  {
+    "schema":"cortex.shadow.host-config/1",
+    "enabled":true,
+    "taskId":"<explicit study owner task UUID>",
+    "profileId":"<research profile UUID>",
+    "generation":"<generation UUID>",
+    "researchRoot":"<owner ConfigDirectory>/geometry-shadow/<generation in 32 hex digits>",
+    "eligibleRecords":[
+      {"namespace":"knowledge.shared","recordId":"<reviewed record ID>",
+       "revision":1,"provenanceSha256":"<64 lowercase receipt-provenance hex digits>"}
+    ],
+    "options":{"collectionEnabled":true,"evaluationEnabled":true,"sampleEvery":10,
+      "queueCapacity":16,"maximumQueuedBytes":1048576,"maximumPoints":128,
+      "journalSlots":32,"tickMilliseconds":1000,"evaluationMilliseconds":50,
+      "retentionSeconds":86400}
+  }
+researchRoot must be the exact canonical generation directory under that owner's
+ConfigDirectory; it cannot select an old database or arbitrary storage root.
+No namespace or consent is inferred. Eligible records remain exact reviewed
+shared/project knowledge revisions; no personal data or historical backfill.
+The configfile and parent must have the existing protected current-owner policy.
+The enabled lane creates only missing private research directories; existing
+ACLs/owners/bindings are admitted strictly and never repaired or weakened.
+An enabled file is bounded to512KiB, with unique properties and bounded exact
+profile/options. Null/missing identity fields are rejected before attachment.
+Malformed, unavailable or unsafe configuration and research init/root/binding
+faults expose a bounded disabled issue and leave the original provider selected.
+Ordinary provider failures/cancellation are never converted to research success.
+
+Concrete metrics/status readout
+NEW-baseline local command:
+  PegasusCortex.exe geometry-shadow-status
+The semantics entry point implements this owner-local read-only command; its
+shared helper was exercised against actual protected fixture snapshots.
+It resolves only the owner's config and at most16KiB status snapshot; it does not
+open a database, connect to a host, start collection, create directories or alter
+configuration. No filesystem registration/grant or new network/MCP transport is
+required. The installed old command was not invoked or modified.
+Output schema cortex.shadow.host-status/1 includes state, issue, a timestamped
+cortex.shadow.summary/1 snapshot and age, with hostLivenessVerified=false.
+It may show absent/off/disabled/snapshot-unavailable/recorded-snapshot/
+stopped-snapshot. These are configuration/recorded states, not host heartbeat.
+Invalid/foreign generation snapshots or nonprivate entries are refused.
+Snapshot files may inherit owner-only ACEs from their already protected private
+directory; the readout checks owner and actual access rules without changing them.
+The in-process composition also exposes ShadowResearchDiagnostics, outside
+ordinary connection payloads. Startup emits only a bounded geometry-shadow
+disabled issue to existing diagnostics when optional setup fails.
+
+Owned common-source changes
+src/PegasusCortex.Mcp.Local/Runtime/CortexShadowConfiguration.cs (new)
+src/PegasusCortex.Mcp.Local/Runtime/CortexShadowResearchHost.cs (new)
+src/PegasusCortex.Mcp.Local/Runtime/CortexShadowResearchReadout.cs (new)
+Narrow edits: CortexMcpLocalComposition.cs, CortexResidentRuntime.cs, Program.cs,
+and the required internal project reference in PegasusCortex.Mcp.Local.csproj.
+Library edits: mapper forwarding and typed null-profile-entry validation.
+No PAO Engine/Protocol/Host/CLI/source/test/doc path was edited by this integration.
+
+Focused actual evidence
+Affected forward builddc1cd7cec19e4e649d50c73d04688291 exit0,0warnings/errors.
+Locked offline restore7398451d85424db6ba7b03b50e8af521 exit0.
+Direct composition runa7afb205a2a24de18b0ec8fe357c2de3 exit0, no timeout/truncation,
+7 groups PASS. Tests use one fresh2-record SQLite fixture, actual source
+composition/local MCP calls and actual owner-private fixture ACL/files.
+They do not start named pipes or the installed host and collect no real-user data.
+Coverage: defaultnull ignores ambient settings; missing/OFF parity/no files;
+enabled shared collector; canonical/legacy alias parity; ordinary cancellation;
+shutdown/lock/provider release; bounded stopped-snapshot readout; malformed JSON,
+null/missing identities, config ACL/root rejection; IO and binding preservation;
+and unrelated database opens remaining inactive.
+The test has5 observed provider calls
+(1 deliberately canceled ordinary
+call),4 processed observations,
+0 drops,
+0 worker failures and
+0 labeled samples.
+The final summary is stopped. This is integration behavior evidence, not accuracy,
+real-volume overhead, installed deployment or production readiness.
+
+Build boundary and retained failures
+Build output/locks/packages are separate at artifacts/build/current/gshi-79fa.
+The isolated affected build references Native's already-qualified PAO assemblies
+read-only; evaluation confirmed the PAO project is excluded from this verification
+graph. No Native build/test or prior geometry cohort was rerun. Native production
+project references remain unchanged; this is a task-local verification projection.
+An initial discovery/restore projection used invalid MSBuild metadata syntax and
+was corrected before compilation. Initial RID restore requested unavailable
+10.0.15 runtime archives from offline feeds. Verification was explicitly switched
+to framework-dependent/no-RID/no-apphost, then locked offline restore and the one
+affected forward build passed. No runtime/package pin or production setting was
+changed and no package was downloaded. Self-contained packaging remains unverified.
+
+Current report
+C:\CodexProjects\Pegasus Cortex\artifacts\validation\gshi-rp-79fa\composition.v1.json
+Focused fixture status:
+C:\CodexProjects\Pegasus Cortex\artifacts\validation\gshi-fx-79fa\run1\enabled\config\geometry-shadow\8eae25f6b9cb49d991da70ff68f01062\status.json
+Earlier audited library checkpoint:
+artifacts/build/current/gshadow-79fa/offline/shadow-runtime-freeze.v1r2.json
+SHA fbdf2305d4af64f2d8d2475270520a694c83a16e85b3fe70d0c752a6875e42e8.
+Library implementation and prior measurements
+The bounded collector retains text only in transient RAM; research files contain
+compact point references, provenance fingerprints, versions, ranks/reach and costs.
+No raw record body, query, SQL, terminal stream or chat transcript is persisted.
+Queue/drop/expiry/revision and failure counters remain explicit. Periodic/final
+summaries retain cumulative counters and bounded revision state; observation
+windows remain bounded and snapshots can be stale. Agreement is not accuracy,
+and labeled feedback counts remain separate. Larger actual-volume impact and
+quality remain unverified; the old small-fixture medians are not causal overhead.
+Full library-stage implementation/bounds/timing detail is preserved at:
+artifacts/build/current/gshi-79fa/offline/CORTEX_R2_GEOMETRY_SHADOW.txt.pre-integration
+This is the historical library-only handoff; pending-wiring statements there are
+superseded by the current source integration above.
+The audited library raw report remains:
+artifacts/validation/gshadow-rp-79fa/diagnostic.final.v1.json
+SHA8f860f20b903652fa822e4a145990df94960694565567a1df433b65284394e95.
+Independent library audit PASS:
+C:\CodexProjects\Pegasus Cerebral\build\CortexPaoTerminals-01a1f50b\shadow-independent-audit.v1.json
+SHAa541f48d476a792c19461a747bd8636416359c315fc5137636edae9c89464364.
+No old quality study or Native/Shadow whole cohort was rerun for integration.
+
+Bounded research measurement extension (source, 2026-11-21)
+Normal shared/user Geometry.Rank and related-record expansion are established
+search behavior and are unchanged. The optional observation wrapper still returns
+the provider's original result object; RankingPublished remains false. Collection
+remains opt-in, with evaluation independently controlled. An absent/off attachment
+adds no per-provider-call collection or SQL trace instrumentation.
+
+Status now reports effective off/collect-only/collect-and-score mode, effective
+EvaluationEnabled, and three fixed current-run elapsed histograms. Their upper
+bounds are 50,100,500,1000,5000,10000,50000,250000 microseconds plus an overflow
+bucket. Counts, sample total, total ticks, maximum ticks and StopwatchFrequency
+are explicit. ForegroundObserverSection covers Observe and its failure handler;
+it EXCLUDES provider await, trace setup/disposal and metric bookkeeping. Worker
+covers one dequeued item including journal IO, excluding periodic upkeep.
+QueueDelay measures monotonic enqueue-to-dequeue elapsed time. These are elapsed
+measurements, not attributed CPU/allocation, total hook cost or causal overhead.
+
+EligiblePointOccurrencesCumulative retains the existing restored counter;
+DistinctAdmittedIdentitiesThisRun counts exact admitted cohort identities,
+including observations whose queued work is later dropped. The set is bounded by
+the already-reviewed cohort of at most2048 exact revisions. It resets per run.
+DistinctPointIdentitiesInWindow is the current bounded window size. Current-run
+histograms also reset; older persisted summaries have unreported/null new fields,
+which must not be presented as a measured zero.
+
+Collection-only still performs observation, point-description and journal work.
+Sampling controls scoring intent, not every registration. No zero-overhead,
+real-user accuracy, false-positive or full-volume throughput claim is made.
+Agreement and positive-target reach remain distinct from correctness; explicit
+negative labels or a complete reviewed gold set are still needed for precision.
+The existing geometry-shadow diagnostic adds all three modes, response reference
+parity, no scoring in collection-only, bucket bounds/totals, distinct counts and
+restored-counter/current-run separation. Actual execution is recorded separately.

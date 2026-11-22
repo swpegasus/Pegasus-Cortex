@@ -1,0 +1,23 @@
+{
+  "schema": "pegasus.cortex.local-operational-package/1.0",
+  "releaseVersion": "1.2026.08.13.00.00.A",
+  "role": "application",
+  "createdAtUtc": "2026-08-13T00:00:00Z",
+  "files": [
+    {
+      "path": "PegasusCortex.dll",
+      "bytes": 45,
+      "sha256": "7f635a772b94cb85e3c755c56ab493484d64c0ead0a23e9a0555c63af6023b02"
+    },
+    {
+      "path": "PegasusCortex.exe",
+      "bytes": 47,
+      "sha256": "8f70f2a54f14eaf49bf3826d70b7fea1547824dd6f44e9df7f5424535cc1511b"
+    },
+    {
+      "path": "PegasusCortex.runtimeconfig.json",
+      "bytes": 37,
+      "sha256": "b6ae53c84e7eebadbb165af0329006fa781ec153a4829dd1b3ec3005dc1e4fe2"
+    }
+  ]
+}

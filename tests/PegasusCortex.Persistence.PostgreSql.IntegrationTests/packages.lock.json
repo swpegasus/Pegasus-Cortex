@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "Npgsql": {
+        "type": "Direct",
+        "requested": "[10.0.3, 10.0.3]",
+        "resolved": "10.0.3",
+        "contentHash": "7nb5YzXuvWWJxB0J8DiyL3we+X4FOctZrt0fIBnucOIaIevFEEwGQVZKtiu9olXdlNAK1eNgqSral6r/jlhI4w==",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.0"
+        }
+      },
+      "Microsoft.Extensions.DependencyInjection.Abstractions": {
+        "type": "Transitive",
+        "resolved": "10.0.0",
+        "contentHash": "L3AdmZ1WOK4XXT5YFPEwyt0ep6l8lGIPs7F5OOBZc77Zqeo01Of7XXICy47628sdVl0v/owxYJTe86DTgFwKCA=="
+      },
+      "Microsoft.Extensions.Logging.Abstractions": {
+        "type": "Transitive",
+        "resolved": "10.0.0",
+        "contentHash": "FU/IfjDfwaMuKr414SSQNTIti/69bHEMb+QKrskRb26oVqpx3lNFXMjs/RC9ZUuhBhcwDM2BwOgoMw+PZ+beqQ==",
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.0"
+        }
+      },
+      "Pegasus.Shared": {
+        "type": "Transitive",
+        "resolved": "1.20260711.421-a",
+        "contentHash": "y5xRnHKpLTfv05rpO5jkWvStaoSiXADXL2SVqcHnCAEbrdvE6hRAoWUlvf0iDkv3i+IUzoNIdNoJX7vmsKKfeg=="
+      },
+      "Pegasus.Cortex.Contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Pegasus.Shared": "[1.20260711.421-a, 1.20260711.421-a]"
+        }
+      },
+      "Pegasus.Cortex.Core": {
+        "type": "Project",
+        "dependencies": {
+          "Pegasus.Cortex.Contracts": "[2.20261120.1132-a, )",
+          "Pegasus.Shared": "[1.20260711.421-a, 1.20260711.421-a]"
+        }
+      },
+      "Pegasus.Cortex.Persistence.PostgreSql": {
+        "type": "Project",
+        "dependencies": {
+          "Pegasus.Cortex.Contracts": "[2.20261120.1132-a, )",
+          "Pegasus.Cortex.Core": "[2.20261120.1132-a, )",
+          "Pegasus.Shared": "[1.20260711.421-a, 1.20260711.421-a]"
+        }
+      },
+      "pegasuscortex.service": {
+        "type": "Project",
+        "dependencies": {
+          "Npgsql": "[10.0.3, 10.0.3]",
+          "Pegasus.Cortex.Persistence.PostgreSql": "[2.20261120.1132-a, )"
+        }
+      }
+    }
+  }
+}

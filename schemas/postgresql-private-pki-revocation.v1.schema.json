@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.pegasus.local/cortex/postgresql-private-pki-revocation.v1.schema.json",
+  "title": "Pegasus Cortex PostgreSQL private-PKI revocation evidence v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "profile",
+    "rootCertificateFile",
+    "serverCertificateFile",
+    "crlFile",
+    "distributionPointUri",
+    "rootCertificateSha256",
+    "serverCertificateSha256",
+    "crlSha256",
+    "maximumResponseBytes",
+    "maximumRequests",
+    "requestTimeoutMilliseconds"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "profile": {
+      "const": "pegasus.cortex.postgresql.private-ca-crl/1"
+    },
+    "rootCertificateFile": {
+      "$ref": "#/$defs/pemLeaf"
+    },
+    "serverCertificateFile": {
+      "$ref": "#/$defs/pemLeaf"
+    },
+    "crlFile": {
+      "$ref": "#/$defs/crlLeaf"
+    },
+    "distributionPointUri": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^http://(127\\.0\\.0\\.1|\\[::1\\]):[0-9]{4,5}/[a-z0-9._-]{1,64}\\.crl$"
+    },
+    "rootCertificateSha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "serverCertificateSha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "crlSha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "maximumResponseBytes": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1048576
+    },
+    "maximumRequests": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 64
+    },
+    "requestTimeoutMilliseconds": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 5000
+    }
+  },
+  "$defs": {
+    "pemLeaf": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 64,
+      "pattern": "^[a-z0-9._-]+\\.pem$"
+    },
+    "crlLeaf": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 64,
+      "pattern": "^[a-z0-9._-]+\\.crl$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "schema": "pegasus.cortex.local-operational-package/1.0",
+  "releaseVersion": "1.2026.08.13.00.00.A",
+  "role": "launcher",
+  "createdAtUtc": "2026-08-13T00:00:00Z",
+  "files": [
+    {
+      "path": "PegasusCortex.exe",
+      "bytes": 40,
+      "sha256": "ceb7bdab251aa6e55974fb7770bae3b518083fd8b921ece915c12249246ae598"
+    }
+  ]
+}

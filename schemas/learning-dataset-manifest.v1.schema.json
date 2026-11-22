@@ -1,0 +1,233 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.pegasus.local/cortex/learning-dataset-manifest.v1.schema.json",
+  "title": "Pegasus Cortex Learning Dataset Manifest v1",
+  "description": "Provider-neutral lineage for an approval-gated, reproducible dataset export. It does not authorize or perform model training.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "contractId",
+    "canonicalization",
+    "datasetId",
+    "definitionRevisionId",
+    "definitionHash",
+    "buildId",
+    "createdAt",
+    "sourceBundleId",
+    "sourceBundleHash",
+    "exportApproval",
+    "intendedUses",
+    "splitPolicy",
+    "transformations",
+    "items",
+    "splits",
+    "artifacts",
+    "contentTreatment",
+    "executable",
+    "modelTrainingPerformed",
+    "manifestHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "pegasus.cortex.learning-dataset-manifest/1.0" },
+    "canonicalization": {
+      "const": "pegasus-canonical-json-v1",
+      "$comment": "Compact UTF-8 without BOM; object member names sorted by ordinal UTF-16 code units; array order preserved; minimal JSON string escaping; base-10 integers. manifestHash is SHA-256 after replacing its value with 64 lowercase zeroes."
+    },
+    "datasetId": { "$ref": "#/$defs/datasetId" },
+    "definitionRevisionId": { "type": "string", "pattern": "^ldef_[0-9a-f]{64}$" },
+    "definitionHash": { "$ref": "#/$defs/sha256" },
+    "buildId": { "type": "string", "pattern": "^lbuild_[0-9a-f]{64}$" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "sourceBundleId": { "type": "string", "pattern": "^lbundle_[0-9a-f]{64}$" },
+    "sourceBundleHash": { "$ref": "#/$defs/sha256" },
+    "exportApproval": { "$ref": "#/$defs/exportApproval" },
+    "intendedUses": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": { "enum": ["evaluation", "fine_tuning", "retrieval"] }
+    },
+    "splitPolicy": { "$ref": "#/$defs/splitPolicy" },
+    "transformations": {
+      "type": "array",
+      "maxItems": 64,
+      "items": { "$ref": "#/$defs/transformation" }
+    },
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10000,
+      "items": { "$ref": "#/$defs/item" }
+    },
+    "splits": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": { "$ref": "#/$defs/splitSummary" }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": { "$ref": "#/$defs/artifact" }
+    },
+    "contentTreatment": { "const": "untrusted_data" },
+    "executable": { "const": false },
+    "modelTrainingPerformed": { "const": false },
+    "manifestHash": { "$ref": "#/$defs/sha256" }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "datasetId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^(?!(?:con|prn|aux|nul|clock\\$|com[1-9]|lpt[1-9])(?:\\.|$))(?!.*\\.\\.)[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9_-])?$"
+    },
+    "safe256": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+    },
+    "safe128": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+    },
+    "safe64": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+    },
+    "safe4096": {
+      "type": "string",
+      "maxLength": 4096,
+      "pattern": "^[^\\u0000-\\u001F\\u007F]*$"
+    },
+    "exportApproval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "policyRevision", "authorityId", "decisionId", "approvedBy", "approvedAt"],
+      "properties": {
+        "state": { "const": "approved" },
+        "policyRevision": { "type": "integer", "minimum": 1 },
+        "authorityId": { "$ref": "#/$defs/safe256" },
+        "decisionId": { "$ref": "#/$defs/safe256" },
+        "approvedBy": { "$ref": "#/$defs/safe256" },
+        "approvedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "splitPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "salt", "trainBasisPoints", "validationBasisPoints", "testBasisPoints"],
+      "properties": {
+        "algorithm": { "const": "sha256-leakage-group-v1" },
+        "salt": { "type": "string", "minLength": 16, "maxLength": 128 },
+        "trainBasisPoints": { "type": "integer", "minimum": 1, "maximum": 10000 },
+        "validationBasisPoints": { "type": "integer", "minimum": 0, "maximum": 9999 },
+        "testBasisPoints": { "type": "integer", "minimum": 0, "maximum": 9999 }
+      }
+    },
+    "transformation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "parameters"],
+      "properties": {
+        "id": { "$ref": "#/$defs/safe128" },
+        "version": { "$ref": "#/$defs/safe64" },
+        "parameters": {
+          "type": "object",
+          "maxProperties": 32,
+          "propertyNames": { "$ref": "#/$defs/safe256" },
+          "additionalProperties": { "$ref": "#/$defs/safe4096" }
+        }
+      }
+    },
+    "item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "itemId",
+        "recordId",
+        "revisionId",
+        "namespace",
+        "split",
+        "leakageGroupHash",
+        "sourceContentHash",
+        "reviewEnvelopeHash",
+        "transformationSetHash",
+        "outputRecordSha256",
+        "outputOffset",
+        "outputBytes",
+        "approvedBy",
+        "approvedAt",
+        "approvalPolicyRevision",
+        "approvalAuthorityId",
+        "approvalDecisionId",
+        "usageRights",
+        "sensitivity",
+        "redactionDecision"
+      ],
+      "properties": {
+        "itemId": { "type": "string", "pattern": "^litem_[0-9a-f]{64}$" },
+        "recordId": { "$ref": "#/$defs/safe256" },
+        "revisionId": { "$ref": "#/$defs/safe256" },
+        "namespace": { "$ref": "#/$defs/safe256" },
+        "split": { "enum": ["train", "validation", "test"] },
+        "leakageGroupHash": { "$ref": "#/$defs/sha256" },
+        "sourceContentHash": { "$ref": "#/$defs/sha256" },
+        "reviewEnvelopeHash": { "$ref": "#/$defs/sha256" },
+        "transformationSetHash": { "$ref": "#/$defs/sha256" },
+        "outputRecordSha256": { "$ref": "#/$defs/sha256" },
+        "outputOffset": { "type": "integer", "minimum": 0 },
+        "outputBytes": { "type": "integer", "minimum": 1, "maximum": 1048576 },
+        "approvedBy": { "$ref": "#/$defs/safe256" },
+        "approvedAt": { "type": "string", "format": "date-time" },
+        "approvalPolicyRevision": { "type": "integer", "minimum": 1 },
+        "approvalAuthorityId": { "$ref": "#/$defs/safe256" },
+        "approvalDecisionId": { "$ref": "#/$defs/safe256" },
+        "usageRights": { "const": "training_and_evaluation" },
+        "sensitivity": { "enum": ["public", "internal"] },
+        "redactionDecision": { "enum": ["not_required", "applied_and_verified"] }
+      }
+    },
+    "splitSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "itemCount", "lineageHash"],
+      "properties": {
+        "name": { "enum": ["train", "validation", "test"] },
+        "itemCount": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "lineageHash": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relativePath", "mediaType", "adapterId", "adapterVersion", "sha256", "bytes", "itemCount"],
+      "properties": {
+        "relativePath": {
+          "type": "string",
+          "maxLength": 256,
+          "pattern": "^(?!(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Ll][Oo][Cc][Kk]\\$|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.|$))(?![Ll][Ee][Aa][Rr][Nn][Ii][Nn][Gg]-[Dd][Aa][Tt][Aa][Ss][Ee][Tt]-[Mm][Aa][Nn][Ii][Ff][Ee][Ss][Tt]\\.[Vv]1\\.[Jj][Ss][Oo][Nn]$)(?!.*\\.\\.)[A-Za-z0-9](?:[A-Za-z0-9._-]{0,254}[A-Za-z0-9_-])?$"
+        },
+        "mediaType": { "$ref": "#/$defs/safe256" },
+        "adapterId": { "$ref": "#/$defs/safe128" },
+        "adapterVersion": { "$ref": "#/$defs/safe64" },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "bytes": { "type": "integer", "minimum": 1, "maximum": 8589934592 },
+        "itemCount": { "type": "integer", "minimum": 1, "maximum": 10000 }
+      }
+    }
+  }
+}

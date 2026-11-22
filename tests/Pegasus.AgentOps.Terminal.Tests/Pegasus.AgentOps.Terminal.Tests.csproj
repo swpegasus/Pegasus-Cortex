@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <AgentOpsNeedsProcessHost>true</AgentOpsNeedsProcessHost>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Pegasus.AgentOps.Engine\Pegasus.AgentOps.Engine.csproj" />
+    <ProjectReference Include="..\..\src\Pegasus.AgentOps.ProcessHost\Pegasus.AgentOps.ProcessHost.csproj"
+                      ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\src\pao\pao.csproj" />
+  </ItemGroup>
+</Project>

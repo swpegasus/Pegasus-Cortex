@@ -1,0 +1,27 @@
+Pegasus Cortex Prod Alpha
+
+This is a public development release of Pegasus Cortex by Shayne Winter.
+
+Pegasus Community License 1.0 covers the first-party source and compiled product,
+including the bundled first-party Pegasus.Shared package and SharedMcp snapshot.
+Personal use is free. Organizations with combined annual group revenue below
+US$10 million may use it commercially under the community terms. At or above
+that threshold, a separate signed commercial agreement is required. Read the
+complete Pegasus-Community-License-1.0.txt included in this folder.
+
+Project and downloads: https://github.com/swpegasus/Pegasus-Cortex
+Project website: https://cerebral.shaynewinter.com/cortex/
+Author and licensing contact: https://shaynewinter.com/
+
+Pegasus Cortex includes third-party components distributed under their own
+license terms. The complete notices, license texts, dependency provenance, and
+runtime-asset records are installed in the product's licenses folder.
+
+Public package-verification certificates may be included. Signing private keys,
+local MCP private keys, user certificate stores and personal data are not part
+of the distribution. New installations create or select their own local MCP
+certificate configuration through the product's explicit setup controls.
+
+Setup preserves an existing Cortex data location and its databases by default.
+Publisher trust and Codex integration are separate optional features and are
+changed only when explicitly selected.

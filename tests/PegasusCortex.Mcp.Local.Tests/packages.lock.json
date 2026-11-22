@@ -1,0 +1,181 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0-windows7.0": {
+      "Microsoft.Data.Sqlite": {
+        "type": "Transitive",
+        "resolved": "10.0.10",
+        "contentHash": "58JwZ39lCvRXHfV5O6RQfbHEDu8ZsXI7weRoVRR4jrGRxxkS+qyeuGrN2xD+9VYEICApYr0iTSL6PuU+DdsvPg==",
+        "dependencies": {
+          "Microsoft.Data.Sqlite.Core": "10.0.10",
+          "SQLitePCLRaw.bundle_e_sqlite3": "2.1.11",
+          "SQLitePCLRaw.core": "2.1.11"
+        }
+      },
+      "Microsoft.Data.Sqlite.Core": {
+        "type": "Transitive",
+        "resolved": "10.0.10",
+        "contentHash": "TPCs0ldm7AWqcKmp6f/Xr+14sat7hx4rHfRlS4RgCURBH2thEWbAKEyX7cCWr63zVJVOJIJZTg2cBiUXa8ys6g==",
+        "dependencies": {
+          "SQLitePCLRaw.core": "2.1.11"
+        }
+      },
+      "Pegasus.Shared": {
+        "type": "Transitive",
+        "resolved": "1.20260711.421-a",
+        "contentHash": "y5xRnHKpLTfv05rpO5jkWvStaoSiXADXL2SVqcHnCAEbrdvE6hRAoWUlvf0iDkv3i+IUzoNIdNoJX7vmsKKfeg=="
+      },
+      "SQLitePCLRaw.bundle_e_sqlite3": {
+        "type": "Transitive",
+        "resolved": "2.1.11",
+        "contentHash": "DC4nA7yWnf4UZdgJDF+9Mus4/cb0Y3Sfgi3gDnAoKNAIBwzkskNAbNbyu+u4atT0ruVlZNJfwZmwiEwE5oz9LQ==",
+        "dependencies": {
+          "SQLitePCLRaw.lib.e_sqlite3": "2.1.11",
+          "SQLitePCLRaw.provider.e_sqlite3": "2.1.11"
+        }
+      },
+      "SQLitePCLRaw.core": {
+        "type": "Transitive",
+        "resolved": "2.1.11",
+        "contentHash": "PK0GLFkfhZzLQeR3PJf71FmhtHox+U3vcY6ZtswoMjrefkB9k6ErNJEnwXqc5KgXDSjige2XXrezqS39gkpQKA=="
+      },
+      "SQLitePCLRaw.lib.e_sqlite3": {
+        "type": "Transitive",
+        "resolved": "2.1.12",
+        "contentHash": "fWi8Dbknuhgg72fWinIdjXVaqO1hHL4YBBwVLnr7e1c9TAZwJ0QE38j9syW1hwx6HaqEVTwI+O07WPdZn8Rp0w=="
+      },
+      "SQLitePCLRaw.provider.e_sqlite3": {
+        "type": "Transitive",
+        "resolved": "2.1.11",
+        "contentHash": "Y/0ZkR+r0Cg3DQFuCl1RBnv/tmxpIZRU3HUvelPw6MVaKHwYYR8YNvgs0vuNuXCMvlyJ+Fh88U1D4tah1tt6qw==",
+        "dependencies": {
+          "SQLitePCLRaw.core": "2.1.11"
+        }
+      },
+      "pao": {
+        "type": "Project",
+        "dependencies": {
+          "Pegasus.AgentOps.Engine": "[2.20261121.1902-a, )",
+          "Pegasus.AgentOps.Protocol": "[2.20261121.1902-a, )",
+          "Pegasus.Cortex.Product": "[2.20261121.1902-a, )"
+        }
+      },
+      "pegasus.agentops.certificates": {
+        "type": "Project"
+      },
+      "pegasus.agentops.engine": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.Data.Sqlite": "[10.0.10, )",
+          "Pegasus.AgentOps.Certificates": "[2.20261121.1902-a, )",
+          "Pegasus.AgentOps.Protocol": "[2.20261121.1902-a, )",
+          "Pegasus.AgentOps.Windows.Registry": "[2.20261121.1902-a, )",
+          "Pegasus.Cortex.Product": "[2.20261121.1902-a, )",
+          "SQLitePCLRaw.lib.e_sqlite3": "[2.1.12, )"
+        }
+      },
+      "pegasus.agentops.protocol": {
+        "type": "Project",
+        "dependencies": {
+          "Pegasus.Cortex.Product": "[2.20261121.1902-a, )"
+        }
+      },
+      "pegasus.agentops.windows.registry": {
+        "type": "Project"
+      },
+      "Pegasus.Cortex.Contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Pegasus.Shared": "[1.20260711.421-a, 1.20260711.421-a]"
+        }
+      },
+      "Pegasus.Cortex.Core": {
+        "type": "Project",
+        "dependencies": {
+          "Pegasus.Cortex.Contracts": "[2.20261121.1902-a, )",
+          "Pegasus.Shared": "[1.20260711.421-a, 1.20260711.421-a]"
+        }
+      },
+      "Pegasus.Cortex.DefaultLibrary": {
+        "type": "Project",
+        "dependencies": {
+          "Pegasus.Cortex.Contracts": "[2.20261121.1902-a, )",
+          "Pegasus.Shared": "[1.20260711.421-a, 1.20260711.421-a]"
+        }
+      },
+      "Pegasus.Cortex.LocalTransport": {
+        "type": "Project"
+      },
+      "Pegasus.Cortex.OfflineJournal": {
+        "type": "Project",
+        "dependencies": {
+          "Pegasus.Cortex.Contracts": "[2.20261121.1902-a, )",
+          "Pegasus.Shared": "[1.20260711.421-a, 1.20260711.421-a]"
+        }
+      },
+      "Pegasus.Cortex.Persistence.File": {
+        "type": "Project",
+        "dependencies": {
+          "Pegasus.Cortex.Contracts": "[2.20261121.1902-a, )",
+          "Pegasus.Cortex.Core": "[2.20261121.1902-a, )"
+        }
+      },
+      "Pegasus.Cortex.Persistence.Sqlite": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.Data.Sqlite": "[10.0.10, 10.0.10]",
+          "Pegasus.Cortex.Contracts": "[2.20261121.1902-a, )",
+          "Pegasus.Cortex.Core": "[2.20261121.1902-a, )",
+          "SQLitePCLRaw.lib.e_sqlite3": "[2.1.12, 2.1.12]"
+        }
+      },
+      "Pegasus.Cortex.Product": {
+        "type": "Project"
+      },
+      "pegasuscortex.geometry.shadow": {
+        "type": "Project",
+        "dependencies": {
+          "Pegasus.Cortex.Persistence.Sqlite": "[2.20261121.1902-a, )"
+        }
+      },
+      "pegasuscortex.mcp": {
+        "type": "Project",
+        "dependencies": {
+          "Pegasus.Cortex.Core": "[2.20261121.1902-a, )",
+          "Pegasus.Cortex.DefaultLibrary": "[2.20261121.1902-a, )"
+        }
+      },
+      "pegasuscortex.mcp.hosting": {
+        "type": "Project",
+        "dependencies": {
+          "Pegasus.Cortex.Product": "[2.20261121.1902-a, )",
+          "SharedMcp": "[0.1.0-dev, )"
+        }
+      },
+      "pegasuscortex.mcp.local": {
+        "type": "Project",
+        "dependencies": {
+          "Pegasus.Cortex.LocalTransport": "[2.20261121.1902-a, )",
+          "Pegasus.Cortex.OfflineJournal": "[2.20261121.1902-a, )",
+          "Pegasus.Cortex.Persistence.File": "[2.20261121.1902-a, )",
+          "Pegasus.Cortex.Persistence.Sqlite": "[2.20261121.1902-a, )",
+          "Pegasus.Cortex.Product": "[2.20261121.1902-a, )",
+          "PegasusCortex.Geometry.Shadow": "[2.20261121.1902-a, )",
+          "PegasusCortex.Mcp": "[2.20261121.1902-a, )",
+          "PegasusCortex.Mcp.Hosting": "[2.20261121.1902-a, )",
+          "pao": "[2.20261121.1902-a, )"
+        }
+      },
+      "sharedmcp": {
+        "type": "Project"
+      }
+    },
+    "net10.0-windows7.0/win-x64": {
+      "SQLitePCLRaw.lib.e_sqlite3": {
+        "type": "Transitive",
+        "resolved": "2.1.12",
+        "contentHash": "fWi8Dbknuhgg72fWinIdjXVaqO1hHL4YBBwVLnr7e1c9TAZwJ0QE38j9syW1hwx6HaqEVTwI+O07WPdZn8Rp0w=="
+      }
+    }
+  }
+}

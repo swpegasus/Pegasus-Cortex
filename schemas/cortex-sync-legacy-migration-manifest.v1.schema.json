@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pegasus.local/schemas/cortex/cortex-sync-legacy-migration-manifest.v1.schema.json",
+  "title": "Pegasus Cortex copy-first legacy migration manifest v1",
+  "description": "Local inventory for copying Codex Cortex 0.2 state without source mutation, cleanup, or cutover authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "contractId", "canonicalization", "migrationId", "storeId", "storeEpoch",
+    "projectId", "sourceRootId", "sourceSchemaVersion", "sourcePathStyle", "sourcePathCaseSensitive",
+    "sourceProjectRootExact", "sourceMetaPathExact", "sourceMetaBytes", "sourceMetaSha256",
+    "capturedAt", "manifestRevision", "previousManifestHash", "files", "copyMode", "sourceMutationAllowed", "cleanupState", "cutoverState",
+    "reconciliationRequired", "extensions", "manifestHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "pegasus.cortex.legacy-migration-manifest/1.0" },
+    "canonicalization": { "const": "pegasus-canonical-json-v1" },
+    "migrationId": { "$ref": "#/$defs/identifier" },
+    "storeId": { "$ref": "#/$defs/identifier" },
+    "storeEpoch": { "$ref": "#/$defs/identifier" },
+    "projectId": { "$ref": "#/$defs/identifier" },
+    "sourceRootId": { "$ref": "#/$defs/identifier" },
+    "sourceSchemaVersion": { "const": "0.2" },
+    "sourcePathStyle": { "enum": ["windows", "posix"] },
+    "sourcePathCaseSensitive": { "type": "boolean" },
+    "sourceProjectRootExact": { "$ref": "#/$defs/exactPath" },
+    "sourceMetaPathExact": { "$ref": "#/$defs/exactPath" },
+    "sourceMetaBytes": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+    "sourceMetaSha256": { "$ref": "#/$defs/hash" },
+    "capturedAt": { "$ref": "#/$defs/utcDateTime" },
+    "manifestRevision": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+    "previousManifestHash": { "$ref": "#/$defs/hash" },
+    "files": { "type": "array", "minItems": 1, "maxItems": 4096, "items": { "$ref": "#/$defs/file" } },
+    "copyMode": { "const": "copy_first" },
+    "sourceMutationAllowed": { "const": false },
+    "cleanupState": { "const": "prohibited_until_separate_approval" },
+    "cutoverState": { "const": "not_approved" },
+    "reconciliationRequired": { "const": true },
+    "extensions": { "$ref": "#/$defs/extensions" },
+    "manifestHash": { "$ref": "#/$defs/hash" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "manifestRevision": { "const": 1 } }, "required": ["manifestRevision"] },
+      "then": { "properties": { "previousManifestHash": { "const": "0000000000000000000000000000000000000000000000000000000000000000" } } },
+      "else": { "properties": { "previousManifestHash": { "not": { "const": "0000000000000000000000000000000000000000000000000000000000000000" } } } }
+    }
+  ],
+  "$defs": {
+    "identifier": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" },
+    "contractId": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*/[0-9]+\\.[0-9]+$" },
+    "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "utcDateTime": { "type": "string", "format": "date-time", "pattern": "(?:Z|\\+00:00)$" },
+    "exactPath": { "type": "string", "minLength": 1, "maxLength": 1024, "pattern": "^[^\u0000-\u001F\u007F]+$" },
+    "relativePath": {
+      "type": "string", "minLength": 1, "maxLength": 512,
+      "pattern": "^(?![\\\\/])(?![A-Za-z]:)(?!.*(?:^|[\\\\/])\\.{1,2}(?:[\\\\/]|$))[^:\u0000-\u001F\u007F]+$"
+    },
+    "file": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "role", "exactSourcePath", "sourceRelativePath", "sourceBytes", "sourceSha256",
+        "disposition", "lifecycleState", "reasonCode", "reason", "mappedIds", "mappedPayloadContractIds",
+        "evidenceIds", "receiptIds"
+      ],
+      "properties": {
+        "role": { "$ref": "#/$defs/identifier" },
+        "exactSourcePath": { "$ref": "#/$defs/exactPath" },
+        "sourceRelativePath": { "$ref": "#/$defs/relativePath" },
+        "sourceBytes": { "oneOf": [{ "type": "null" }, { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }] },
+        "sourceSha256": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/hash" }] },
+        "disposition": {
+          "enum": [
+            "discovered_unmapped", "mapped_structured", "copied_verbatim", "preserved_unsupported",
+            "excluded_sensitive", "rejected_unsafe", "missing_declared"
+          ]
+        },
+        "lifecycleState": {
+          "enum": ["discovered", "copied", "validated", "uploaded", "read_back", "reconciled", "conflict", "rejected"]
+        },
+        "reasonCode": { "$ref": "#/$defs/identifier" },
+        "reason": { "type": "string", "minLength": 1, "maxLength": 1024 },
+        "mappedIds": { "type": "array", "maxItems": 64, "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "mappedPayloadContractIds": { "type": "array", "maxItems": 64, "uniqueItems": true, "items": { "$ref": "#/$defs/contractId" } },
+        "evidenceIds": { "type": "array", "maxItems": 32, "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "receiptIds": { "type": "array", "maxItems": 16, "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "disposition": { "enum": ["rejected_unsafe", "missing_declared"] } },
+            "required": ["disposition"]
+          },
+          "then": {
+            "properties": {
+              "sourceBytes": { "type": "null" }, "sourceSha256": { "type": "null" },
+              "mappedIds": { "maxItems": 0 }, "mappedPayloadContractIds": { "maxItems": 0 },
+              "lifecycleState": { "const": "rejected" }
+            }
+          },
+          "else": {
+            "properties": {
+              "sourceBytes": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+              "sourceSha256": { "$ref": "#/$defs/hash" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "disposition": { "const": "excluded_sensitive" } }, "required": ["disposition"] },
+          "then": { "properties": { "lifecycleState": { "const": "rejected" } } }
+        },
+        {
+          "if": { "properties": { "disposition": { "const": "discovered_unmapped" } }, "required": ["disposition"] },
+          "then": {
+            "properties": {
+              "lifecycleState": { "const": "discovered" },
+              "mappedIds": { "maxItems": 0 }, "mappedPayloadContractIds": { "maxItems": 0 }, "receiptIds": { "maxItems": 0 }
+            }
+          },
+          "else": { "properties": { "lifecycleState": { "not": { "const": "discovered" } } } }
+        },
+        {
+          "if": {
+            "properties": { "disposition": { "enum": ["mapped_structured", "copied_verbatim", "preserved_unsupported"] } },
+            "required": ["disposition"]
+          },
+          "then": {
+            "properties": { "mappedIds": { "minItems": 1 }, "mappedPayloadContractIds": { "minItems": 1 } }
+          },
+          "else": {
+            "properties": { "mappedIds": { "maxItems": 0 }, "mappedPayloadContractIds": { "maxItems": 0 } }
+          }
+        },
+        {
+          "if": {
+            "properties": { "lifecycleState": { "enum": ["copied", "validated", "uploaded", "read_back", "reconciled", "conflict"] } },
+            "required": ["lifecycleState"]
+          },
+          "then": { "properties": { "evidenceIds": { "minItems": 1 } } }
+        },
+        {
+          "if": {
+            "properties": { "lifecycleState": { "enum": ["uploaded", "read_back", "reconciled", "conflict"] } },
+            "required": ["lifecycleState"]
+          },
+          "then": { "properties": { "receiptIds": { "minItems": 1 } } }
+        }
+      ]
+    },
+    "extension": {
+      "type": "object", "additionalProperties": false,
+      "required": ["contractId", "required", "payloadBase64Url", "payloadBytes", "payloadSha256"],
+      "properties": {
+        "contractId": { "$ref": "#/$defs/contractId" },
+        "required": { "type": "boolean" },
+        "payloadBase64Url": { "type": "string", "minLength": 2, "maxLength": 21848, "pattern": "^[A-Za-z0-9_-]+$" },
+        "payloadBytes": { "type": "integer", "minimum": 1, "maximum": 16384 },
+        "payloadSha256": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "extensions": { "type": "array", "maxItems": 16, "items": { "$ref": "#/$defs/extension" } }
+  }
+}

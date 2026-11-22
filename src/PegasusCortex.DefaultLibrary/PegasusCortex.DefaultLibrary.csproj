@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <DefaultLibrarySeedVersion>1.2026.07.11.13.25.A</DefaultLibrarySeedVersion>
+    <PackageId>Pegasus.Cortex.DefaultLibrary</PackageId>
+    <Title>Pegasus Cortex Default Library</Title>
+    <Description>Portable, evidence-backed default knowledge contracts, seed bundle, validation, import, and safe lexical retrieval for Pegasus Cortex.</Description>
+    <Authors>Pegasus</Authors>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageReadmeFile>DEFAULT_LIBRARY_V1.md</PackageReadmeFile>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)..\..\artifacts\packages\$(PegasusReleaseVersion)</PackageOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Pegasus.Shared" Version="[1.20260711.421-a]" />
+    <ProjectReference Include="..\PegasusCortex.Contracts\PegasusCortex.Contracts.csproj" />
+    <None Include="..\..\docs\DEFAULT_LIBRARY_V1.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\docs\DEFAULT_LIBRARY_SOURCE_POLICY.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\docs\DEFAULT_LIBRARY_SOURCE_POLICY_1325.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\VERSION.json" Pack="true" PackagePath="\" />
+    <None Include="..\..\schemas\default-library-bundle.v1.schema.json" Pack="true" PackagePath="schemas\" />
+    <None Include="..\..\artifacts\seeds\$(DefaultLibrarySeedVersion)\pegasus-cortex-default-library.v1.json"
+          Condition="Exists('..\..\artifacts\seeds\$(DefaultLibrarySeedVersion)\pegasus-cortex-default-library.v1.json')"
+          Pack="true"
+          PackagePath="seed\" />
+  </ItemGroup>
+</Project>

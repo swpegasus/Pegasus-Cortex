@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pegasus.local/schemas/cortex/cortex-sync-offline-bundle.v1.schema.json",
+  "title": "Pegasus Cortex immutable offline bundle and event v1",
+  "description": "Closed, bounded, non-authoritative events with canonical payload bytes and sequence/hash chaining.",
+  "oneOf": [{ "$ref": "#/$defs/offlineEvent" }, { "$ref": "#/$defs/offlineBundle" }],
+  "$defs": {
+    "identifier": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" },
+    "namespace": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" },
+    "contractId": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*/[0-9]+\\.[0-9]+$" },
+    "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "utcDateTime": { "type": "string", "format": "date-time", "pattern": "(?:Z|\\+00:00)$" },
+    "relativePath": {
+      "type": "string", "minLength": 1, "maxLength": 512,
+      "pattern": "^(?![\\\\/])(?![A-Za-z]:)(?!.*(?:^|[\\\\/])\\.{1,2}(?:[\\\\/]|$))[^:\u0000-\u001F\u007F]+$"
+    },
+    "extension": {
+      "type": "object", "additionalProperties": false,
+      "required": ["contractId", "required", "payloadBase64Url", "payloadBytes", "payloadSha256"],
+      "properties": {
+        "contractId": { "$ref": "#/$defs/contractId" },
+        "required": { "type": "boolean" },
+        "payloadBase64Url": { "type": "string", "minLength": 2, "maxLength": 21848, "pattern": "^[A-Za-z0-9_-]+$" },
+        "payloadBytes": { "type": "integer", "minimum": 1, "maximum": 16384 },
+        "payloadSha256": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "extensions": { "type": "array", "maxItems": 16, "items": { "$ref": "#/$defs/extension" } },
+    "sourceProvenance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sourceKind", "sourceRootId", "sourceRelativePath", "sourceBytes", "sourceSha256", "capturedAt"],
+      "properties": {
+        "sourceKind": { "enum": ["client_operation", "legacy_file_copy"] },
+        "sourceRootId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "sourceRelativePath": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/relativePath" }] },
+        "sourceBytes": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "sourceSha256": { "$ref": "#/$defs/hash" },
+        "capturedAt": { "$ref": "#/$defs/utcDateTime" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "sourceKind": { "const": "client_operation" } }, "required": ["sourceKind"] },
+          "then": { "properties": { "sourceRootId": { "type": "null" }, "sourceRelativePath": { "type": "null" } } },
+          "else": { "properties": { "sourceRootId": { "$ref": "#/$defs/identifier" }, "sourceRelativePath": { "$ref": "#/$defs/relativePath" } } }
+        }
+      ]
+    },
+    "offlineEvent": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "schemaVersion", "contractId", "canonicalization", "storeId", "storeEpoch", "projectId",
+        "sequence", "eventId", "previousEventHash", "occurredAt", "producerInstanceId", "operationId",
+        "tenantIdHint", "namespaceHint", "observedPolicyRevision", "payloadContractId",
+        "payloadBase64Url", "payloadBytes", "payloadSha256", "source", "contentTreatment",
+        "executable", "extensions", "eventHash"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "contractId": { "const": "pegasus.cortex.offline-event/1.0" },
+        "canonicalization": { "const": "pegasus-canonical-json-v1" },
+        "storeId": { "$ref": "#/$defs/identifier" },
+        "storeEpoch": { "$ref": "#/$defs/identifier" },
+        "projectId": { "$ref": "#/$defs/identifier" },
+        "sequence": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "eventId": { "$ref": "#/$defs/identifier" },
+        "previousEventHash": { "$ref": "#/$defs/hash" },
+        "occurredAt": { "$ref": "#/$defs/utcDateTime" },
+        "producerInstanceId": { "$ref": "#/$defs/identifier" },
+        "operationId": { "$ref": "#/$defs/identifier" },
+        "tenantIdHint": { "$ref": "#/$defs/identifier" },
+        "namespaceHint": { "$ref": "#/$defs/namespace" },
+        "observedPolicyRevision": { "oneOf": [{ "type": "null" }, { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }] },
+        "payloadContractId": { "$ref": "#/$defs/contractId" },
+        "payloadBase64Url": { "type": "string", "minLength": 2, "maxLength": 699052, "pattern": "^[A-Za-z0-9_-]+$" },
+        "payloadBytes": { "type": "integer", "minimum": 1, "maximum": 524288 },
+        "payloadSha256": { "$ref": "#/$defs/hash" },
+        "source": { "$ref": "#/$defs/sourceProvenance" },
+        "contentTreatment": { "const": "untrusted_data" },
+        "executable": { "const": false },
+        "extensions": { "$ref": "#/$defs/extensions" },
+        "eventHash": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "offlineBundle": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "schemaVersion", "contractId", "canonicalization", "bundleId", "storeId", "storeEpoch",
+        "projectId", "baseServerRevision", "previousBundleHash", "priorEventHash", "firstSequence",
+        "lastSequence", "createdAt", "events", "extensions", "bundleHash"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "contractId": { "const": "pegasus.cortex.offline-bundle/1.0" },
+        "canonicalization": { "const": "pegasus-canonical-json-v1" },
+        "bundleId": { "$ref": "#/$defs/identifier" },
+        "storeId": { "$ref": "#/$defs/identifier" },
+        "storeEpoch": { "$ref": "#/$defs/identifier" },
+        "projectId": { "$ref": "#/$defs/identifier" },
+        "baseServerRevision": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "previousBundleHash": { "$ref": "#/$defs/hash" },
+        "priorEventHash": { "$ref": "#/$defs/hash" },
+        "firstSequence": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "lastSequence": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "createdAt": { "$ref": "#/$defs/utcDateTime" },
+        "events": { "type": "array", "minItems": 1, "maxItems": 256, "items": { "$ref": "#/$defs/offlineEvent" } },
+        "extensions": { "$ref": "#/$defs/extensions" },
+        "bundleHash": { "$ref": "#/$defs/hash" }
+      }
+    }
+  }
+}

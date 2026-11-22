@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PegasusCortex.Product\PegasusCortex.Product.csproj" />
+    <!-- Pinned neutral-core source snapshot; provenance records the shared owner's exact bytes. -->
+    <ProjectReference Include="..\..\third_party\SharedMcp\SharedMcp.csproj" />
+    <InternalsVisibleTo Include="Pegasus.AgentOps.Tests" />
+  </ItemGroup>
+</Project>

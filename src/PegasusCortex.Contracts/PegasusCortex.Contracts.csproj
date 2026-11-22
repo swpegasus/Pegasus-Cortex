@@ -1,0 +1,83 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageId>Pegasus.Cortex.Contracts</PackageId>
+    <Title>Pegasus Cortex Contracts</Title>
+    <Description>Passive, provider-neutral Pegasus Cortex service and learning-feedback contracts.</Description>
+    <Authors>Pegasus</Authors>
+    <IsPackable>true</IsPackable>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageReadmeFile>CHECKPOINT_1.2026.07.14.18.28.A.md</PackageReadmeFile>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)..\..\artifacts\packages\$(PegasusReleaseVersion)</PackageOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Pegasus.Shared" Version="[1.20260711.421-a]" />
+    <None Include="..\..\docs\CHECKPOINT_1.2026.07.14.18.28.A.md"
+          Pack="true"
+          PackagePath="\" />
+    <None Include="..\..\docs\CORTEX_SYNC_AND_LEGACY_MIGRATION_V1.md"
+          Pack="true"
+          PackagePath="\" />
+    <None Include="..\..\VERSION.json" Pack="true" PackagePath="\" />
+    <None Include="..\..\schemas\learning-feedback-proposal.v1.schema.json"
+          Pack="true"
+          PackagePath="schemas\" />
+    <None Include="..\..\schemas\learning-feedback-review-decision.v1.schema.json"
+          Pack="true"
+          PackagePath="schemas\" />
+    <None Include="..\..\schemas\learning-feedback-audit-assessment.v1.schema.json"
+          Pack="true"
+          PackagePath="schemas\" />
+    <None Include="..\..\schemas\learning-feedback-review-grant.v1.schema.json"
+          Pack="true"
+          PackagePath="schemas\" />
+    <None Include="..\..\schemas\learning-feedback-publication-change.v1.schema.json"
+          Pack="true"
+          PackagePath="schemas\" />
+    <None Include="..\..\schemas\cortex-query-contracts.v1.schema.json"
+          Pack="true"
+          PackagePath="schemas\" />
+    <None Include="..\..\schemas\cortex-query-fingerprint-v1.vectors.json"
+          Pack="true"
+          PackagePath="schemas\" />
+    <None Include="..\..\schemas\cortex-sync-capabilities.v1.schema.json"
+          Pack="true"
+          PackagePath="schemas\" />
+    <None Include="..\..\schemas\cortex-sync-legacy-migration-manifest.v1.schema.json"
+          Pack="true"
+          PackagePath="schemas\" />
+    <None Include="..\..\schemas\cortex-sync-legacy-migration-inventory.v1.schema.json"
+          Pack="true"
+          PackagePath="schemas\" />
+    <None Include="..\..\schemas\cortex-sync-legacy-migration-page.v1.schema.json"
+          Pack="true"
+          PackagePath="schemas\" />
+    <None Include="..\..\schemas\cortex-sync-legacy-migration-record.v1.schema.json"
+          Pack="true"
+          PackagePath="schemas\" />
+    <None Include="..\..\schemas\cortex-sync-legacy-file-copy-payload.v1.schema.json"
+          Pack="true"
+          PackagePath="schemas\" />
+    <None Include="..\..\schemas\cortex-sync-local-store-manifest.v1.schema.json"
+          Pack="true"
+          PackagePath="schemas\" />
+    <None Include="..\..\schemas\cortex-sync-offline-bundle.v1.schema.json"
+          Pack="true"
+          PackagePath="schemas\" />
+    <None Include="..\..\schemas\cortex-sync-receipt.v1.schema.json"
+          Pack="true"
+          PackagePath="schemas\" />
+    <None Include="..\..\schemas\agent-work-packet.v1.schema.json"
+          Pack="true"
+          PackagePath="schemas\" />
+    <None Include="..\..\schemas\agent-work-packet-handoff-receipt.v1.schema.json"
+          Pack="true"
+          PackagePath="schemas\" />
+    <None Include="..\..\schemas\agent-work-packet-acceptance-receipt.v1.schema.json"
+          Pack="true"
+          PackagePath="schemas\" />
+    <None Include="..\..\schemas\agent-task-snapshot.v1.schema.json"
+          Pack="true"
+          PackagePath="schemas\" />
+  </ItemGroup>
+</Project>

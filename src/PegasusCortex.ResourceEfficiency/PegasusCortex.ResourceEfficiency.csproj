@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageId>Pegasus.Cortex.ResourceEfficiency</PackageId>
+    <Title>Pegasus Cortex Resource Efficiency</Title>
+    <Description>Bounded streaming, backpressure, cache ownership, retention paging, disposal, and content-safe resource metrics for Pegasus Cortex.</Description>
+    <Authors>Pegasus</Authors>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageReadmeFile>RESOURCE_EFFICIENCY_V1.md</PackageReadmeFile>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)..\..\artifacts\packages\$(PegasusReleaseVersion)</PackageOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PegasusCortex.DefaultLibrary\PegasusCortex.DefaultLibrary.csproj" />
+    <None Include="..\..\docs\RESOURCE_EFFICIENCY_V1.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\VERSION.json" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>

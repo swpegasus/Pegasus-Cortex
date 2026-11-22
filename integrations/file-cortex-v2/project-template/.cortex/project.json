@@ -1,0 +1,12 @@
+{
+  "schema": "pegasus.cortex.file-project/2.0",
+  "projectId": "portable-project",
+  "writeNamespace": "project.portable",
+  "readNamespaces": [
+    "project.portable",
+    "shared.programming"
+  ],
+  "hotMaximumUtf8Bytes": 4096,
+  "chunkMaximumRecords": 32,
+  "chunkMaximumUtf8Bytes": 65536
+}

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>PegasusCortex.Mcp.Integrated.Tests</AssemblyName>
+    <RootNamespace>Pegasus.Cortex.Mcp.Integrated.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RestoreLockedMode>true</RestoreLockedMode>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\PegasusCortex.Mcp.Integrated\PegasusCortex.Mcp.Integrated.csproj" />
+  </ItemGroup>
+</Project>

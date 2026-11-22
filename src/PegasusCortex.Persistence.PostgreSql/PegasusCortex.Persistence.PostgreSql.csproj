@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageId>Pegasus.Cortex.Persistence.PostgreSql</PackageId>
+    <Title>Pegasus Cortex PostgreSQL Persistence</Title>
+    <Description>PostgreSQL migrations, scoped transactions, durable repositories, integrity verification, and readiness for Pegasus Cortex.</Description>
+    <Authors>Pegasus</Authors>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageReadmeFile>CHECKPOINT_1.2026.07.14.18.28.A.md</PackageReadmeFile>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)..\..\artifacts\packages\$(PegasusReleaseVersion)</PackageOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Pegasus.Shared" Version="[1.20260711.421-a]" />
+    <ProjectReference Include="..\PegasusCortex.Contracts\PegasusCortex.Contracts.csproj" />
+    <ProjectReference Include="..\PegasusCortex.Core\PegasusCortex.Core.csproj" />
+    <EmbeddedResource Include="Migrations\*.sql" />
+    <None Include="..\..\docs\CHECKPOINT_1.2026.07.14.18.28.A.md"
+          Pack="true"
+          PackagePath="\" />
+    <None Include="..\..\docs\CORTEX_SYNC_AND_LEGACY_MIGRATION_V1.md"
+          Pack="true"
+          PackagePath="\" />
+  </ItemGroup>
+</Project>

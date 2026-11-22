@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageId>Pegasus.Cortex.Sync.Client</PackageId>
+    <Title>Pegasus Cortex Sync Client</Title>
+    <Description>Deterministic local-journal synchronization client for Nexus-hosted Cortex transport adapters.</Description>
+    <Authors>Pegasus</Authors>
+    <IsPackable>true</IsPackable>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)..\..\artifacts\packages\$(PegasusReleaseVersion)</PackageOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PegasusCortex.OfflineJournal\PegasusCortex.OfflineJournal.csproj" />
+  </ItemGroup>
+</Project>

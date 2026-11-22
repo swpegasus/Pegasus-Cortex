@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pegasus Cortex Client"
+  short_description: "Recover and retain bounded local context."
+  default_prompt: "Use $pegasus-cortex-client for meaningful work: start once in compact format with exact CODEX_THREAD_ID, optional phaseId, explicit project/knowledge spaces, and 4 KiB; exact-read selected previews, track loaded revisions in context, and finish only at a meaningful checkpoint."

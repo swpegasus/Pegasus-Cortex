@@ -1,0 +1,138 @@
+Pegasus Community License 1.0
+Copyright (c) 2026 Shayne Winter. All rights reserved.
+Adopted November 21, 2026.
+
+Licensor: Shayne Winter (Pegasus)
+Project: Pegasus Cortex
+Public project: https://github.com/swpegasus/Pegasus-Cortex
+Licensor contact: https://shaynewinter.com/
+
+1. Scope and acceptance
+
+This license applies to the original Pegasus Cortex source code, compiled
+programs, installers, documentation and other first-party material expressly
+distributed under it (the Software). It includes the identified first-party
+Pegasus.Shared package and SharedMcp snapshot only to the extent the Licensor
+owns or is authorized to license those rights. Separately licensed components
+are excluded; see section 7.
+
+The Licensor offers these permissions on the conditions below. Exercising a
+permission requiring the Licensor's rights means you accept these conditions.
+Rights you already have under applicable law are not restricted by this license.
+
+2. Free community permission
+
+Subject to this license, the Licensor grants you a worldwide, non-exclusive,
+royalty-free copyright license to use, reproduce, run, modify, combine, display
+and distribute the Software, in source or compiled form, for an eligible purpose.
+This includes distributing precompiled applications and installers, creating
+plugins and integrations, and developing and distributing meaningful new work.
+You need not publish your modifications or pay a fee to the Licensor when your
+purpose is eligible.
+
+An eligible purpose is either:
+
+(a) an individual's own personal use, learning, study, experimentation or hobby
+    activity, not performed for or on behalf of an organization; or
+
+(b) use for or on behalf of an organization whose Group Revenue is less than
+    US$10,000,000. Eligible organizations may use the Software commercially.
+
+For this license, an organization includes a company, sole proprietorship,
+partnership, nonprofit or other organized entity. Its group includes all entities
+that directly or indirectly control it, that it controls, or that share common
+control with it. Control means ownership of more than half of the voting rights
+or the power to direct management and policies by ownership, contract or otherwise.
+
+Group Revenue is the combined gross revenue and equivalent gross receipts of
+the group during the preceding twelve months, eliminating amounts counted more
+than once solely because of transactions within the group. Convert non-US-dollar
+amounts using the relevant central bank's published average exchange rate for
+that period. Evaluate eligibility when use begins, at least annually thereafter,
+and when ownership or control changes. A contractor, employee, subsidiary or
+nominal individual cannot use personal or smaller-organization eligibility to
+perform work for a group that is not eligible.
+
+If your group reaches or exceeds the threshold, obtain the separate permission
+in section 3 before further use for that group. Genuine personal use remains
+eligible regardless of an individual's employer. There is no employee-count
+limit and no automatic future conversion to a different license.
+
+3. Separate paid permission for larger organizations
+
+Use for or on behalf of a group with Group Revenue at or above US$10,000,000 is
+not covered by the community grant. It requires a separate written commercial
+agreement signed by the Licensor before that use. Contact the Licensor through
+the public contact above. The Licensor may decline to offer an agreement; payment
+alone does not create permission.
+
+Commercial permission is separate from this community grant. It does not assign
+ownership or grant exclusivity over the Software, and does not prevent the
+Licensor from continuing free community development and distribution. No fee,
+price, support commitment or other commercial term is established by this license.
+
+4. Distribution, attribution and modifications
+
+Every copy or substantial portion you distribute must include this license and
+the applicable copyright, attribution and third-party notices. State clearly
+when you have modified the Software. Do not misrepresent the original work as
+entirely your own or imply the Licensor endorses your changes or services.
+
+Recipients receive their permissions directly from the Licensor under these
+terms and must independently meet the eligibility conditions for their own use.
+Your distribution cannot give an ineligible organization free commercial rights
+in the Software. You may license your own separate contributions on additional
+terms that do not remove recipients' obligations concerning the Software.
+
+You may charge for eligible integrations, modifications, support or distribution.
+No general prohibition on competing products or independently useful derivatives
+is imposed. Trademark rights are not granted, except for accurate attribution
+and reasonable identification of the original project.
+
+5. Patent permission and reservation of rights
+
+For eligible uses, the Licensor grants a non-exclusive, worldwide, royalty-free
+license under patent claims the Licensor can license that would necessarily be
+infringed by the unmodified Software. No other patent rights are implied. If you
+or the organization on whose behalf you act bring a patent claim alleging that
+the Software infringes a patent, this patent permission ends for the claimant.
+
+All rights not expressly granted are reserved. This license grants no rights
+the Licensor does not own or have authority to grant. It does not assign rights
+in contributions or require an unrelated contributor to transfer ownership.
+
+6. Duration, breach and correction
+
+The grant for a received version continues without an arbitrary revocation right
+while its conditions are met. A later policy or license version does not by
+itself revoke the grant for that version. No right to future releases is promised.
+
+If you breach these conditions, permission ends. On the first breach, permission
+is reinstated if you fully correct the breach and take reasonable steps to remedy
+its consequences either before receiving written notice from the Licensor or
+within thirty days after receiving that notice. Further breaches require the
+Licensor's express reinstatement. Restoring
+permission does not require the Licensor to waive claims for the earlier breach.
+
+7. Third-party material, user data and outputs
+
+Third-party code, libraries, runtime components, tools, artwork and other material
+identified under separate terms remain governed by those terms. This license
+does not replace, restrict or expand those independent grants. Retain their
+required notices. The distribution's licenses directory and provenance records
+identify those components and their terms.
+
+Using the Software does not give the Licensor ownership of your data or outputs,
+or automatically place your documents, prompts, records, generated work or other
+independent content under this license. Embedded protected material retains its
+own terms. You are responsible for having rights to the content you use.
+
+8. Warranty and liability
+
+TO THE EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS", WITHOUT
+WARRANTIES OR CONDITIONS, EXPRESS OR IMPLIED, INCLUDING MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, TITLE AND NON-INFRINGEMENT. THE LICENSOR
+IS NOT LIABLE FOR DAMAGES ARISING FROM THE SOFTWARE OR THIS LICENSE,
+INCLUDING LOST DATA, PROFITS OR BUSINESS, UNDER ANY LEGAL THEORY. THIS DOES
+NOT EXCLUDE LIABILITY OR RIGHTS THAT APPLICABLE LAW DOES NOT ALLOW TO BE
+EXCLUDED. YOU ARE RESPONSIBLE FOR ASSESSING THE SOFTWARE FOR YOUR USE.

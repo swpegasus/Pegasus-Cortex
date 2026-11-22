@@ -1,0 +1,150 @@
+{
+  "schema": "pegasus.cortex.held-inheritance-impact-source/2",
+  "status": "HELD_FOR_ROOT_AND_PEER_SOURCE_REVIEW",
+  "taskId": "01a12d3b-7157-7352-ac1f-a5f549ceb103",
+  "authority": "ONE additive source correction only. No compilation, tests, native invocation, target scan, repair, start, installation, dependencies or release selection.",
+  "files": [
+    {
+      "path": "AssessInheritanceImpact.cs",
+      "bytes": 36084,
+      "sha256": "f9251677dd859d5ce0fad6a61b521816970fa76cddda74ac271346fb34719071"
+    },
+    {
+      "path": "InheritanceImpact.csproj",
+      "bytes": 887,
+      "sha256": "6af04604752fff16b1c06d121d258c59f3fbfc8d2ac6b07c5924ad3b60a358d6"
+    },
+    {
+      "path": "README.md",
+      "bytes": 7332,
+      "sha256": "b977eb00b3ccf54adeba5cf5e50f8c22d548648bb9c59a59f930102e12d1b50a"
+    }
+  ],
+  "predecessor": {
+    "preservedUnchanged": true,
+    "files": [
+      {
+        "path": "../AssessInheritanceImpact.cs",
+        "bytes": 28390,
+        "sha256": "b84d54303b238263203b6a6676b13f06664b34795f2b53b1606af4a718377097"
+      },
+      {
+        "path": "../InheritanceImpact.csproj",
+        "bytes": 884,
+        "sha256": "1d767cd259026ee7f9d3bd50bdbd22e3ca777ba5a0a3e743bb7670d6bcb59816"
+      },
+      {
+        "path": "../README.md",
+        "bytes": 5349,
+        "sha256": "885e0639a8363648d6a512a776d139732959d2922255f067b276bc26fd7fe162"
+      },
+      {
+        "path": "../source-packet.json",
+        "bytes": 4390,
+        "sha256": "142f9041ceb30d2b176790b36e2ccb951118f4466ff0cdebcea9866bbe6bc56e"
+      }
+    ],
+    "consolidatedPeerFinal": "msg_06065387e55a6fde016af55674617c87d0a7ea667be0038e02",
+    "materialFindings": 2
+  },
+  "sourceResolutions": [
+    {
+      "finding": "DIRECTORY_ONLY_ROOT_AND_TYPE_BEFORE_DACL",
+      "resolution": "NtOpenFile FILE_DIRECTORY_FILE enforces root type at native admission; metadata type/reparse/identity/final-path checks precede owner and DACL queries."
+    },
+    {
+      "finding": "FIXED_ANCESTOR_NO_FOLLOW_AND_CURRENT_VOLUME_JOIN",
+      "resolution": "Resolve only current C: mount volume, admit its root and exact fixed components through retained directory handles/relative no-follow opens, join current volume and physical paths; reject arbitrary-volume suffix matches."
+    }
+  ],
+  "scope": {
+    "fixedPathClass": "C:\\Program Files\\Pegasus\\Cortex\\state\\users\\<current bound Windows SID>",
+    "ownerBinding": "Prior verified owner SID hash; no SID literal persisted",
+    "expectedSession": 1,
+    "caller": "Same ordinary non-Administrator Windows owner",
+    "explicitStartupTargets": [
+      "root",
+      "execution",
+      "logs",
+      "tray"
+    ],
+    "ancestorMetadataOnly": true,
+    "ancestorEnumeration": false,
+    "ancestorOwnerOrDaclQueries": false,
+    "ancestorFileDataRights": false,
+    "rootOverrides": false,
+    "registryOrDatabaseLookup": false
+  },
+  "proposedSourceLimits": {
+    "totalEncounteredEntries": 8192,
+    "queuedDirectories": 512,
+    "depth": 32,
+    "cooperativeSeconds": 15
+  },
+  "counting": "Six exact ancestor directory admissions plus target root charge seven entries against8192; ancestor metadata has a separate aggregate count. Unchanged up-to9 entry reservation before1024B native enumeration; charge all entries before filtering and retain conservative reservation on failure.",
+  "publicEntry": "Assess returns Incomplete/HeldForRootReview without native I/O. Private review core only; no CLI, reflection permission or enable flag.",
+  "deadline": "Cooperative budget only; native calls/cleanup can exceed15s. No hard bound, abandonment or kill permission.",
+  "result": "Aggregate counts/classifications plus Complete/Incomplete/reason only; no names/paths/SIDs/per-object IDs/SDDL/content/error messages.",
+  "rootAdmission": {
+    "volume": "Only current C: mount GUID; current observation, not historical baseline",
+    "fixedAncestors": [
+      "volume root",
+      "Program Files",
+      "Pegasus",
+      "Cortex",
+      "state",
+      "users"
+    ],
+    "ancestorAccess": [
+      "FILE_READ_ATTRIBUTES",
+      "FILE_TRAVERSE",
+      "SYNCHRONIZE"
+    ],
+    "allDirectoryOpens": [
+      "NtOpenFile existing-only",
+      "FILE_DIRECTORY_FILE",
+      "FILE_OPEN_REPARSE_POINT",
+      "FILE_SYNCHRONOUS_IO_NONALERT"
+    ],
+    "retainedAncestors": true,
+    "revalidate": "Current C: volume mapping and each retained ancestor type/reparse/final-path/volume/file-ID/creation-time before target security, queued directory traversal and completion",
+    "rootAndDirectoryAccess": "READ_CONTROL|FILE_READ_ATTRIBUTES|LIST_DIRECTORY|SYNCHRONIZE, directory-only",
+    "fileAccess": "READ_CONTROL|FILE_READ_ATTRIBUTES|SYNCHRONIZE; no FILE_READ_DATA"
+  },
+  "completionSemantics": "Bounded observed traversal exhaustion only, not atomic namespace sealing, historic root/custody proof, rollback baseline or repair authorization.",
+  "privacy": "Transient metadata/security only; no private bodies, profiles, stores, DB/API opens, snapshots, baseline or security changes.",
+  "integrationList": {
+    "newFilesOnly": [
+      "R2/AssessInheritanceImpact.cs",
+      "R2/InheritanceImpact.csproj",
+      "R2/README.md",
+      "R2/source-packet.json"
+    ],
+    "existingProductFilesChanged": [],
+    "productOrSolutionReferencesAdded": [],
+    "packageReferencesAdded": [],
+    "installedOrMachineEffects": [],
+    "requiredNext": "Root and peer source review of this exact successor; stop source-only."
+  },
+  "patternProvenance": {
+    "predecessor": "Parent packet pinned above; previous child enumeration/protected-boundary/aggregate model retained",
+    "sourcePattern": "src/PegasusCortex.Product/CortexLocationPathIdentity.cs",
+    "sourcePatternSha256": "d58000359d5585f786b861c7d0ef10614bbe9bafcd232a06e090d4b46c5b63e5",
+    "newUnqualified": "Current mount GUID query, directory-only native volume/fixed ancestor acquisition, retained-chain metadata revalidation"
+  },
+  "verification": {
+    "sourceReadbackAndHashOnly": true,
+    "compiled": false,
+    "testsRun": false,
+    "nativeInvoked": false,
+    "liveRootScanned": false,
+    "r2IndependentReviewComplete": false
+  },
+  "unqualified": [
+    "Native ABI/options and mounted-volume/final-path behavior",
+    "Native handle/exception cleanup and drift",
+    "Directory record parsing/bounds and aggregate counting at runtime",
+    "Any live traversal, custody, repair or installed readiness"
+  ],
+  "releaseBoundary": "No original-source backport revival, forward-source package selection, installation or release acceptance."
+}

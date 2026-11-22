@@ -1,0 +1,1 @@
+Host software parses standard contracts and retains operational details. Models receive useful results, needed values and truthful completed/running/failed/cancelled/partial/unknown states. Keep diagnostic detail on demand and preserve security, identity, concurrency and recovery checks.

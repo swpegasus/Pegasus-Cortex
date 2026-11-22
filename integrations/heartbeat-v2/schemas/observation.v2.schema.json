@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pegasus.local/schemas/heartbeat-observation.v2.schema.json",
+  "title": "Pegasus Heartbeat v2 bounded local observation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "source",
+    "revisionInputs"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 2
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 96
+    },
+    "cursor": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "baseCursor": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "revisionInputs": {
+      "type": "object"
+    },
+    "deltas": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/delta"
+      }
+    },
+    "attentionReasons": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 640
+      }
+    },
+    "probeFailure": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "declaredRevision": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "utcTimestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "delta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dedupeKey",
+        "category",
+        "scope",
+        "severity",
+        "summary",
+        "occurredAtUtc"
+      ],
+      "properties": {
+        "dedupeKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 48
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 96
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warning",
+            "critical"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 768
+        },
+        "occurredAtUtc": {
+          "$ref": "#/$defs/utcTimestamp"
+        }
+      }
+    }
+  }
+}

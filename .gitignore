@@ -1,0 +1,107 @@
+# Maintained source stays here; generated and machine-owned state stays local.
+**/bin/
+**/obj/
+**/.tmp/
+**/.vs/
+**/node_modules/
+**/.playwright/
+**/__pycache__/
+*.user
+*.suo
+*.log
+*.tmp
+*.bak
+
+# Local output and agent work; ignoring never removes existing files.
+/build/
+/deploy/*
+!/deploy/x64/
+/deploy/x64/*
+!/deploy/x64/Install-PegasusCortexX64.ps1
+!/deploy/x64/Install-PegasusCortexV2X64.ps1
+!/deploy/x64/Install-PegasusCortexOperationalX64.ps1
+!/deploy/x64/New-PegasusCortexV2PackageManifest.ps1
+!/deploy/x64/windows-installer.json
+/artifacts/
+/.artifacts/
+/.acceptance/
+/.codex-work/
+/.codex-remote-attachments/
+/.reference/
+/.runtime/
+/.tmp/
+/LocalDevelopment/
+/MaintenanceQueue/
+/ReedNote.txt
+
+# Only portable Cortex project metadata belongs in source control.
+/.cortex/*
+!/.cortex/project.json
+!/.cortex/README.md
+
+# Databases, models, credentials and signing material are never source defaults.
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+# The source provider directory ends in .Sqlite; it is code, not a database.
+!/src/PegasusCortex.Persistence.Sqlite/
+*.gguf
+*.safetensors
+*.onnx
+*.pfx
+*.p12
+*.key
+*.pem
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Rebuild or acquire executable payloads through the product's owned process.
+*.exe
+*.dll
+*.pdb
+*.nupkg
+*.snupkg
+*.zip
+*.7z
+*.msi
+*.msix
+*.msixbundle
+*.appx
+*.appxbundle
+*.dmp
+
+# Nested test output and historical review copies are not the maintained source.
+**/artifacts/
+/examples/Cerebral.MetricsPlugin/Tests/evidence/
+/examples/Cerebral.MetricsPlugin/Tests/scalar-host-integration-review/
+/examples/Cerebral.MetricsPlugin/Tests/successor-lifecycle-review/
+/%SystemDrive%/
+
+# Human distribution requirement: keep certificates and trust/signing material external.
+*.cer
+*.crt
+*.der
+*.csr
+*.p7b
+*.p7c
+*.p7s
+*.p8
+*.snk
+*.ppk
+*.pub
+*.keystore
+*.jks
+*.sig
+*.signature
+*.asc
+
+# Exact admitted dependencies needed by a fresh checkout; no general binary exception.
+!/dependencies/packages/Pegasus.Shared.1.20260711.421-a.nupkg
+!/third_party/autoitx/3.3.18.0/AutoItX3.Assembly.dll
+!/third_party/autoitx/3.3.18.0/AutoItX3.dll
+!/third_party/autoitx/3.3.18.0/AutoItX3_x64.dll

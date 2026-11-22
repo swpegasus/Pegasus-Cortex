@@ -1,0 +1,660 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pegasus.local/schemas/cortex/cortex-project-brief.v1.schema.json",
+  "title": "Pegasus Cortex passive project brief v1.1",
+  "description": "Provider-neutral request, immutable snapshot, and bounded response contracts for a passive task-recovery brief. Version 1.1 binds responses to the exact source-authority set. Canonical snapshots and responses are capped at 8192 UTF-8 bytes by source policy and grant no scheduling, claim, approval, or execution authority.",
+  "oneOf": [
+    { "$ref": "#/$defs/request" },
+    { "$ref": "#/$defs/snapshot" },
+    { "$ref": "#/$defs/response" }
+  ],
+  "x-pegasus-bounds": {
+    "minimumResponseUtf8Bytes": 2048,
+    "maximumUtf8Bytes": 8192,
+    "maximumHotTasks": 4,
+    "maximumReferences": 16,
+    "maximumRecoverySteps": 12,
+    "maximumTextCharacters": 1024,
+    "maximumTitleCharacters": 512,
+    "maximumGateSummaryCharacters": 512,
+    "maximumReferenceCharacters": 512,
+    "maximumSkippedSourceRevisions": 1000000,
+    "maximumStateRevision": 9007199254740991
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "contractId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "projectLinkId": {
+      "type": "string",
+      "pattern": "^plink_[0-9a-f]{64}$"
+    },
+    "nullableProjectLinkId": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/projectLinkId" }
+      ]
+    },
+    "contextSetId": {
+      "type": "string",
+      "pattern": "^ctx_[0-9a-f]{64}$"
+    },
+    "recordId": {
+      "type": "string",
+      "pattern": "^krec_[0-9a-f]{64}$"
+    },
+    "revisionId": {
+      "type": "string",
+      "pattern": "^krev_[0-9a-f]{64}$"
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "utcDateTime": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "(?:Z|\\+00:00)$"
+    },
+    "text512": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^(?=[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])(?=[\\s\\S]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?![\\s\\S]))[^\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F-\\u009F]+(?![\\s\\S])",
+      "description": "Non-whitespace text with no leading or trailing Unicode whitespace and no control characters except CR, LF, and TAB."
+    },
+    "text1024": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "pattern": "^(?=[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])(?=[\\s\\S]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?![\\s\\S]))[^\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F-\\u009F]+(?![\\s\\S])",
+      "description": "Non-whitespace text with no leading or trailing Unicode whitespace and no control characters except CR, LF, and TAB."
+    },
+    "nullableIdentifier": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/identifier" }
+      ]
+    },
+    "nullableContextSetId": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/contextSetId" }
+      ]
+    },
+    "nullableHash": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/hash" }
+      ]
+    },
+    "nullableText1024": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/text1024" }
+      ]
+    },
+    "nullableUtcDateTime": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/utcDateTime" }
+      ]
+    },
+    "recoveryOrder": {
+      "type": "array",
+      "minItems": 11,
+      "maxItems": 11,
+      "const": [
+        "START_HERE.md",
+        "AGENTS.md",
+        ".cortex/README.md",
+        ".cortex/STATE.md",
+        ".cortex/WORKLOG.md",
+        ".cortex/LEARNINGS.md",
+        ".cortex/SESSIONS.md",
+        ".cortex/TASKS.md",
+        ".cortex/RECOVERY.md",
+        ".cortex/GUIDE.md",
+        ".cortex/RULES.md"
+      ]
+    },
+    "retainedRecordLocator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "projectLinkId",
+        "projectId",
+        "projectNamespace",
+        "kind",
+        "documentId",
+        "revision",
+        "contentHash",
+        "assertionHash"
+      ],
+      "properties": {
+        "projectLinkId": { "$ref": "#/$defs/projectLinkId" },
+        "projectId": { "$ref": "#/$defs/identifier" },
+        "projectNamespace": { "$ref": "#/$defs/identifier" },
+        "kind": {
+          "enum": [
+            "task-snapshot",
+            "work-packet",
+            "work-packet-handoff-receipt",
+            "work-packet-acceptance-receipt"
+          ]
+        },
+        "documentId": { "$ref": "#/$defs/identifier" },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "contentHash": { "$ref": "#/$defs/hash" },
+        "assertionHash": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference",
+        "sha256",
+        "recordId",
+        "revisionId",
+        "retainedRecord"
+      ],
+      "properties": {
+        "reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^(?:checkpoint|artifact|record|revision|hash|retained)://"
+        },
+        "sha256": { "$ref": "#/$defs/hash" },
+        "recordId": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/recordId" }
+          ]
+        },
+        "revisionId": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/revisionId" }
+          ]
+        },
+        "retainedRecord": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/retainedRecordLocator" }
+          ]
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "reference": {
+              "pattern": "^(?:checkpoint|artifact|record|revision|hash)://"
+            },
+            "recordId": { "type": "null" },
+            "revisionId": { "type": "null" },
+            "retainedRecord": { "type": "null" }
+          }
+        },
+        {
+          "properties": {
+            "reference": {
+              "pattern": "^(?:checkpoint|artifact|record|revision|hash)://"
+            },
+            "recordId": { "$ref": "#/$defs/recordId" },
+            "revisionId": { "$ref": "#/$defs/revisionId" },
+            "retainedRecord": { "type": "null" }
+          }
+        },
+        {
+          "properties": {
+            "reference": { "pattern": "^retained://" },
+            "recordId": { "type": "null" },
+            "revisionId": { "type": "null" },
+            "retainedRecord": {
+              "$ref": "#/$defs/retainedRecordLocator"
+            }
+          }
+        }
+      ]
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "authorityId",
+        "approvalReferenceId",
+        "summary",
+        "grantsAuthority"
+      ],
+      "properties": {
+        "state": {
+          "enum": ["not_required", "pending", "satisfied", "denied"]
+        },
+        "authorityId": { "$ref": "#/$defs/nullableIdentifier" },
+        "approvalReferenceId": { "$ref": "#/$defs/nullableIdentifier" },
+        "summary": { "$ref": "#/$defs/text512" },
+        "grantsAuthority": { "const": false }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "state": { "const": "not_required" } },
+            "required": ["state"]
+          },
+          "then": {
+            "properties": {
+              "authorityId": { "type": "null" },
+              "approvalReferenceId": { "type": "null" }
+            }
+          },
+          "else": {
+            "properties": {
+              "authorityId": { "$ref": "#/$defs/identifier" }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": { "enum": ["satisfied", "denied"] }
+            },
+            "required": ["state"]
+          },
+          "then": {
+            "properties": {
+              "approvalReferenceId": { "$ref": "#/$defs/identifier" }
+            }
+          }
+        }
+      ]
+    },
+    "freshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "observedAt", "reviewAfter", "basis"],
+      "properties": {
+        "state": {
+          "enum": ["current", "stale", "blocked", "unverified", "unknown"]
+        },
+        "observedAt": { "$ref": "#/$defs/utcDateTime" },
+        "reviewAfter": { "$ref": "#/$defs/nullableUtcDateTime" },
+        "basis": { "$ref": "#/$defs/text1024" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "state": { "const": "current" } },
+            "required": ["state"]
+          },
+          "then": {
+            "properties": {
+              "reviewAfter": { "$ref": "#/$defs/utcDateTime" }
+            }
+          }
+        }
+      ]
+    },
+    "taskSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "producerContract",
+        "sourceId",
+        "sourceRevisionId",
+        "sourceHash",
+        "reference"
+      ],
+      "properties": {
+        "producerContract": { "$ref": "#/$defs/contractId" },
+        "sourceId": { "$ref": "#/$defs/identifier" },
+        "sourceRevisionId": { "$ref": "#/$defs/identifier" },
+        "sourceHash": { "$ref": "#/$defs/hash" },
+        "reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^(?:checkpoint|artifact|record|revision|hash)://"
+        }
+      }
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "taskId",
+        "selectionRank",
+        "title",
+        "state",
+        "currentState",
+        "nextAction",
+        "gate",
+        "blocker",
+        "source",
+        "freshness"
+      ],
+      "properties": {
+        "taskId": { "$ref": "#/$defs/identifier" },
+        "selectionRank": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "title": { "$ref": "#/$defs/text512" },
+        "state": {
+          "enum": [
+            "planned",
+            "active",
+            "blocked",
+            "held",
+            "done",
+            "cancelled",
+            "unknown"
+          ]
+        },
+        "currentState": { "$ref": "#/$defs/text1024" },
+        "nextAction": { "$ref": "#/$defs/text1024" },
+        "gate": { "$ref": "#/$defs/gate" },
+        "blocker": { "$ref": "#/$defs/nullableText1024" },
+        "source": { "$ref": "#/$defs/taskSource" },
+        "freshness": { "$ref": "#/$defs/freshness" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": { "enum": ["blocked", "held"] }
+            },
+            "required": ["state"]
+          },
+          "then": {
+            "properties": {
+              "blocker": { "$ref": "#/$defs/text1024" }
+            }
+          }
+        }
+      ]
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "projectLinkId",
+        "knownContextSetId",
+        "maximumUtf8Bytes",
+        "knownAuthoritySetHash"
+      ],
+      "properties": {
+        "projectLinkId": { "$ref": "#/$defs/projectLinkId" },
+        "knownContextSetId": { "$ref": "#/$defs/nullableContextSetId" },
+        "maximumUtf8Bytes": {
+          "type": "integer",
+          "minimum": 2048,
+          "maximum": 8192,
+          "default": 8192
+        },
+        "knownAuthoritySetHash": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "contractId",
+        "tenantId",
+        "projectLinkId",
+        "projectId",
+        "projectNamespace",
+        "contextSetId",
+        "previousContextSetId",
+        "briefRevision",
+        "stateRevision",
+        "sourceHash",
+        "authoritySetHash",
+        "selectionVersion",
+        "currentTask",
+        "hotTasks",
+        "hasMore",
+        "checkpointReferences",
+        "evidenceReferences",
+        "complete",
+        "recoveryOrder",
+        "freshness"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "contractId": { "const": "pegasus.cortex.project-brief/1.1" },
+        "tenantId": { "$ref": "#/$defs/identifier" },
+        "projectLinkId": { "$ref": "#/$defs/projectLinkId" },
+        "projectId": { "$ref": "#/$defs/identifier" },
+        "projectNamespace": { "$ref": "#/$defs/identifier" },
+        "contextSetId": { "$ref": "#/$defs/contextSetId" },
+        "previousContextSetId": { "$ref": "#/$defs/nullableContextSetId" },
+        "briefRevision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "stateRevision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "sourceHash": { "$ref": "#/$defs/hash" },
+        "authoritySetHash": { "$ref": "#/$defs/hash" },
+        "selectionVersion": { "$ref": "#/$defs/identifier" },
+        "currentTask": { "$ref": "#/$defs/task" },
+        "hotTasks": {
+          "type": "array",
+          "maxItems": 4,
+          "items": { "$ref": "#/$defs/task" }
+        },
+        "hasMore": { "type": "boolean" },
+        "checkpointReferences": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": { "$ref": "#/$defs/reference" }
+        },
+        "evidenceReferences": {
+          "type": "array",
+          "maxItems": 16,
+          "items": { "$ref": "#/$defs/reference" }
+        },
+        "complete": { "type": "boolean" },
+        "recoveryOrder": { "$ref": "#/$defs/recoveryOrder" },
+        "freshness": { "$ref": "#/$defs/freshness" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "briefRevision": { "const": 1 } },
+            "required": ["briefRevision"]
+          },
+          "then": {
+            "properties": {
+              "previousContextSetId": { "type": "null" }
+            }
+          },
+          "else": {
+            "properties": {
+              "previousContextSetId": { "$ref": "#/$defs/contextSetId" }
+            }
+          }
+        }
+      ]
+    },
+    "response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "contractId",
+        "disposition",
+        "projectLinkId",
+        "projectId",
+        "projectNamespace",
+        "contextSetId",
+        "baseContextSetId",
+        "stateRevision",
+        "sourceHash",
+        "authoritySetHash",
+        "selectionVersion",
+        "currentTask",
+        "hotTasks",
+        "removedTaskIds",
+        "hasMore",
+        "checkpointReferences",
+        "evidenceReferences",
+        "freshness",
+        "complete",
+        "truncated",
+        "fallbackRequired",
+        "fallbackReason",
+        "recoveryOrder"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "contractId": { "const": "pegasus.cortex.project-brief/1.1" },
+        "disposition": {
+          "type": "integer",
+          "enum": [0, 1, 2],
+          "description": "Canonical enum values: 0 unchanged, 1 delta, 2 snapshot."
+        },
+        "projectLinkId": { "$ref": "#/$defs/nullableProjectLinkId" },
+        "projectId": { "$ref": "#/$defs/nullableIdentifier" },
+        "projectNamespace": { "$ref": "#/$defs/nullableIdentifier" },
+        "contextSetId": { "$ref": "#/$defs/nullableContextSetId" },
+        "baseContextSetId": { "$ref": "#/$defs/nullableContextSetId" },
+        "stateRevision": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          ]
+        },
+        "sourceHash": { "$ref": "#/$defs/nullableHash" },
+        "authoritySetHash": { "$ref": "#/$defs/nullableHash" },
+        "selectionVersion": { "$ref": "#/$defs/nullableIdentifier" },
+        "currentTask": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/task" }
+          ]
+        },
+        "hotTasks": {
+          "type": "array",
+          "maxItems": 4,
+          "items": { "$ref": "#/$defs/task" }
+        },
+        "removedTaskIds": {
+          "type": "array",
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/identifier" }
+        },
+        "hasMore": { "type": "boolean" },
+        "checkpointReferences": {
+          "type": "array",
+          "maxItems": 16,
+          "items": { "$ref": "#/$defs/reference" }
+        },
+        "evidenceReferences": {
+          "type": "array",
+          "maxItems": 16,
+          "items": { "$ref": "#/$defs/reference" }
+        },
+        "freshness": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/freshness" }
+          ]
+        },
+        "complete": { "type": "boolean" },
+        "truncated": { "type": "boolean" },
+        "fallbackRequired": { "type": "boolean" },
+        "fallbackReason": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/identifier" }
+          ]
+        },
+        "recoveryOrder": { "$ref": "#/$defs/recoveryOrder" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "fallbackRequired": { "const": false } },
+            "required": ["fallbackRequired"]
+          },
+          "then": {
+            "properties": {
+              "fallbackReason": { "type": "null" }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "truncated": { "const": true } },
+            "required": ["truncated"]
+          },
+          "then": {
+            "properties": {
+              "complete": { "const": false },
+              "fallbackRequired": { "const": true }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "fallbackReason": { "const": "authority_mismatch" }
+            },
+            "required": ["fallbackReason"]
+          },
+          "then": {
+            "properties": {
+              "projectLinkId": { "type": "null" },
+              "projectId": { "type": "null" },
+              "projectNamespace": { "type": "null" },
+              "contextSetId": { "type": "null" },
+              "baseContextSetId": { "type": "null" },
+              "stateRevision": { "type": "null" },
+              "sourceHash": { "type": "null" },
+              "authoritySetHash": { "type": "null" },
+              "selectionVersion": { "type": "null" },
+              "currentTask": { "type": "null" },
+              "hotTasks": { "maxItems": 0 },
+              "removedTaskIds": { "maxItems": 0 },
+              "hasMore": { "const": false },
+              "checkpointReferences": { "maxItems": 0 },
+              "evidenceReferences": { "maxItems": 0 },
+              "freshness": { "type": "null" },
+              "complete": { "const": false },
+              "fallbackRequired": { "const": true }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

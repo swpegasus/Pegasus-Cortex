@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pegasus.local/schemas/cortex/cortex-sync-receipt.v1.schema.json",
+  "title": "Pegasus Cortex durable synchronization receipt v1",
+  "description": "A server-produced durable disposition record. Local presence alone never authorizes cleanup; the proof and authenticated read-back reconciliation must also validate.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "contractId", "canonicalization", "receiptId", "serverInstanceId",
+    "storeId", "storeEpoch", "projectId", "bundleId", "bundleHash", "receivedAt",
+    "authentication", "durability", "outcomes", "reconciliation", "extensions", "receiptHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "pegasus.cortex.sync-receipt/1.0" },
+    "canonicalization": { "const": "pegasus-canonical-json-v1" },
+    "receiptId": { "$ref": "#/$defs/identifier" },
+    "serverInstanceId": { "$ref": "#/$defs/identifier" },
+    "storeId": { "$ref": "#/$defs/identifier" },
+    "storeEpoch": { "$ref": "#/$defs/identifier" },
+    "projectId": { "$ref": "#/$defs/identifier" },
+    "bundleId": { "$ref": "#/$defs/identifier" },
+    "bundleHash": { "$ref": "#/$defs/hash" },
+    "receivedAt": { "$ref": "#/$defs/utcDateTime" },
+    "authentication": { "$ref": "#/$defs/authentication" },
+    "durability": { "$ref": "#/$defs/durability" },
+    "outcomes": { "type": "array", "minItems": 1, "maxItems": 256, "items": { "$ref": "#/$defs/outcome" } },
+    "reconciliation": { "$ref": "#/$defs/reconciliation" },
+    "extensions": { "$ref": "#/$defs/extensions" },
+    "receiptHash": { "$ref": "#/$defs/hash" }
+  },
+  "$defs": {
+    "identifier": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" },
+    "contractId": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*/[0-9]+\\.[0-9]+$" },
+    "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "utcDateTime": { "type": "string", "format": "date-time", "pattern": "(?:Z|\\+00:00)$" },
+    "authentication": {
+      "type": "object", "additionalProperties": false,
+      "required": ["proofContractId", "keyId", "algorithmId", "coveredReceiptHash", "proofBase64Url", "proofBytes", "proofSha256"],
+      "properties": {
+        "proofContractId": { "$ref": "#/$defs/contractId" },
+        "keyId": { "$ref": "#/$defs/identifier" },
+        "algorithmId": { "$ref": "#/$defs/identifier" },
+        "coveredReceiptHash": { "$ref": "#/$defs/hash" },
+        "proofBase64Url": { "type": "string", "minLength": 2, "maxLength": 21848, "pattern": "^[A-Za-z0-9_-]+$" },
+        "proofBytes": { "type": "integer", "minimum": 1, "maximum": 16384 },
+        "proofSha256": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "durability": {
+      "type": "object", "additionalProperties": false,
+      "required": ["commitId", "storageRevision", "committedAt"],
+      "properties": {
+        "commitId": { "$ref": "#/$defs/identifier" },
+        "storageRevision": { "$ref": "#/$defs/identifier" },
+        "committedAt": { "$ref": "#/$defs/utcDateTime" }
+      }
+    },
+    "outcome": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sequence", "eventId", "eventHash", "disposition", "durable", "serverEntityId", "serverRevisionId", "diagnosticCode"],
+      "properties": {
+        "sequence": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "eventId": { "$ref": "#/$defs/identifier" },
+        "eventHash": { "$ref": "#/$defs/hash" },
+        "disposition": { "enum": ["applied", "duplicate", "conflict", "rejected", "quarantined"] },
+        "durable": { "const": true },
+        "serverEntityId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "serverRevisionId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "diagnosticCode": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] }
+      }
+    },
+    "reconciliation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["state", "sourceEventCount", "matchedEventCount", "readBackAt", "readBackHash"],
+      "properties": {
+        "state": { "enum": ["pending", "reconciled", "mismatch"] },
+        "sourceEventCount": { "type": "integer", "minimum": 1, "maximum": 256 },
+        "matchedEventCount": { "type": "integer", "minimum": 0, "maximum": 256 },
+        "readBackAt": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/utcDateTime" }] },
+        "readBackHash": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/hash" }] }
+      }
+    },
+    "extension": {
+      "type": "object", "additionalProperties": false,
+      "required": ["contractId", "required", "payloadBase64Url", "payloadBytes", "payloadSha256"],
+      "properties": {
+        "contractId": { "$ref": "#/$defs/contractId" },
+        "required": { "type": "boolean" },
+        "payloadBase64Url": { "type": "string", "minLength": 2, "maxLength": 21848, "pattern": "^[A-Za-z0-9_-]+$" },
+        "payloadBytes": { "type": "integer", "minimum": 1, "maximum": 16384 },
+        "payloadSha256": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "extensions": { "type": "array", "maxItems": 16, "items": { "$ref": "#/$defs/extension" } }
+  }
+}

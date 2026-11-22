@@ -1,0 +1,57 @@
+Pegasus shared icon pack: compact agent guide, version 1
+
+1. Discover the existing product paths or a caller-selected admitted pack root.
+   Preferred single shared installation: ProductPaths.SharedDirectory/Icons/chat-v1.
+   Read catalog.ini only after the host grants read access to that immutable root.
+   An absolute path, Cortex record, or asset key does not grant access or execution.
+
+2. Select one stable key, for example pegasus.chat-icons.status.success.
+   catalog.ini maps the key to svg/ic_fluent_checkmark_circle_20_regular.svg,
+   its SHA-256, a short semantic alias, text alternative, source URL and Licensing files.
+   packSha256 identifies canonical relative paths + their SHA-256 values; root locations
+   and timestamps do not participate. Keep pack version and catalog SHA-256 with a reference.
+   The compact reference is metadata, not a URI or native Cortex file ID.
+
+3. Read/hash the selected actual relative target through granted file/content operations.
+   Do not put SVG bytes, the full catalog, or the full license in every model context.
+   For text chat, insert the catalog's Unicode text; plain composers cannot embed SVG markup.
+   For an application, copy/export the artwork and required Licensing files, or use the
+   one shared immutable pack if the application supports a granted external resource root.
+
+4. Build/validate/export with the standalone .NET 10 IconPackTool (no Cerebral SDK needed):
+   dotnet <tool.dll> validate <pack-root>
+   dotnet <tool.dll> export <pack-root> <absent-destination>
+   dotnet <tool.dll> export <pack-root> <absent-destination> pegasus.chat-icons.status.success
+   Supply each value as a separate argument. Export requires an absent destination.
+   It carries catalog.ini, selected SVGs, required Licensing files, and SOURCE-REFERENCE.txt.
+   The individual export contains a one-icon catalog with the original immutable icon key.
+   The source reference retains the parent catalog/pack digest; the exported subset obtains
+   its own catalog/pack digest when validated. Export never overwrites an existing project.
+   Import is explicit validation followed by owner-controlled file admission/copy;
+   this tool does not automatically install or enable a pack.
+
+5. Create a new passive pack using ASSET-PACK-SCHEMA.txt. Use your own namespace, declared
+   version, exact source/copyright/license text and relative SVG targets with fresh hashes.
+   This v1 validator admits only the documented MIT passive SVG subset, 1-64 icons.
+   Validation proves format/integrity and passive structure, not legal permission.
+   Confirm publisher redistribution terms before reuse. No automatic remote fetch occurs.
+   This adapter's role picker accepts pegasus.chat-icons built-in semantic identities only;
+   it does not dynamically load arbitrary pack renderers or change host status semantics.
+
+6. Cortex current mapping (verified 2026-10-07, installed 1.2026.09.29.22.18.A):
+   Keep small ordinary knowledge metadata in an explicit namespace. Coordinates are
+   namespace + recordType=knowledge + recordId + optional revision. Search selects a
+   preview; exact cortex_read proves the retained reference, batch at most eight records.
+   Retain actual granted target root/path, pack id/version/key, relative file, hashes,
+   license files, source URL, and provenance. Do not invent cortex:// or binary asset IDs.
+   Any local MCP client can use existing cortex_search/cortex_read without a Cerebral SDK.
+   Current Cortex does not resolve or export managed binary assets. PAO stat/read/hash/copy
+   and this application-owned pack tool operate actual files separately.
+   A future Cortex asset backend must preserve this mapping and grant boundary.
+   Root integration must prove real catalog/asset reads before claiming agent/MCP access.
+
+7. Transfer/send means create a portable package or retain a small reference for a consumer.
+   For whole packs, zip the exported directory with its catalog and Licensing folder.
+   For one icon, export one key and attach/reference that actual export.
+   Sharing outside the authorized local project or user-requested recipient still requires
+   authorization. A reference is not proof a remote computer already has the bytes.

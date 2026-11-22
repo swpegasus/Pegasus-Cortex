@@ -1,0 +1,418 @@
+{
+  "schemaVersion": 1,
+  "contractId": "pegasus.cortex.query-fingerprint-vectors/1.0",
+  "canonicalization": {
+    "encoding": "UTF-8 without BOM",
+    "json": "Compact JSON arrays; decimal integers; JSON null for unused positions; apply the exact stringEscapes mapping; emit every other valid scalar as UTF-8.",
+    "stringEscapes": {
+      "quotationMark": "\\\"",
+      "reverseSolidus": "\\\\",
+      "backspaceU0008": "\\b",
+      "formFeedU000C": "\\f",
+      "lineFeedU000A": "\\n",
+      "carriageReturnU000D": "\\r",
+      "tabU0009": "\\t",
+      "otherControls": "Each remaining U+0000 through U+001F scalar uses lowercase \\u00xx. Solidus is not escaped."
+    },
+    "unicode": "Reject ill-formed UTF-16. Preserve exact validated scalar sequences without normalization, trimming, or case folding.",
+    "sets": "Sort only semantic sets with ordinal comparison. Preserve all true sequence fields."
+  },
+  "recipes": {
+    "namespaceScope": [
+      "domain",
+      "recipeVersion",
+      "namespace",
+      "tenantId",
+      "authorityId",
+      "subjectId",
+      "serviceId",
+      "policyRevision",
+      "namespace",
+      "operation",
+      "maximumSensitivity",
+      "sortedFreshnessStates",
+      "sortedRecordStates"
+    ],
+    "authorityScope": [
+      "domain",
+      "recipeVersion",
+      "authority",
+      "tenantId",
+      "authorityId",
+      "subjectId",
+      "serviceId",
+      "policyRevision",
+      "list_namespaces",
+      "sortedVisibleGrantView"
+    ],
+    "visibleGrant": [
+      "namespace",
+      "maximumSensitivity",
+      "sortedOperations",
+      "sortedFreshnessStates",
+      "sortedRecordStates"
+    ],
+    "request": [
+      "domain",
+      "recipeVersion",
+      "schemaVersion",
+      "contractId",
+      "operation",
+      "namespace",
+      "text",
+      "taxonomy",
+      "productId",
+      "componentId",
+      "maximumSensitivity",
+      "sortedFreshnessStates",
+      "recordId",
+      "revisionId",
+      "direction"
+    ],
+    "excludedRequestFields": {
+      "requestId": "Trace-only metadata.",
+      "cursor": "Excluding it avoids recursive binding.",
+      "pageSize": "Bound separately in protected cursor payload and validation context."
+    },
+    "versionedSearchMode": "Search request 1.1 binds exact or broad in the final operation-specific request slot; search request 1.0 retains null there."
+  },
+  "securityNotice": "These SHA-256 values are deterministic equality bindings only. They do not provide integrity, authenticity, authorization, authentication, secrecy, cursor opacity, or a safe cross-tenant cache key. Protect cursor state separately and validate current server-derived authority.",
+  "vectors": [
+    {
+      "id": "namespace-scope-search",
+      "kind": "namespace_scope",
+      "input": {
+        "tenantId": "tenant-1",
+        "authorityId": "nexus",
+        "subjectId": "subject-1",
+        "serviceId": "service-1",
+        "policyRevision": 7,
+        "namespace": "project:alpha",
+        "operation": "search",
+        "maximumSensitivity": "internal",
+        "freshnessStates": [
+          "stale",
+          "current"
+        ],
+        "recordStates": [
+          "superseded",
+          "active",
+          "archived"
+        ]
+      },
+      "canonicalJson": "[\"pegasus.cortex.query.scope\",1,\"namespace\",\"tenant-1\",\"nexus\",\"subject-1\",\"service-1\",7,\"project:alpha\",\"search\",\"internal\",[\"current\",\"stale\"],[\"active\",\"archived\",\"superseded\"]]",
+      "canonicalUtf8Base64": "WyJwZWdhc3VzLmNvcnRleC5xdWVyeS5zY29wZSIsMSwibmFtZXNwYWNlIiwidGVuYW50LTEiLCJuZXh1cyIsInN1YmplY3QtMSIsInNlcnZpY2UtMSIsNywicHJvamVjdDphbHBoYSIsInNlYXJjaCIsImludGVybmFsIixbImN1cnJlbnQiLCJzdGFsZSJdLFsiYWN0aXZlIiwiYXJjaGl2ZWQiLCJzdXBlcnNlZGVkIl1d",
+      "sha256": "0b2f5737c62d90bea86c7bf72e5f4920cd8e9676e3182f413ee09c3ec6183685"
+    },
+    {
+      "id": "authority-list-order-a",
+      "kind": "authority_scope",
+      "input": {
+        "tenantId": "tenant-1",
+        "authorityId": "nexus",
+        "subjectId": "subject-1",
+        "serviceId": "service-1",
+        "policyRevision": 7,
+        "grants": [
+          {
+            "namespace": "project:zeta",
+            "maximumSensitivity": "confidential",
+            "operations": [
+              "search",
+              "list_namespaces"
+            ],
+            "freshnessStates": [
+              "stale",
+              "current"
+            ],
+            "recordStates": [
+              "superseded",
+              "active"
+            ]
+          },
+          {
+            "namespace": "project:hidden",
+            "maximumSensitivity": "public",
+            "operations": [
+              "search"
+            ],
+            "freshnessStates": [
+              "current"
+            ],
+            "recordStates": [
+              "active"
+            ]
+          },
+          {
+            "namespace": "project:alpha",
+            "maximumSensitivity": "internal",
+            "operations": [
+              "list_namespaces",
+              "get_record"
+            ],
+            "freshnessStates": [
+              "unknown",
+              "current"
+            ],
+            "recordStates": [
+              "archived",
+              "active"
+            ]
+          }
+        ]
+      },
+      "canonicalJson": "[\"pegasus.cortex.query.scope\",1,\"authority\",\"tenant-1\",\"nexus\",\"subject-1\",\"service-1\",7,\"list_namespaces\",[[\"project:alpha\",\"internal\",[\"get_record\",\"list_namespaces\"],[\"current\",\"unknown\"],[\"active\",\"archived\"]],[\"project:zeta\",\"confidential\",[\"list_namespaces\",\"search\"],[\"current\",\"stale\"],[\"active\",\"superseded\"]]]]",
+      "canonicalUtf8Base64": "WyJwZWdhc3VzLmNvcnRleC5xdWVyeS5zY29wZSIsMSwiYXV0aG9yaXR5IiwidGVuYW50LTEiLCJuZXh1cyIsInN1YmplY3QtMSIsInNlcnZpY2UtMSIsNywibGlzdF9uYW1lc3BhY2VzIixbWyJwcm9qZWN0OmFscGhhIiwiaW50ZXJuYWwiLFsiZ2V0X3JlY29yZCIsImxpc3RfbmFtZXNwYWNlcyJdLFsiY3VycmVudCIsInVua25vd24iXSxbImFjdGl2ZSIsImFyY2hpdmVkIl1dLFsicHJvamVjdDp6ZXRhIiwiY29uZmlkZW50aWFsIixbImxpc3RfbmFtZXNwYWNlcyIsInNlYXJjaCJdLFsiY3VycmVudCIsInN0YWxlIl0sWyJhY3RpdmUiLCJzdXBlcnNlZGVkIl1dXV0=",
+      "sha256": "9d5b832fdf4f9a2b53c683d30155b969739f7a716a9c4f598438a14039d07012"
+    },
+    {
+      "id": "authority-list-order-b",
+      "kind": "authority_scope",
+      "input": {
+        "tenantId": "tenant-1",
+        "authorityId": "nexus",
+        "subjectId": "subject-1",
+        "serviceId": "service-1",
+        "policyRevision": 7,
+        "grants": [
+          {
+            "namespace": "project:alpha",
+            "maximumSensitivity": "internal",
+            "operations": [
+              "get_record",
+              "list_namespaces"
+            ],
+            "freshnessStates": [
+              "current",
+              "unknown"
+            ],
+            "recordStates": [
+              "active",
+              "archived"
+            ]
+          },
+          {
+            "namespace": "project:zeta",
+            "maximumSensitivity": "confidential",
+            "operations": [
+              "list_namespaces",
+              "search"
+            ],
+            "freshnessStates": [
+              "current",
+              "stale"
+            ],
+            "recordStates": [
+              "active",
+              "superseded"
+            ]
+          },
+          {
+            "namespace": "project:hidden",
+            "maximumSensitivity": "public",
+            "operations": [
+              "search"
+            ],
+            "freshnessStates": [
+              "current"
+            ],
+            "recordStates": [
+              "active"
+            ]
+          }
+        ]
+      },
+      "canonicalJson": "[\"pegasus.cortex.query.scope\",1,\"authority\",\"tenant-1\",\"nexus\",\"subject-1\",\"service-1\",7,\"list_namespaces\",[[\"project:alpha\",\"internal\",[\"get_record\",\"list_namespaces\"],[\"current\",\"unknown\"],[\"active\",\"archived\"]],[\"project:zeta\",\"confidential\",[\"list_namespaces\",\"search\"],[\"current\",\"stale\"],[\"active\",\"superseded\"]]]]",
+      "canonicalUtf8Base64": "WyJwZWdhc3VzLmNvcnRleC5xdWVyeS5zY29wZSIsMSwiYXV0aG9yaXR5IiwidGVuYW50LTEiLCJuZXh1cyIsInN1YmplY3QtMSIsInNlcnZpY2UtMSIsNywibGlzdF9uYW1lc3BhY2VzIixbWyJwcm9qZWN0OmFscGhhIiwiaW50ZXJuYWwiLFsiZ2V0X3JlY29yZCIsImxpc3RfbmFtZXNwYWNlcyJdLFsiY3VycmVudCIsInVua25vd24iXSxbImFjdGl2ZSIsImFyY2hpdmVkIl1dLFsicHJvamVjdDp6ZXRhIiwiY29uZmlkZW50aWFsIixbImxpc3RfbmFtZXNwYWNlcyIsInNlYXJjaCJdLFsiY3VycmVudCIsInN0YWxlIl0sWyJhY3RpdmUiLCJzdXBlcnNlZGVkIl1dXV0=",
+      "sha256": "9d5b832fdf4f9a2b53c683d30155b969739f7a716a9c4f598438a14039d07012"
+    },
+    {
+      "id": "request-discover",
+      "kind": "request",
+      "input": {
+        "schemaVersion": 1,
+        "contractId": "pegasus.cortex.query-discovery-request/1.0",
+        "requestId": "request-discover"
+      },
+      "canonicalJson": "[\"pegasus.cortex.query.request\",1,1,\"pegasus.cortex.query-discovery-request/1.0\",\"discover\",null,null,null,null,null,null,null,null,null,null]",
+      "canonicalUtf8Base64": "WyJwZWdhc3VzLmNvcnRleC5xdWVyeS5yZXF1ZXN0IiwxLDEsInBlZ2FzdXMuY29ydGV4LnF1ZXJ5LWRpc2NvdmVyeS1yZXF1ZXN0LzEuMCIsImRpc2NvdmVyIixudWxsLG51bGwsbnVsbCxudWxsLG51bGwsbnVsbCxudWxsLG51bGwsbnVsbCxudWxsXQ==",
+      "sha256": "a5a2b8df326014bbab0a7135683bff6eb2756588ee1595e54a0eab7eea62becd"
+    },
+    {
+      "id": "request-health",
+      "kind": "request",
+      "input": {
+        "schemaVersion": 1,
+        "contractId": "pegasus.cortex.query-health-request/1.0",
+        "requestId": "request-health"
+      },
+      "canonicalJson": "[\"pegasus.cortex.query.request\",1,1,\"pegasus.cortex.query-health-request/1.0\",\"health\",null,null,null,null,null,null,null,null,null,null]",
+      "canonicalUtf8Base64": "WyJwZWdhc3VzLmNvcnRleC5xdWVyeS5yZXF1ZXN0IiwxLDEsInBlZ2FzdXMuY29ydGV4LnF1ZXJ5LWhlYWx0aC1yZXF1ZXN0LzEuMCIsImhlYWx0aCIsbnVsbCxudWxsLG51bGwsbnVsbCxudWxsLG51bGwsbnVsbCxudWxsLG51bGwsbnVsbF0=",
+      "sha256": "c37fed92593fc39c7a85b2fce72824abceff6620614070e64c4d93f7fcde2a2e"
+    },
+    {
+      "id": "request-list-namespaces",
+      "kind": "request",
+      "input": {
+        "schemaVersion": 1,
+        "contractId": "pegasus.cortex.namespace-list-request/1.0",
+        "requestId": "request-list",
+        "pageSize": 25,
+        "cursor": null
+      },
+      "canonicalJson": "[\"pegasus.cortex.query.request\",1,1,\"pegasus.cortex.namespace-list-request/1.0\",\"list_namespaces\",null,null,null,null,null,null,null,null,null,null]",
+      "canonicalUtf8Base64": "WyJwZWdhc3VzLmNvcnRleC5xdWVyeS5yZXF1ZXN0IiwxLDEsInBlZ2FzdXMuY29ydGV4Lm5hbWVzcGFjZS1saXN0LXJlcXVlc3QvMS4wIiwibGlzdF9uYW1lc3BhY2VzIixudWxsLG51bGwsbnVsbCxudWxsLG51bGwsbnVsbCxudWxsLG51bGwsbnVsbCxudWxsXQ==",
+      "sha256": "d954db67a718bbecafa45faa164bff379ec1cc4c1c3e96b4a314d6d4c5f50a53"
+    },
+    {
+      "id": "request-search-full-unicode",
+      "kind": "request",
+      "input": {
+        "schemaVersion": 1,
+        "contractId": "pegasus.cortex.search-request/1.0",
+        "requestId": "request-full",
+        "namespace": "project:alpha",
+        "text": "Say \"hi\"\\path\tcolumn\r\ncafé 😀",
+        "taxonomy": "testing",
+        "productId": "pegasus-cortex",
+        "componentId": "query-contracts",
+        "maximumSensitivity": "internal",
+        "freshnessStates": [
+          "stale",
+          "current"
+        ],
+        "pageSize": 25,
+        "cursor": null
+      },
+      "canonicalJson": "[\"pegasus.cortex.query.request\",1,1,\"pegasus.cortex.search-request/1.0\",\"search\",\"project:alpha\",\"Say \\\"hi\\\"\\\\path\\tcolumn\\r\\ncafé 😀\",\"testing\",\"pegasus-cortex\",\"query-contracts\",\"internal\",[\"current\",\"stale\"],null,null,null]",
+      "canonicalUtf8Base64": "WyJwZWdhc3VzLmNvcnRleC5xdWVyeS5yZXF1ZXN0IiwxLDEsInBlZ2FzdXMuY29ydGV4LnNlYXJjaC1yZXF1ZXN0LzEuMCIsInNlYXJjaCIsInByb2plY3Q6YWxwaGEiLCJTYXkgXCJoaVwiXFxwYXRoXHRjb2x1bW5cclxuY2Fmw6kg8J+YgCIsInRlc3RpbmciLCJwZWdhc3VzLWNvcnRleCIsInF1ZXJ5LWNvbnRyYWN0cyIsImludGVybmFsIixbImN1cnJlbnQiLCJzdGFsZSJdLG51bGwsbnVsbCxudWxsXQ==",
+      "sha256": "dda67aaba464df4d4cfebef88acb04eca44646525a32784058ef60d4f0c72efe"
+    },
+    {
+      "id": "request-search-null-filters",
+      "kind": "request",
+      "input": {
+        "schemaVersion": 1,
+        "contractId": "pegasus.cortex.search-request/1.0",
+        "requestId": "request-null",
+        "namespace": "project:alpha",
+        "text": "bounded query",
+        "taxonomy": null,
+        "productId": null,
+        "componentId": null,
+        "maximumSensitivity": "public",
+        "freshnessStates": [
+          "unknown"
+        ],
+        "pageSize": 10,
+        "cursor": null
+      },
+      "canonicalJson": "[\"pegasus.cortex.query.request\",1,1,\"pegasus.cortex.search-request/1.0\",\"search\",\"project:alpha\",\"bounded query\",null,null,null,\"public\",[\"unknown\"],null,null,null]",
+      "canonicalUtf8Base64": "WyJwZWdhc3VzLmNvcnRleC5xdWVyeS5yZXF1ZXN0IiwxLDEsInBlZ2FzdXMuY29ydGV4LnNlYXJjaC1yZXF1ZXN0LzEuMCIsInNlYXJjaCIsInByb2plY3Q6YWxwaGEiLCJib3VuZGVkIHF1ZXJ5IixudWxsLG51bGwsbnVsbCwicHVibGljIixbInVua25vd24iXSxudWxsLG51bGwsbnVsbF0=",
+      "sha256": "4466f5fa91ed75b69c228c4cc512aeda0ce99b54618134e5dcc5d9e1917d95f9"
+    },
+    {
+      "id": "request-search-composed",
+      "kind": "request",
+      "input": {
+        "schemaVersion": 1,
+        "contractId": "pegasus.cortex.search-request/1.0",
+        "requestId": "request-composed",
+        "namespace": "project:alpha",
+        "text": "café",
+        "taxonomy": null,
+        "productId": null,
+        "componentId": null,
+        "maximumSensitivity": "internal",
+        "freshnessStates": [
+          "current"
+        ],
+        "pageSize": 10,
+        "cursor": null
+      },
+      "canonicalJson": "[\"pegasus.cortex.query.request\",1,1,\"pegasus.cortex.search-request/1.0\",\"search\",\"project:alpha\",\"café\",null,null,null,\"internal\",[\"current\"],null,null,null]",
+      "canonicalUtf8Base64": "WyJwZWdhc3VzLmNvcnRleC5xdWVyeS5yZXF1ZXN0IiwxLDEsInBlZ2FzdXMuY29ydGV4LnNlYXJjaC1yZXF1ZXN0LzEuMCIsInNlYXJjaCIsInByb2plY3Q6YWxwaGEiLCJjYWbDqSIsbnVsbCxudWxsLG51bGwsImludGVybmFsIixbImN1cnJlbnQiXSxudWxsLG51bGwsbnVsbF0=",
+      "sha256": "72d0bbd3cff9f4a1ba8d137bad71f377076676cc642ff73a553ac5bcab846311"
+    },
+    {
+      "id": "request-search-decomposed",
+      "kind": "request",
+      "input": {
+        "schemaVersion": 1,
+        "contractId": "pegasus.cortex.search-request/1.0",
+        "requestId": "request-decomposed",
+        "namespace": "project:alpha",
+        "text": "café",
+        "taxonomy": null,
+        "productId": null,
+        "componentId": null,
+        "maximumSensitivity": "internal",
+        "freshnessStates": [
+          "current"
+        ],
+        "pageSize": 10,
+        "cursor": null
+      },
+      "canonicalJson": "[\"pegasus.cortex.query.request\",1,1,\"pegasus.cortex.search-request/1.0\",\"search\",\"project:alpha\",\"café\",null,null,null,\"internal\",[\"current\"],null,null,null]",
+      "canonicalUtf8Base64": "WyJwZWdhc3VzLmNvcnRleC5xdWVyeS5yZXF1ZXN0IiwxLDEsInBlZ2FzdXMuY29ydGV4LnNlYXJjaC1yZXF1ZXN0LzEuMCIsInNlYXJjaCIsInByb2plY3Q6YWxwaGEiLCJjYWZlzIEiLG51bGwsbnVsbCxudWxsLCJpbnRlcm5hbCIsWyJjdXJyZW50Il0sbnVsbCxudWxsLG51bGxd",
+      "sha256": "7d5544c5284e4d89095a76d3664c23341e2d27fef0b3b765f62b24dc3be1e74a"
+    },
+    {
+      "id": "request-get-record",
+      "kind": "request",
+      "input": {
+        "schemaVersion": 1,
+        "contractId": "pegasus.cortex.record-read-request/1.0",
+        "requestId": "request-record",
+        "namespace": "project:alpha",
+        "recordId": "record-1",
+        "revisionId": "revision-2"
+      },
+      "canonicalJson": "[\"pegasus.cortex.query.request\",1,1,\"pegasus.cortex.record-read-request/1.0\",\"get_record\",\"project:alpha\",null,null,null,null,null,null,\"record-1\",\"revision-2\",null]",
+      "canonicalUtf8Base64": "WyJwZWdhc3VzLmNvcnRleC5xdWVyeS5yZXF1ZXN0IiwxLDEsInBlZ2FzdXMuY29ydGV4LnJlY29yZC1yZWFkLXJlcXVlc3QvMS4wIiwiZ2V0X3JlY29yZCIsInByb2plY3Q6YWxwaGEiLG51bGwsbnVsbCxudWxsLG51bGwsbnVsbCxudWxsLCJyZWNvcmQtMSIsInJldmlzaW9uLTIiLG51bGxd",
+      "sha256": "e7c44474d31230202823184f66ac6db3f2a777efc580f72d519d6431303d00a0"
+    },
+    {
+      "id": "request-search-broad-v1-1",
+      "kind": "request",
+      "input": {
+        "schemaVersion": 1,
+        "contractId": "pegasus.cortex.search-request/1.1",
+        "requestId": "request-broad",
+        "namespace": "project:alpha",
+        "text": "bounded query",
+        "taxonomy": null,
+        "productId": null,
+        "componentId": null,
+        "maximumSensitivity": "public",
+        "freshnessStates": [
+          "current"
+        ],
+        "pageSize": 10,
+        "cursor": null,
+        "mode": "broad"
+      },
+      "canonicalJson": "[\"pegasus.cortex.query.request\",1,1,\"pegasus.cortex.search-request/1.1\",\"search\",\"project:alpha\",\"bounded query\",null,null,null,\"public\",[\"current\"],null,null,\"broad\"]",
+      "canonicalUtf8Base64": "WyJwZWdhc3VzLmNvcnRleC5xdWVyeS5yZXF1ZXN0IiwxLDEsInBlZ2FzdXMuY29ydGV4LnNlYXJjaC1yZXF1ZXN0LzEuMSIsInNlYXJjaCIsInByb2plY3Q6YWxwaGEiLCJib3VuZGVkIHF1ZXJ5IixudWxsLG51bGwsbnVsbCwicHVibGljIixbImN1cnJlbnQiXSxudWxsLG51bGwsImJyb2FkIl0=",
+      "sha256": "41bdda6e63ef099a7139a6c169b26c0740efbe8d8e60636f3a9b77f68c919405"
+    },
+    {
+      "id": "request-get-lineage",
+      "kind": "request",
+      "input": {
+        "schemaVersion": 1,
+        "contractId": "pegasus.cortex.lineage-request/1.0",
+        "requestId": "request-lineage",
+        "namespace": "project:alpha",
+        "recordId": "record-1",
+        "revisionId": "revision-2",
+        "direction": "ancestors",
+        "pageSize": 25,
+        "cursor": null
+      },
+      "canonicalJson": "[\"pegasus.cortex.query.request\",1,1,\"pegasus.cortex.lineage-request/1.0\",\"get_lineage\",\"project:alpha\",null,null,null,null,null,null,\"record-1\",\"revision-2\",\"ancestors\"]",
+      "canonicalUtf8Base64": "WyJwZWdhc3VzLmNvcnRleC5xdWVyeS5yZXF1ZXN0IiwxLDEsInBlZ2FzdXMuY29ydGV4LmxpbmVhZ2UtcmVxdWVzdC8xLjAiLCJnZXRfbGluZWFnZSIsInByb2plY3Q6YWxwaGEiLG51bGwsbnVsbCxudWxsLG51bGwsbnVsbCxudWxsLCJyZWNvcmQtMSIsInJldmlzaW9uLTIiLCJhbmNlc3RvcnMiXQ==",
+      "sha256": "fe840679599b78caf27e0236cef5bb0ca128a6e6235b3ef68c1a33f31864d321"
+    }
+  ]
+}

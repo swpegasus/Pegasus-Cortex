@@ -1,0 +1,1 @@
+{"schema":"pegasus.cortex.file-generation/2.0","revision":1,"committedAtUtc":"2026-08-13T15:28:29.8522358+00:00","indexChunks":["index-00000.json","index-00001.json","index-00002.json","index-00003.json"],"receiptChunks":["receipts-00000.json","receipts-00001.json","receipts-00002.json","receipts-00003.json"],"headCount":55,"revisionCount":55,"receiptCount":55}

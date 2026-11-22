@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pegasus.local/schemas/cortex/learning-feedback-publication-change.v1.schema.json",
+  "title": "Pegasus Cortex Publication Change v1",
+  "description": "An immutable, authority-qualified compare-and-swap request to supersede or withdraw one published collective-learning head without deleting history.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "contractId", "canonicalization", "changeId", "tenantId", "namespace",
+    "authorityId", "subjectId", "serviceId", "policyRevision", "action", "targetRecordId",
+    "expectedHeadRevisionId", "expectedHeadGeneration", "replacement", "reasonCode", "reason",
+    "occurredAtUtc", "changeHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "pegasus.cortex.publication-change/1.0" },
+    "canonicalization": { "const": "pegasus-canonical-json-v1" },
+    "changeId": { "$ref": "#/$defs/changeId" },
+    "tenantId": { "$ref": "#/$defs/identifier" },
+    "namespace": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "authorityId": { "$ref": "#/$defs/identifier" },
+    "subjectId": { "$ref": "#/$defs/identifier" },
+    "serviceId": { "$ref": "#/$defs/identifier" },
+    "policyRevision": { "type": "integer", "minimum": 1 },
+    "action": { "enum": ["supersede", "withdraw"] },
+    "targetRecordId": { "$ref": "#/$defs/recordId" },
+    "expectedHeadRevisionId": { "$ref": "#/$defs/revisionId" },
+    "expectedHeadGeneration": { "type": "integer", "minimum": 1 },
+    "replacement": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/replacement" }
+      ]
+    },
+    "reasonCode": {
+      "enum": ["corrected", "obsolete", "duplicate", "unsafe_content", "invalid_content"]
+    },
+    "reason": { "type": "string", "minLength": 1, "maxLength": 1024 },
+    "occurredAtUtc": { "type": "string", "format": "date-time", "pattern": "(Z|\\+00:00)$" },
+    "changeHash": { "$ref": "#/$defs/hash" }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "changeId": { "type": "string", "pattern": "^pchg_[0-9a-f]{64}$" },
+    "recordId": { "type": "string", "pattern": "^krec_[0-9a-f]{64}$" },
+    "revisionId": { "type": "string", "pattern": "^krev_[0-9a-f]{64}$" },
+    "replacement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["recordId", "revisionId", "contentHash"],
+      "properties": {
+        "recordId": { "$ref": "#/$defs/recordId" },
+        "revisionId": { "$ref": "#/$defs/revisionId" },
+        "contentHash": { "$ref": "#/$defs/hash" }
+      }
+    }
+  }
+}

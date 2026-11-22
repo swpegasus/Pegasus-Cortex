@@ -1,0 +1,1 @@
+Distinguish active-context compaction, RAM unloading, archival/offloading, diagnostic pruning, permanent deletion and physical space reclamation. Preserve active or uncertain work, pinned/shared references and recovery evidence. Age or terminal status alone is not authorization to delete.

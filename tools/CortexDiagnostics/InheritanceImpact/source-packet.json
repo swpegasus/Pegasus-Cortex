@@ -1,0 +1,84 @@
+{
+  "schema": "pegasus.cortex.held-inheritance-impact-source/1",
+  "status": "HELD_FOR_ROOT_AND_PEER_SOURCE_REVIEW",
+  "authority": "Source authorship only. No compilation, tests, native invocation, scan, repair, start, installation or release selection authorized.",
+  "files": [
+    {
+      "path": "AssessInheritanceImpact.cs",
+      "bytes": 28390,
+      "sha256": "b84d54303b238263203b6a6676b13f06664b34795f2b53b1606af4a718377097"
+    },
+    {
+      "path": "InheritanceImpact.csproj",
+      "bytes": 884,
+      "sha256": "1d767cd259026ee7f9d3bd50bdbd22e3ca777ba5a0a3e743bb7670d6bcb59816"
+    },
+    {
+      "path": "README.md",
+      "bytes": 5349,
+      "sha256": "885e0639a8363648d6a512a776d139732959d2922255f067b276bc26fd7fe162"
+    }
+  ],
+  "scope": {
+    "fixedPathClass": "Previously verified installation state/users/current-Windows-owner-SID only",
+    "ownerBinding": "Prior verified owner SID bound by SHA256; no personal name or SID literal persisted",
+    "expectedSession": 1,
+    "caller": "Same ordinary non-Administrator Windows owner",
+    "explicitStartupTargets": [
+      "root",
+      "execution",
+      "logs",
+      "tray"
+    ],
+    "rootOverrides": false,
+    "ancestorEnumeration": false,
+    "registryOrDatabaseLookup": false
+  },
+  "proposedSourceLimits": {
+    "totalEncounteredEntries": 8192,
+    "queuedDirectories": 512,
+    "depth": 32,
+    "cooperativeSeconds": 15
+  },
+  "counting": "Reserve up to9 native returned entries before each1024B query. Charge root, dot entries and all returned entries before filtering/retaining. Failed or malformed batch keeps conservative reserved charge. Never silently page/resume.",
+  "publicEntry": "Assess returns Incomplete/HeldForRootReview without native I/O. No CLI entry point or execution-enable flag.",
+  "deadline": "Cooperative admission/continuation budget only. Synchronous native calls and cleanup can outlast15s. No permission to abandon ownership, kill, or claim a hard bound.",
+  "result": "Aggregate counts/classifications + Complete/Incomplete/reason only. No names, paths, SIDs, per-object IDs, SDDL, content or exception messages exposed.",
+  "nativeAdmission": [
+    "Open-existing metadata handles only; file handles request no READ_DATA",
+    "Normalized final path, NTFS volume/file ID, creation time, type, owner and reparse admission before DACL use/descent",
+    "Children open relative to retained admitted parent handle, with expected type and OPEN_REPARSE_POINT",
+    "Multi-link files, unsupported native/security records, access failure, owner mismatch and observed drift stop Incomplete",
+    "Protected directory DACLs stop traversal except the four independently targeted startup directories"
+  ],
+  "completionSemantics": "CompleteObservedTraversal means bounded exhaustion of the observed namespace under admitted handles; not an atomic namespace seal, historical root identity proof, custody proof, rollback baseline or repair authorization.",
+  "privacy": "Transient metadata/paths only; no private file bodies, DB/profile/API opens, SDDL/messages, snapshots or rollback baseline persisted.",
+  "integrationList": {
+    "newFilesOnly": [
+      "AssessInheritanceImpact.cs",
+      "InheritanceImpact.csproj",
+      "README.md",
+      "source-packet.json"
+    ],
+    "existingProductFilesChanged": [],
+    "productOrSolutionReferencesAdded": [],
+    "packageReferencesAdded": [],
+    "installedOrMachineEffects": [],
+    "requiredNext": "Root/peer source review only; native ABI, batch parsing/counts, cleanup/drift and execution/custody plan remain unqualified."
+  },
+  "patternProvenance": {
+    "reused": "Narrow SafeFileHandle, BY_HANDLE_FILE_INFORMATION and normalized-volume path patterns only",
+    "source": "src/PegasusCortex.Product/CortexLocationPathIdentity.cs",
+    "sourceSha256": "d58000359d5585f786b861c7d0ef10614bbe9bafcd232a06e090d4b46c5b63e5",
+    "newUnqualified": "Handle-relative NtOpenFile, directory-batch enumeration, security-reader and complete traversal"
+  },
+  "verification": {
+    "sourceReadbackAndHashOnly": true,
+    "compiled": false,
+    "testsRun": false,
+    "nativeInvoked": false,
+    "liveRootScanned": false,
+    "peerReviewComplete": false
+  },
+  "releaseBoundary": "Old exact backport remains held. Forward-source selection is a separate review of actual owned source and integration; source metadata version is not release proof."
+}

@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pegasus.local/schemas/cortex-current.v1.schema.json",
+  "title": "Pegasus Cortex bounded current-state projection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "project", "current", "authority", "freshness", "fallback"],
+  "properties": {
+    "schema": { "const": "pegasus.cortex.current/1.0" },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "projectLinkId"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 320 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 320 },
+        "projectLinkId": {
+          "type": "string",
+          "pattern": "^plink_[0-9a-f]{64}$"
+        }
+      }
+    },
+    "current": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["task", "gate", "checkpoint", "nextAction"],
+      "properties": {
+        "task": { "type": "string", "minLength": 1, "maxLength": 320 },
+        "gate": { "type": "string", "minLength": 1, "maxLength": 320 },
+        "checkpoint": { "type": "string", "minLength": 1, "maxLength": 320 },
+        "nextAction": { "type": "string", "minLength": 1, "maxLength": 320 }
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["revision", "authoritySetHash", "sourceCount"],
+      "properties": {
+        "revision": { "type": "integer", "minimum": 1 },
+        "authoritySetHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "sourceCount": { "const": 5 }
+      }
+    },
+    "freshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["generatedAtUtc"],
+      "properties": {
+        "generatedAtUtc": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,7})?Z$"
+        }
+      }
+    },
+    "fallback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pointer", "when"],
+      "properties": {
+        "pointer": { "const": ".cortex/README.md#full-fallback-recovery-order" },
+        "when": { "type": "string", "minLength": 1, "maxLength": 320 }
+      }
+    }
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "target": {
+    "taxonomy": "workflows",
+    "title": "Bounded agent context recovery and continuation",
+    "summary": "Reduce uncached input by recovering verified task state from one project brief and one exact read.",
+    "content": "Use a revision probe before spawning a coordinator or worker. New workers receive a bounded continuation packet, not full conversation or transcript history. Passive immutable task snapshots and retention storage never assign, approve, or execute tasks. A project brief binds the current task head and returns a delta only for its exact predecessor; otherwise it returns a snapshot. A handoff receipt proves recorded bytes, not receiver acceptance. Integrated access routes through the Nexus remote gateway, while standalone Cortex uses local IPC with no network listener. Recovery exports are readable, but an exact database backup remains distinct. Unchanged heartbeat cycles are deterministic and make no model or worker call; changed delivery requires an acknowledgement-backed outbox. Resume solved work from verified closeout evidence, revision-checked state, and bounded context budgets.",
+    "keywords": [
+      "acknowledgement outbox",
+      "bounded context",
+      "continuation packet",
+      "coordinator worker",
+      "database backup",
+      "immutable task snapshot",
+      "handoff receipt receiver acceptance",
+      "local IPC",
+      "Nexus remote gateway integrated access",
+      "project brief",
+      "recovery export",
+      "revision probe",
+      "transcript history",
+      "unchanged heartbeat"
+    ]
+  },
+  "partialTermQuery": "context nebula",
+  "exactQueries": [
+    "transcript coordinator history",
+    "project brief continuation packet",
+    "immutable revision checked task snapshots",
+    "unchanged model worker",
+    "readable exact database backup"
+  ],
+  "naturalLanguageQueries": [
+    "reduce long running agent context without replaying transcripts",
+    "continue solved work from verified closeout evidence",
+    "revision probe before spawning coordinator worker",
+    "new workers should not inherit full conversation history",
+    "agent task snapshots are passive assertions not authority",
+    "project brief must bind to current task head",
+    "delta only from exact predecessor otherwise snapshot",
+    "Nexus remote gateway for Cortex integrated access",
+    "standalone Cortex local no network listener",
+    "reduce uncached input for cold agent recovery",
+    "handoff receipt proves bytes not receiver acceptance",
+    "revision checked immutable task state conflicts",
+    "bounded revision gaps validation work",
+    "project brief and work packet context budget",
+    "heartbeat acknowledgement outbox delivery gap",
+    "retention storage does not assign or approve tasks",
+    "one brief retrieval and one exact read startup",
+    "readable recovery export versus exact database backup",
+    "deterministic unchanged heartbeat no model call",
+    "resume agent work from bounded continuation packet"
+  ],
+  "minimumBroadRecallAt3": 19
+}

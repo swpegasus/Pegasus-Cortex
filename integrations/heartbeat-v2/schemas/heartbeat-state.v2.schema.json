@@ -1,0 +1,212 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pegasus.local/schemas/heartbeat-state.v2.schema.json",
+  "title": "Pegasus Heartbeat v2 external state",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "heartbeatId",
+    "stateHash",
+    "lastRevision",
+    "lastCursor",
+    "completedIdempotencyKeys",
+    "retry",
+    "attentionLatched",
+    "metrics",
+    "lastReceipt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 2
+    },
+    "heartbeatId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 96
+    },
+    "stateHash": {
+      "$ref": "#/$defs/sha256"
+    },
+    "lastRevision": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "lastCursor": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "completedIdempotencyKeys": {
+      "type": "array",
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/sha256"
+      }
+    },
+    "retry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attempt",
+        "nextAttemptAtUtc"
+      ],
+      "properties": {
+        "attempt": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "nextAttemptAtUtc": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/utcTimestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "attentionLatched": {
+      "type": "boolean"
+    },
+    "metrics": {
+      "$ref": "#/$defs/metrics"
+    },
+    "lastReceipt": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/receipt"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "utcTimestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "counter": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runs",
+        "unchanged",
+        "changed",
+        "attentionRequired",
+        "failed",
+        "eventsObserved",
+        "eventsEmitted"
+      ],
+      "properties": {
+        "runs": {
+          "$ref": "#/$defs/counter"
+        },
+        "unchanged": {
+          "$ref": "#/$defs/counter"
+        },
+        "changed": {
+          "$ref": "#/$defs/counter"
+        },
+        "attentionRequired": {
+          "$ref": "#/$defs/counter"
+        },
+        "failed": {
+          "$ref": "#/$defs/counter"
+        },
+        "eventsObserved": {
+          "$ref": "#/$defs/counter"
+        },
+        "eventsEmitted": {
+          "$ref": "#/$defs/counter"
+        }
+      }
+    },
+    "receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "heartbeatId",
+        "receiptId",
+        "atUtc",
+        "status",
+        "eventsObserved",
+        "eventsEmitted",
+        "retryDelaySeconds",
+        "consecutiveFailures",
+        "totals"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "heartbeatId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 96
+        },
+        "receiptId": {
+          "$ref": "#/$defs/sha256"
+        },
+        "atUtc": {
+          "$ref": "#/$defs/utcTimestamp"
+        },
+        "status": {
+          "enum": [
+            "unchanged",
+            "changed",
+            "attention-required",
+            "failed"
+          ]
+        },
+        "eventsObserved": {
+          "$ref": "#/$defs/counter"
+        },
+        "eventsEmitted": {
+          "$ref": "#/$defs/counter"
+        },
+        "retryDelaySeconds": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 990
+        },
+        "consecutiveFailures": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "totals": {
+          "$ref": "#/$defs/metrics"
+        }
+      }
+    }
+  }
+}

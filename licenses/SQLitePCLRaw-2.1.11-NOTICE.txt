@@ -1,0 +1,25 @@
+Package metadata covered by this notice:
+
+- SQLitePCLRaw.bundle_e_sqlite3 2.1.11
+- SQLitePCLRaw.core 2.1.11
+- SQLitePCLRaw.lib.e_sqlite3 2.1.12 (native runtime package in the audited Windows x64 product)
+- SQLitePCLRaw.provider.e_sqlite3 2.1.11
+
+Author: Eric Sink
+Copyright: Copyright 2014-2024 SourceGear, LLC
+License expression: Apache-2.0
+License URL: https://licenses.nuget.org/Apache-2.0
+Repository: https://github.com/ericsink/SQLitePCL.raw
+
+The staged package archives declare the Apache-2.0 SPDX expression but do not
+embed a license or NOTICE file. Their nuspec repository elements do not include
+a commit. The adjacent LICENSE file is a local copy of the Apache License 2.0
+retained for dependency compliance.
+
+The managed bundle, core and provider remain version 2.1.11. Only the native
+lib.e_sqlite3 package is version 2.1.12; this is not an upgrade of those managed
+packages. The existing 2.1.11 native runtime-asset inventory is retained as
+historical provenance. SQLitePCLRaw.lib.e_sqlite3-2.1.12-RUNTIME-ASSETS.json
+records the actual newer native archive and its unmodified runtime assets.
+DEPENDENCY_PROVENANCE.json identifies the audited product and exact archive,
+license, notice and runtime-asset inventory digests.

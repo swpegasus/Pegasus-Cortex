@@ -1,0 +1,719 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pegasus.local/schemas/cortex/cortex-query-contracts.v1.schema.json",
+  "title": "Pegasus Cortex production read contracts v1",
+  "description": "Transport-neutral discovery, status, namespace, search, exact-record, lineage, diagnostic, and host-internal cursor envelopes. Capability documents describe protocol support and never grant authority. Caller authority is server-derived and intentionally absent.",
+  "oneOf": [
+    { "$ref": "#/$defs/discoveryRequest" },
+    { "$ref": "#/$defs/healthRequest" },
+    { "$ref": "#/$defs/namespaceListRequest" },
+    { "$ref": "#/$defs/searchRequest" },
+    { "$ref": "#/$defs/searchRequestV1_1" },
+    { "$ref": "#/$defs/recordReadRequest" },
+    { "$ref": "#/$defs/lineageRequest" },
+    { "$ref": "#/$defs/queryResponse" },
+    { "$ref": "#/$defs/capabilities" },
+    { "$ref": "#/$defs/serviceStatus" },
+    { "$ref": "#/$defs/recordProjection" },
+    { "$ref": "#/$defs/cursorPayload" }
+  ],
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "contractId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "namespace": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "utcDateTime": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "(?:Z|\\+00:00)$"
+    },
+    "cursor": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048,
+      "pattern": "^[A-Za-z0-9._~-]+$"
+    },
+    "operation": {
+      "enum": ["discover", "health", "list_namespaces", "search", "get_record", "get_lineage"]
+    },
+    "sensitivity": { "enum": ["public", "internal", "confidential", "restricted"] },
+    "freshnessState": { "enum": ["current", "stale", "blocked", "unverified", "unknown"] },
+    "applicabilityState": { "enum": ["verified", "blocked", "unverified", "unknown", "stale"] },
+    "recordState": { "enum": ["active", "superseded", "archived"] },
+    "searchMode": { "enum": ["exact", "broad"] },
+    "requestHeader": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "contractId", "requestId"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "contractId": { "type": "string" },
+        "requestId": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "discoveryRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "contractId", "requestId"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "contractId": { "const": "pegasus.cortex.query-discovery-request/1.0" },
+        "requestId": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "healthRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "contractId", "requestId"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "contractId": { "const": "pegasus.cortex.query-health-request/1.0" },
+        "requestId": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "namespaceListRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "contractId", "requestId", "pageSize", "cursor"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "contractId": { "const": "pegasus.cortex.namespace-list-request/1.0" },
+        "requestId": { "$ref": "#/$defs/identifier" },
+        "pageSize": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "cursor": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/cursor" }] }
+      }
+    },
+    "searchRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion", "contractId", "requestId", "namespace", "text", "taxonomy",
+        "productId", "componentId", "maximumSensitivity", "freshnessStates", "pageSize", "cursor"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "contractId": { "const": "pegasus.cortex.search-request/1.0" },
+        "requestId": { "$ref": "#/$defs/identifier" },
+        "namespace": { "$ref": "#/$defs/namespace" },
+        "text": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "taxonomy": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "productId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "componentId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "maximumSensitivity": { "$ref": "#/$defs/sensitivity" },
+        "freshnessStates": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/freshnessState" }
+        },
+        "pageSize": { "type": "integer", "minimum": 1, "maximum": 50 },
+        "cursor": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/cursor" }] }
+      }
+    },
+    "searchRequestV1_1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion", "contractId", "requestId", "namespace", "text", "taxonomy",
+        "productId", "componentId", "maximumSensitivity", "freshnessStates", "pageSize", "cursor", "mode"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "contractId": { "const": "pegasus.cortex.search-request/1.1" },
+        "requestId": { "$ref": "#/$defs/identifier" },
+        "namespace": { "$ref": "#/$defs/namespace" },
+        "text": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "taxonomy": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "productId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "componentId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "maximumSensitivity": { "$ref": "#/$defs/sensitivity" },
+        "freshnessStates": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/freshnessState" }
+        },
+        "pageSize": { "type": "integer", "minimum": 1, "maximum": 50 },
+        "cursor": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/cursor" }] },
+        "mode": { "$ref": "#/$defs/searchMode" }
+      }
+    },
+    "recordReadRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "contractId", "requestId", "namespace", "recordId", "revisionId"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "contractId": { "const": "pegasus.cortex.record-read-request/1.0" },
+        "requestId": { "$ref": "#/$defs/identifier" },
+        "namespace": { "$ref": "#/$defs/namespace" },
+        "recordId": { "$ref": "#/$defs/identifier" },
+        "revisionId": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "lineageRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion", "contractId", "requestId", "namespace", "recordId", "revisionId",
+        "direction", "pageSize", "cursor"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "contractId": { "const": "pegasus.cortex.lineage-request/1.0" },
+        "requestId": { "$ref": "#/$defs/identifier" },
+        "namespace": { "$ref": "#/$defs/namespace" },
+        "recordId": { "$ref": "#/$defs/identifier" },
+        "revisionId": { "$ref": "#/$defs/identifier" },
+        "direction": { "enum": ["ancestors", "descendants"] },
+        "pageSize": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "cursor": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/cursor" }] }
+      }
+    },
+    "queryLimits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maximumPageSize", "maximumSearchPageSize", "maximumQueryCharacters",
+        "maximumCursorCharacters", "maximumWireRequestBytes", "maximumWireResponseBytes",
+        "maximumWireJsonDepth", "maximumApplicabilityItems", "maximumEvidenceItems", "maximumLineageItems"
+      ],
+      "properties": {
+        "maximumPageSize": { "const": 100 },
+        "maximumSearchPageSize": { "const": 50 },
+        "maximumQueryCharacters": { "const": 512 },
+        "maximumCursorCharacters": { "const": 2048 },
+        "maximumWireRequestBytes": { "const": 131072 },
+        "maximumWireResponseBytes": { "const": 262144 },
+        "maximumWireJsonDepth": { "const": 32 },
+        "maximumApplicabilityItems": { "const": 32 },
+        "maximumEvidenceItems": { "const": 16 },
+        "maximumLineageItems": { "const": 100 }
+      }
+    },
+    "operationSupport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operation", "supported", "namespaceScoped", "pageable", "maximumPageSize"],
+      "properties": {
+        "operation": { "$ref": "#/$defs/operation" },
+        "supported": { "type": "boolean" },
+        "namespaceScoped": { "type": "boolean" },
+        "pageable": { "type": "boolean" },
+        "maximumPageSize": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion", "contractId", "serviceVersion", "supportedRequestContracts",
+        "supportedResponseContracts", "supportedCursorVersions", "operations", "limits"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "contractId": { "const": "pegasus.cortex.query-capabilities/1.0" },
+        "serviceVersion": { "$ref": "#/$defs/identifier" },
+        "supportedRequestContracts": {
+          "type": "array", "minItems": 1, "maxItems": 32, "uniqueItems": true,
+          "items": { "$ref": "#/$defs/contractId" }
+        },
+        "supportedResponseContracts": {
+          "type": "array", "minItems": 1, "maxItems": 32, "uniqueItems": true,
+          "items": { "$ref": "#/$defs/contractId" }
+        },
+        "supportedCursorVersions": {
+          "type": "array", "minItems": 1, "maxItems": 8, "uniqueItems": true,
+          "items": { "$ref": "#/$defs/identifier" }
+        },
+        "operations": {
+          "type": "array", "minItems": 1, "maxItems": 6, "items": { "$ref": "#/$defs/operationSupport" }
+        },
+        "limits": { "$ref": "#/$defs/queryLimits" }
+      }
+    },
+    "dependencyStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["component", "required", "ready", "status", "revision", "diagnosticCode", "observedAt"],
+      "properties": {
+        "component": { "enum": ["store", "schema", "index", "gateway"] },
+        "required": { "type": "boolean" },
+        "ready": { "type": "boolean" },
+        "status": { "enum": ["ready", "degraded", "unavailable", "unknown"] },
+        "revision": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "diagnosticCode": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "observedAt": { "$ref": "#/$defs/utcDateTime" }
+      }
+    },
+    "serviceStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion", "contractId", "serviceVersion", "processHealth", "readiness",
+        "indexGeneration", "observedAt", "dependencies"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "contractId": { "const": "pegasus.cortex.service-status/1.0" },
+        "serviceVersion": { "$ref": "#/$defs/identifier" },
+        "processHealth": { "enum": ["healthy", "degraded", "unhealthy"] },
+        "readiness": { "enum": ["ready", "not_ready"] },
+        "indexGeneration": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "observedAt": { "$ref": "#/$defs/utcDateTime" },
+        "dependencies": {
+          "type": "array", "minItems": 4, "maxItems": 4, "uniqueItems": true,
+          "items": { "$ref": "#/$defs/dependencyStatus" }
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidenceId", "reference", "mediaType", "sha256", "verification", "observedAt", "sourceVersion"],
+      "properties": {
+        "evidenceId": { "$ref": "#/$defs/identifier" },
+        "reference": { "type": "string", "minLength": 1, "maxLength": 2048 },
+        "mediaType": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "sha256": { "$ref": "#/$defs/hash" },
+        "verification": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "observedAt": { "$ref": "#/$defs/utcDateTime" },
+        "sourceVersion": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] }
+      }
+    },
+    "lineageLink": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relation", "namespace", "recordId", "revisionId", "contentHash"],
+      "properties": {
+        "relation": { "enum": ["derived_from", "supersedes", "superseded_by", "references"] },
+        "namespace": { "$ref": "#/$defs/namespace" },
+        "recordId": { "$ref": "#/$defs/identifier" },
+        "revisionId": { "$ref": "#/$defs/identifier" },
+        "contentHash": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "producerContract", "producerAuthorityId", "producerSubjectId", "producerServiceId",
+        "agentId", "instanceId", "machineId", "operationId", "taskId", "correlationId",
+        "sourceRevisions", "sourceRevisionsComplete", "transformations", "transformationsComplete"
+      ],
+      "properties": {
+        "producerContract": { "$ref": "#/$defs/contractId" },
+        "producerAuthorityId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "producerSubjectId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "producerServiceId": { "$ref": "#/$defs/identifier" },
+        "agentId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "instanceId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "machineId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "operationId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "taskId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "correlationId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "sourceRevisions": { "type": "array", "maxItems": 100, "items": { "$ref": "#/$defs/lineageLink" } },
+        "sourceRevisionsComplete": { "const": true },
+        "transformations": {
+          "type": "array", "maxItems": 64,
+          "items": { "type": "string", "minLength": 1, "maxLength": 128 }
+        },
+        "transformationsComplete": { "const": true }
+      }
+    },
+    "confidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["valueBasisPoints", "basis"],
+      "properties": {
+        "valueBasisPoints": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "basis": { "type": "string", "minLength": 1, "maxLength": 512 }
+      }
+    },
+    "freshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "observedAt", "reviewAfter", "basis"],
+      "properties": {
+        "state": { "$ref": "#/$defs/freshnessState" },
+        "observedAt": { "$ref": "#/$defs/utcDateTime" },
+        "reviewAfter": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/utcDateTime" }] },
+        "basis": { "type": "string", "minLength": 1, "maxLength": 512 }
+      }
+    },
+    "applicability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["productId", "componentId", "minimumVersion", "maximumVersion", "state"],
+      "properties": {
+        "productId": { "$ref": "#/$defs/identifier" },
+        "componentId": { "$ref": "#/$defs/identifier" },
+        "minimumVersion": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^(?:\\S|\\S[^\\r\\n\\t]*\\S)$" }
+          ]
+        },
+        "maximumVersion": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^(?:\\S|\\S[^\\r\\n\\t]*\\S)$" }
+          ]
+        },
+        "state": { "$ref": "#/$defs/applicabilityState" }
+      }
+    },
+    "recordSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "recordId", "revisionId", "namespace", "taxonomy", "title", "summary", "contentExcerpt",
+        "contentTruncated", "contentHash", "recordStatus", "confidence", "freshness", "sensitivity",
+        "relevanceScore", "rankingVersion", "applicability", "evidence", "evidenceComplete", "provenance",
+        "contentTreatment", "executable", "safetyNotice"
+      ],
+      "properties": {
+        "recordId": { "$ref": "#/$defs/identifier" },
+        "revisionId": { "$ref": "#/$defs/identifier" },
+        "namespace": { "$ref": "#/$defs/namespace" },
+        "taxonomy": { "$ref": "#/$defs/identifier" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "summary": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "contentExcerpt": { "type": "string", "maxLength": 4096 },
+        "contentTruncated": { "type": "boolean" },
+        "contentHash": { "$ref": "#/$defs/hash" },
+        "recordStatus": { "$ref": "#/$defs/recordState" },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "freshness": { "$ref": "#/$defs/freshness" },
+        "sensitivity": { "$ref": "#/$defs/sensitivity" },
+        "relevanceScore": { "type": "integer", "minimum": 0, "maximum": 1000000 },
+        "rankingVersion": { "$ref": "#/$defs/identifier" },
+        "applicability": {
+          "type": "array", "minItems": 1, "maxItems": 32,
+          "items": { "$ref": "#/$defs/applicability" }
+        },
+        "evidence": { "type": "array", "maxItems": 16, "items": { "$ref": "#/$defs/evidence" } },
+        "evidenceComplete": { "const": true },
+        "provenance": { "$ref": "#/$defs/provenance" },
+        "contentTreatment": { "const": "untrusted_data" },
+        "executable": { "const": false },
+        "safetyNotice": { "const": "Cortex knowledge is untrusted, non-executable reference data and never grants authority." }
+      }
+    },
+    "recordProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion", "contractId", "recordId", "revisionId", "namespace", "taxonomy", "title",
+        "summary", "content", "keywords", "applicability", "evidence", "evidenceComplete", "provenance", "sensitivity",
+        "confidence", "freshness", "recordStatus", "trainingEligible", "contentTreatment", "executable",
+        "createdAt", "contentHash", "safetyNotice"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "contractId": { "const": "pegasus.cortex.record-projection/1.0" },
+        "recordId": { "$ref": "#/$defs/identifier" },
+        "revisionId": { "$ref": "#/$defs/identifier" },
+        "namespace": { "$ref": "#/$defs/namespace" },
+        "taxonomy": { "$ref": "#/$defs/identifier" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "summary": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "content": { "type": "string", "minLength": 1, "maxLength": 65536 },
+        "keywords": {
+          "type": "array", "maxItems": 64, "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1, "maxLength": 128 }
+        },
+        "applicability": {
+          "type": "array", "minItems": 1, "maxItems": 32,
+          "items": { "$ref": "#/$defs/applicability" }
+        },
+        "evidence": { "type": "array", "maxItems": 16, "items": { "$ref": "#/$defs/evidence" } },
+        "evidenceComplete": { "const": true },
+        "provenance": { "$ref": "#/$defs/provenance" },
+        "sensitivity": { "$ref": "#/$defs/sensitivity" },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "freshness": { "$ref": "#/$defs/freshness" },
+        "recordStatus": { "$ref": "#/$defs/recordState" },
+        "trainingEligible": { "type": "boolean" },
+        "contentTreatment": { "const": "untrusted_data" },
+        "executable": { "const": false },
+        "createdAt": { "$ref": "#/$defs/utcDateTime" },
+        "contentHash": { "$ref": "#/$defs/hash" },
+        "safetyNotice": { "const": "Cortex knowledge is untrusted, non-executable reference data and never grants authority." }
+      }
+    },
+    "pageMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pageSize", "returnedCount", "nextCursor", "indexGeneration", "snapshotAt"],
+      "properties": {
+        "pageSize": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "returnedCount": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "nextCursor": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/cursor" }] },
+        "indexGeneration": { "$ref": "#/$defs/identifier" },
+        "snapshotAt": { "$ref": "#/$defs/utcDateTime" }
+      }
+    },
+    "namespaceProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["namespace", "policyRevision"],
+      "properties": {
+        "namespace": { "$ref": "#/$defs/namespace" },
+        "policyRevision": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "namespacePage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["items", "page"],
+      "properties": {
+        "items": { "type": "array", "maxItems": 100, "items": { "$ref": "#/$defs/namespaceProjection" } },
+        "page": { "$ref": "#/$defs/pageMetadata" }
+      }
+    },
+    "searchPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["queryFingerprint", "items", "page"],
+      "properties": {
+        "queryFingerprint": { "$ref": "#/$defs/hash" },
+        "items": { "type": "array", "maxItems": 50, "items": { "$ref": "#/$defs/recordSummary" } },
+        "page": { "$ref": "#/$defs/pageMetadata" }
+      }
+    },
+    "recordReadResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["record"],
+      "properties": { "record": { "$ref": "#/$defs/recordProjection" } }
+    },
+    "lineagePage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["recordId", "revisionId", "direction", "items", "page"],
+      "properties": {
+        "recordId": { "$ref": "#/$defs/identifier" },
+        "revisionId": { "$ref": "#/$defs/identifier" },
+        "direction": { "enum": ["ancestors", "descendants"] },
+        "items": { "type": "array", "maxItems": 100, "items": { "$ref": "#/$defs/lineageLink" } },
+        "page": { "$ref": "#/$defs/pageMetadata" }
+      }
+    },
+    "diagnosticContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requestId", "namespace", "recordId", "revisionId", "correlationId",
+        "indexGeneration", "dependency", "policyRevision"
+      ],
+      "properties": {
+        "requestId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "namespace": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/namespace" }] },
+        "recordId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "revisionId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "correlationId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "indexGeneration": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "dependency": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "policyRevision": { "oneOf": [{ "type": "null" }, { "type": "integer", "minimum": 1 }] }
+      }
+    },
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message", "severity", "operation", "retryable", "context", "causeCategory"],
+      "properties": {
+        "code": {
+          "enum": [
+            "cortex_query_invalid_request", "cortex_query_forbidden", "cortex_query_not_found",
+            "cortex_query_cursor_invalid", "cortex_query_dependency_unavailable", "cortex_query_internal_failure"
+          ]
+        },
+        "message": { "type": "string", "minLength": 1, "maxLength": 1024 },
+        "severity": { "enum": ["information", "warning", "error", "critical"] },
+        "operation": { "$ref": "#/$defs/identifier" },
+        "retryable": { "type": "boolean" },
+        "context": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/diagnosticContext" }] },
+        "causeCategory": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] }
+      },
+      "allOf": [
+        {
+          "oneOf": [
+            {
+              "properties": {
+                "code": { "const": "cortex_query_invalid_request" },
+                "message": { "const": "The query request is invalid or exceeds a supported bound." }
+              }
+            },
+            {
+              "properties": {
+                "code": { "const": "cortex_query_forbidden" },
+                "message": { "const": "Current server policy does not grant the requested query scope." }
+              }
+            },
+            {
+              "properties": {
+                "code": { "const": "cortex_query_not_found" },
+                "message": { "const": "The requested record is unavailable in the authorized query scope." }
+              }
+            },
+            {
+              "properties": {
+                "code": { "const": "cortex_query_cursor_invalid" },
+                "message": { "const": "The cursor is invalid for the current request." }
+              }
+            },
+            {
+              "properties": {
+                "code": { "const": "cortex_query_dependency_unavailable" },
+                "message": { "const": "A required Cortex query dependency is unavailable." }
+              }
+            },
+            {
+              "properties": {
+                "code": { "const": "cortex_query_internal_failure" },
+                "message": { "const": "The Cortex query operation failed." }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "queryResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "contractId", "operation", "requestId", "accepted", "payload", "diagnostics"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "contractId": { "const": "pegasus.cortex.query-response/1.0" },
+        "operation": { "$ref": "#/$defs/operation" },
+        "requestId": { "$ref": "#/$defs/identifier" },
+        "accepted": { "type": "boolean" },
+        "payload": {
+          "oneOf": [
+            { "type": "null" }, { "$ref": "#/$defs/capabilities" }, { "$ref": "#/$defs/serviceStatus" },
+            { "$ref": "#/$defs/namespacePage" }, { "$ref": "#/$defs/searchPage" },
+            { "$ref": "#/$defs/recordReadResult" }, { "$ref": "#/$defs/lineagePage" }
+          ]
+        },
+        "diagnostics": { "type": "array", "maxItems": 16, "items": { "$ref": "#/$defs/diagnostic" } }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "accepted": { "const": true } }, "required": ["accepted"] },
+          "then": { "properties": { "payload": { "not": { "type": "null" } } } },
+          "else": {
+            "properties": {
+              "payload": { "type": "null" },
+              "diagnostics": { "minItems": 1 }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "accepted": { "const": true }, "operation": { "const": "discover" } },
+            "required": ["accepted", "operation"]
+          },
+          "then": { "properties": { "payload": { "$ref": "#/$defs/capabilities" } } }
+        },
+        {
+          "if": {
+            "properties": { "accepted": { "const": true }, "operation": { "const": "health" } },
+            "required": ["accepted", "operation"]
+          },
+          "then": { "properties": { "payload": { "$ref": "#/$defs/serviceStatus" } } }
+        },
+        {
+          "if": {
+            "properties": { "accepted": { "const": true }, "operation": { "const": "list_namespaces" } },
+            "required": ["accepted", "operation"]
+          },
+          "then": { "properties": { "payload": { "$ref": "#/$defs/namespacePage" } } }
+        },
+        {
+          "if": {
+            "properties": { "accepted": { "const": true }, "operation": { "const": "search" } },
+            "required": ["accepted", "operation"]
+          },
+          "then": { "properties": { "payload": { "$ref": "#/$defs/searchPage" } } }
+        },
+        {
+          "if": {
+            "properties": { "accepted": { "const": true }, "operation": { "const": "get_record" } },
+            "required": ["accepted", "operation"]
+          },
+          "then": { "properties": { "payload": { "$ref": "#/$defs/recordReadResult" } } }
+        },
+        {
+          "if": {
+            "properties": { "accepted": { "const": true }, "operation": { "const": "get_lineage" } },
+            "required": ["accepted", "operation"]
+          },
+          "then": { "properties": { "payload": { "$ref": "#/$defs/lineagePage" } } }
+        }
+      ]
+    },
+    "cursorPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion", "contractId", "cursorVersion", "tenantId", "authorityId", "subjectId",
+        "serviceId", "policyRevision", "scopeFingerprint", "namespace", "operation", "queryFingerprint",
+        "pageSize", "sortVersion", "indexGeneration", "keysetPosition", "issuedAt", "expiresAt"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "contractId": { "const": "pegasus.cortex.query-cursor-payload/1.0" },
+        "cursorVersion": { "$ref": "#/$defs/identifier" },
+        "tenantId": { "$ref": "#/$defs/identifier" },
+        "authorityId": { "$ref": "#/$defs/identifier" },
+        "subjectId": { "$ref": "#/$defs/identifier" },
+        "serviceId": { "$ref": "#/$defs/identifier" },
+        "policyRevision": { "type": "integer", "minimum": 1 },
+        "scopeFingerprint": { "$ref": "#/$defs/hash" },
+        "namespace": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/namespace" }] },
+        "operation": { "enum": ["list_namespaces", "search", "get_lineage"] },
+        "queryFingerprint": { "$ref": "#/$defs/hash" },
+        "pageSize": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "sortVersion": { "$ref": "#/$defs/identifier" },
+        "indexGeneration": { "$ref": "#/$defs/identifier" },
+        "keysetPosition": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^[^\\s\\u0000-\\u001F\\u007F]+$"
+        },
+        "issuedAt": { "$ref": "#/$defs/utcDateTime" },
+        "expiresAt": { "$ref": "#/$defs/utcDateTime" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "operation": { "const": "list_namespaces" } }, "required": ["operation"] },
+          "then": { "properties": { "namespace": { "type": "null" } } },
+          "else": { "properties": { "namespace": { "$ref": "#/$defs/namespace" } } }
+        },
+        {
+          "if": { "properties": { "operation": { "const": "search" } }, "required": ["operation"] },
+          "then": { "properties": { "pageSize": { "maximum": 50 } } }
+        }
+      ]
+    }
+  }
+}

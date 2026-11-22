@@ -1,0 +1,1 @@
+A fresh versioned schema and semantic baseline may be created for a prerelease system. Preserve accumulated old data and referenced artifacts independently for later local copy, deterministic translation or client-assisted curation. Historical conversion need not block the new core.

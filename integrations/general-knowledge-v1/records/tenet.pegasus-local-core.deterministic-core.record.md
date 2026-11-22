@@ -1,0 +1,1 @@
+Cortex stores, indexes, filters, ranks, versions and returns data and supports deterministic typed operations and delivery. It owns no model or model API. Cerebral, Codex or another compatible client supplies interpretation and may orchestrate supported actions.

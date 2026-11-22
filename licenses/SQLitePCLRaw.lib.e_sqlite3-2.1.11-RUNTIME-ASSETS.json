@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "packageId": "SQLitePCLRaw.lib.e_sqlite3",
+  "packageVersion": "2.1.11",
+  "packageSha256": "6667df6c73609cb51db0f6e29229440228715e5d4c79d2014355f3b7ddb6e81c",
+  "assetCount": 30,
+  "assetsFingerprintAlgorithm": "sha256 of compact UTF-8 JSON for the archivePath-sorted assets array with ordinally sorted object keys",
+  "assetsFingerprintSha256": "b04738e108ac4b3fbca4dd0153d024d655460028706af866cf4294847b035e4b",
+  "assets": [
+    {
+      "archivePath": "runtimes/browser-wasm/nativeassets/net6.0/e_sqlite3.a",
+      "size": 1256980,
+      "sha256": "04e9b2980f0ea577da5fda19877aa53c9fa44cc570339f4abfffe1803b3d3d0e"
+    },
+    {
+      "archivePath": "runtimes/browser-wasm/nativeassets/net7.0/e_sqlite3.a",
+      "size": 1254554,
+      "sha256": "60defc701c00c84aa049db205b1824815a4e80917fdb83d34af7af2451f3c520"
+    },
+    {
+      "archivePath": "runtimes/browser-wasm/nativeassets/net8.0/e_sqlite3.a",
+      "size": 1209768,
+      "sha256": "1a5cf9d2d166ea52c26b57457f85daa3834e5bb8499c5e489579711970a4f646"
+    },
+    {
+      "archivePath": "runtimes/browser-wasm/nativeassets/net9.0/e_sqlite3.a",
+      "size": 1202596,
+      "sha256": "419622488300b7a26e21bc11e76a3e161e80440a22fa4c0519aa6cbac71fcb10"
+    },
+    {
+      "archivePath": "runtimes/linux-arm/native/libe_sqlite3.so",
+      "size": 893360,
+      "sha256": "de29ad722adc039f3a3a08fe222ed2bb46948a4acefeaeda86fc57d8ab7edc24"
+    },
+    {
+      "archivePath": "runtimes/linux-arm64/native/libe_sqlite3.so",
+      "size": 1374696,
+      "sha256": "3d73c00244173f89bd264d9605e7753ffef8336f487b4ff059ef027261c5d623"
+    },
+    {
+      "archivePath": "runtimes/linux-armel/native/libe_sqlite3.so",
+      "size": 1257916,
+      "sha256": "83863b2c9dce8b1e4da72a3818025dee6506653149daad14c9bb81b5293baba1"
+    },
+    {
+      "archivePath": "runtimes/linux-mips64/native/libe_sqlite3.so",
+      "size": 1594136,
+      "sha256": "31ab04e827923a286649fb060b05cb5020e393a7abe542ceadc60735df090f93"
+    },
+    {
+      "archivePath": "runtimes/linux-musl-arm/native/libe_sqlite3.so",
+      "size": 1219860,
+      "sha256": "635afd4379650f7bc2599ab2b6606ad6bac44fefc0f2c09018d20d0e1f828593"
+    },
+    {
+      "archivePath": "runtimes/linux-musl-arm64/native/libe_sqlite3.so",
+      "size": 1335840,
+      "sha256": "18468c67541ae7cacf359968fb7427d57978cf0a903ffb42708aae6360d9782c"
+    },
+    {
+      "archivePath": "runtimes/linux-musl-riscv64/native/libe_sqlite3.so",
+      "size": 941944,
+      "sha256": "06a2faceb613b95e291cbe84a3ec2550e1ae69ffe65b9783fcf557888f2995c1"
+    },
+    {
+      "archivePath": "runtimes/linux-musl-s390x/native/libe_sqlite3.so",
+      "size": 1554416,
+      "sha256": "02a3d327c3746c0e9883e4d2203d5e5311c3d98d3755ddd3d7670becf7cd4f8d"
+    },
+    {
+      "archivePath": "runtimes/linux-musl-x64/native/libe_sqlite3.so",
+      "size": 1323128,
+      "sha256": "24868846aa49e7d030908d44051a7ecec0e1315524e92bc21a5f6dda816790f6"
+    },
+    {
+      "archivePath": "runtimes/linux-ppc64le/native/libe_sqlite3.so",
+      "size": 1722360,
+      "sha256": "ccffec6414fb012c4e52326172ba50006a845f67962d8612cec48790acaa3d13"
+    },
+    {
+      "archivePath": "runtimes/linux-riscv64/native/libe_sqlite3.so",
+      "size": 955392,
+      "sha256": "a10ee61703cc90a6069b919f39e12b95bee072210bcf82cb49c119ecb61485f0"
+    },
+    {
+      "archivePath": "runtimes/linux-s390x/native/libe_sqlite3.so",
+      "size": 1504352,
+      "sha256": "547b6553a9ad65b214366b4372637b772265388a8ce0d7d3eb75995783a69611"
+    },
+    {
+      "archivePath": "runtimes/linux-x64/native/libe_sqlite3.so",
+      "size": 1348440,
+      "sha256": "965400c23fde16a19d000c1c6062af577f048410f85253a793f569d5520daaad"
+    },
+    {
+      "archivePath": "runtimes/linux-x86/native/libe_sqlite3.so",
+      "size": 1416232,
+      "sha256": "a9382cc28bcf354d15f0b6d392db0dbc9b3dcca1756f11b18d209dc357bc5f66"
+    },
+    {
+      "archivePath": "runtimes/maccatalyst-arm64/native/libe_sqlite3.dylib",
+      "size": 1569856,
+      "sha256": "2d1b982eadaae830abdc9edba3ccbe77036342b19ae00117b96136a6e122d84a"
+    },
+    {
+      "archivePath": "runtimes/maccatalyst-x64/native/libe_sqlite3.dylib",
+      "size": 1624336,
+      "sha256": "2bdb87f40497aa0d744835ae43f948586ff6e8df861c9fbf7be29b7f3fed6b39"
+    },
+    {
+      "archivePath": "runtimes/osx-arm64/native/libe_sqlite3.dylib",
+      "size": 1554624,
+      "sha256": "bea557311c6ef51eb6a69834dbd7a4e1ebd9d3654790cf311d942bf6a6ade0a2"
+    },
+    {
+      "archivePath": "runtimes/osx-x64/native/libe_sqlite3.dylib",
+      "size": 1591680,
+      "sha256": "858192f4089b1e643a8b972100e71e17fb83dea0c352d9f161684f6dcb69034a"
+    },
+    {
+      "archivePath": "runtimes/win-arm/native/e_sqlite3.dll",
+      "size": 1282560,
+      "sha256": "2ff400c5bbfd7d08b393eccdc9e0065b525f7fe5ff790b17779d3892bb1de66d"
+    },
+    {
+      "archivePath": "runtimes/win-arm64/native/e_sqlite3.dll",
+      "size": 1592320,
+      "sha256": "d28ff71188b00e30489bb7bef15dd2ebc2fded92fd9cd8af97ce222d5cfa4c61"
+    },
+    {
+      "archivePath": "runtimes/win-x64/native/e_sqlite3.dll",
+      "size": 1795072,
+      "sha256": "4dcbb2ad197d893355efa004257e048f2c850feb1078158f4baab0f7b53ac45f"
+    },
+    {
+      "archivePath": "runtimes/win-x86/native/e_sqlite3.dll",
+      "size": 1453568,
+      "sha256": "d067d9e40d4bc93df3d142e19cd3a92ebae865d245e7335020478929489d5c8f"
+    },
+    {
+      "archivePath": "runtimes/win10-arm/nativeassets/uap10.0/e_sqlite3.dll",
+      "size": 1164288,
+      "sha256": "2aed9be092564901df609480ed01679387df2c9f1656f73dea0f1e078cf8cbc5"
+    },
+    {
+      "archivePath": "runtimes/win10-arm64/nativeassets/uap10.0/e_sqlite3.dll",
+      "size": 1443328,
+      "sha256": "9474748e63d780cc11d925d204005b0eae2daa3c5569444cd31d17a13ac48b00"
+    },
+    {
+      "archivePath": "runtimes/win10-x64/nativeassets/uap10.0/e_sqlite3.dll",
+      "size": 1632256,
+      "sha256": "c08976ce2d0391cca1a87c7a93fd8b142bac910c50aadffb7e0d7b5fec3ca0cf"
+    },
+    {
+      "archivePath": "runtimes/win10-x86/nativeassets/uap10.0/e_sqlite3.dll",
+      "size": 1308672,
+      "sha256": "c81d40a092258b4db7b9e45ac07b0d219913316d2a5dcf87e0b65de2508c2e85"
+    }
+  ]
+}

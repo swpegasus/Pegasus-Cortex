@@ -1,0 +1,170 @@
+CORTEX R2 PHASE 1 STORAGE - SOURCE AND QUALIFICATION CHECKPOINT
+Date: 2026-11-19. Owner: Codex task 01a12d3b-79fa-7582-aa10-461ab3506979.
+Scope approved by Cortex Coordinator 01a12d3b-7157-7352-ac1f-a5f549ceb103.
+
+STATUS
+Original frozen source compiled offline with zero warnings/errors. Its actual console
+driver reported 12 passed, 1 skipped, 0 failed, exit2; it is NOT a complete qualification.
+The skipped symbolic-link fixture lacked creation privilege. Original results/logs and
+fixtures are retained; no privilege, Developer Mode, policy or product behavior changed.
+The reviewed junction revision compiled with zero warnings/errors and its actual
+ordinary-user Main passed all 13 cases, zero skips/failures, exit0. Its exact source
+Program SHA256 is 07a895cbca1119e324adff91895421ca5e395b194b84f705c8640eacfc57dc77.
+Only the test-local real directory-junction fixture and this checkpoint changed.
+The product guard is tag-independent FileAttributes.ReparsePoint ancestry refusal.
+A junction can qualify that generic guard; it cannot qualify symbolic-link-specific behavior.
+No current project, V2 provider, transport, installed binding, registration, service,
+permissions, old/user database, model, package pin or production ranking was edited.
+
+ENTRY AND VERSION BOUNDARY
+SqliteFreshSemanticStore.CreateNewAsync requires an existing, explicit, empty local
+directory and creates only cortex-r2.db. There is no current-user, registry, environment,
+installed-root or current V2 factory. This provider requires Windows file-handle custody.
+Contract: pegasus.cortex.semantic-baseline/1.
+Schema generation: pegasus-cortex-r2; schema version: 1.
+StoreInstanceId is generated once per successful fresh creation and persisted independently
+of schema/product/MCP versions. Product version does not select or admit a database.
+Public descriptors and references do not grant access or prove record existence.
+Stable project/chat/task/record IDs are caller-provided, bounded, exact portable identifiers;
+namespace organization does not derive ownership or create permissions.
+Project, chat and task membership are independently optional. A genuine projectless chat
+or task has ProjectId=null; no default project is invented. Chat/task/record membership uses
+direct optional ID foreign keys, not a composite project hierarchy. Task references still
+require exact TaskId==RecordId. Explicit owner and wrong-store reference checks remain.
+
+SELECTED MINIMAL BEHAVIOR
+Five tables contain one baseline identity plus empty project/chat/task/record-identity
+membership definitions. There are no payload revisions, payload writers, search/FTS,
+importers, task services, migrations, delivery, pruning or runtime wiring.
+Reopen accepts only this supported empty bootstrap. A populated store requires an explicit
+later contract; no hidden future CRUD behavior is advertised.
+References include StoreInstanceId, namespace, kind, record ID/revision and explicit owner
+membership. Equal logical IDs in distinct fresh generations are not equal store references.
+
+CREATION AND FAILURE SEMANTICS
+Both entry paths first validate strings, canonical root/segments and local-drive type before
+Directory.Exists, File.Exists or existing path helpers can probe the filesystem. The existing
+policy refusing Network/CDRom/NoRootDirectory/Unknown drive types is preserved. Mapped-drive
+ordering is SOURCE-REVIEWED ONLY, not established by the literal UNC fixture. No drive/share
+was created, mapped, contacted or experimentally probed.
+The parent path is then validated and a create-new, delete-on-close claim serializes ordinary
+creators. Existing/nonempty targets and unsafe paths are refused.
+A new staging file is opened with RW access and sharing compatible with SQLite's Windows
+VFS. Physical identity is checked around SQLite open before issuing schema/configuration
+SQL. Schema creation and metadata insertion commit in one transaction in this new file.
+After SQLite closes, ReOpenFile obtains DELETE custody on the retained original object.
+Publication is a no-replacement handle rename of that object, never a path-based move.
+Cancellation is checked before publication. Unpublished normal failures delete only the
+created staged object by its retained handle. Unexpected journals or failed cleanup remain
+explicit recovery evidence; there is no directory sweep or automatic repair.
+Publication is the commit boundary. After it, admission completes without converting a
+confirmed creation into a cancellation. A final admission failure reports Published=true
+through CortexSemanticBaselineCreationException and must not trigger an automatic retry.
+The newly published file is rechecked against its original physical identity and descriptor.
+
+REOPEN AND PRESERVATION SEMANTICS
+OpenVerifiedAsync requires an exact path and expected descriptor, never creates a file and
+always uses SqliteOpenMode.ReadOnly with pooling disabled.
+Read/share-read custody refuses concurrent writes, deletion/replacement and hard links.
+Before SQLite open, the 100-byte SQLite header must select rollback-journal read/write
+versions, this application ID and this user_version. WAL input and unresolved sidecars are
+refused before engine access: ReadOnly SQLite alone would not prove absence of WAL/SHM writes.
+Only connection-local query_only/trusted_schema settings are set on verified reopen.
+Every schema object is inspected. Only expected exact table DDL and SQLite's automatic
+indexes belonging to those tables are admitted; broad LIKE-prefix exclusions are not used.
+Stored identity must exactly match the supported schema fingerprint and expected instance.
+No old database, raw/sealed/user data, current MCP/pipe or installed binding is a test input.
+
+OBSERVABLE DRIVER AND QUALIFICATION LIMITS
+Standalone project: tests/PegasusCortex.R2Baseline.Tests/PegasusCortex.R2Baseline.Tests.csproj.
+It is deliberately outside existing test projects' recursive Compile globs.
+It requires --fixture-root with a new explicit canonical local directory, discovers no
+product storage and retains only its synthetic fixtures; it performs no recursive cleanup.
+Thirteen cases cover actual fresh create, zero population, verified reopen/custody,
+wrong identity/version, changed and sqliteX_payload schema, populated schema refusal,
+synthetic old-name/nonempty sentinels, missing/unsafe paths, typed reference scope,
+actual projectless chat/task membership with zero project rows and direct-ID FK refusals,
+pre-canceled operations, actual WAL-mode input and unresolved journals, concurrent create,
+hard links and reparse points. Unsupported fixture capabilities report SKIP; a skip is not
+a pass. Actual execution counts are explicitly identified below; planned coverage is not a pass.
+Cancellation after a live publication and abnormal I/O cleanup remain source-reviewed
+boundaries unless separately exercised; the pre-cancellation case is not proof of those paths.
+
+DEPENDENCIES AND OUTPUT ISOLATION
+Existing Microsoft.Data.Sqlite 10.0.10 and SQLitePCLRaw.lib.e_sqlite3 2.1.12 pins are reused
+through the existing library project; there is no new production dependency.
+Only the standalone project and its affected library dependencies were compiled.
+Reserve artifacts/build/current/r2-storage-79fa for transitive build/restore artifacts.
+Synthetic fixtures use separate explicit roots below artifacts/validation.
+No solution/App/host/package/publish/installer output was built by this lane.
+Offline restore must use existing local packages and fail if a dependency is absent.
+
+BUILD ROUTE AND ACTUAL ORIGINAL RESULTS
+Historical definition4 integrity refusal:
+jid d5990bce03194fde922c2fa3b0300237, RID c5a3a340825a4d338a2124292dc3a3ed,
+exit8/partial=false, unknown execution, no retained detail/log. This is historical.
+Root subsequently verified the user-authorized registration refresh to definition 5.
+This lane confirmed the live definition 5 and actual registered SDK execution.
+
+Original restore job 77d1a754d4be42c2bbab599fbaa4cac1 failed exit1:
+NU1005 (global lock disable with existing source locks) and NU1102 (task feed excluded
+by current package source mapping). The failure and original logs are retained.
+Task-only configuration now preserves existing local mappings with one exact native
+SQLite package mapping and per-project isolated strict locks. Production NuGet.Config
+and all three source locks remained unchanged. Seven resolved package content hashes
+matched existing locked resolution; no ignored source failure or unlocked substitute.
+Corrected locked offline restore job 9f5b0c5b089e4f26989a309d225b73f2: exit0.
+Original build job d487c62d46e748b9adef6297ce815ec2: exit0, zero warnings/errors.
+Original actual console Main job b9eab68670cb4cc4929b0efba47bdcbb:
+12 passed, 1 skipped, 0 failed, exit2, no timeout or output truncation.
+The single skip was the directory-symbolic-link fixture: creation privilege unavailable.
+No complete baseline pass, geometry run, installed verification or model proof is claimed.
+Evidence: artifacts/build/current/r2-storage-79fa/offline/baseline-result.v1.json and
+baseline-summary.txt. Original synthetic fixtures: artifacts/validation/r2-fx-79fa.
+
+JUNCTION FIXTURE REVISION - ACTUAL ORDINARY-USER QUALIFICATION
+Only Program.cs and this document change. The existing generic IOException refusal
+and unchanged-empty-target assertions remain. The helper accepts only exact bounded
+link/target paths below the explicit new fixture root with ordinary ancestry.
+CreateDirectoryW exclusively creates the owned empty link directory. A retained
+OPEN_REPARSE_POINT|BACKUP_SEMANTICS handle sets a bounded mount-point buffer with
+FSCTL_SET_REPARSE_POINT, tag0xA0000003, and reads it back with FSCTL_GET_REPARSE_POINT.
+Tag, lengths and exact substitute/print target names are checked. The caller also
+requires a real Directory|ReparsePoint and ResolveLinkTarget(false) to the exact
+owned target before invoking the product. No attribute is fabricated or guard weakened.
+Unsupported/privilege/access capability codes1/5/50/1314 remain SKIP; malformed buffers,
+wrong targets and unexpected native errors FAIL. All fixtures remain retained.
+No public reusable junction helper exists in the inspected library closure; private
+test-local Win32 patterns informed this bounded local helper without a new dependency.
+The corrected run used the NEW root artifacts/validation/r2-fx-junction-79fa.
+Rebuild job cb5ab6a9c6084ebaaa60022a94b0bd38: exit0, zero warnings/errors.
+Actual Main job d57fe23615e3402ea2befb86b0dacabe: 13 passed, 0 skipped, 0 failed,
+exit0, no timeout/truncation. The real junction tag, direct target and generic product
+refusal passed. Native SQLite output matched the admitted pinned 2.1.12 package.
+Record: artifacts/build/current/r2-storage-79fa/offline/baseline-junction-result.v1.json.
+This supersedes the original incomplete qualification; it does not erase that run.
+Symbolic-link-specific behavior remains unqualified even if the junction case passes.
+
+SOURCE REVIEW
+Static review identified and corrected the initial DELETE-sharing incompatibility and the
+LIKE 'sqlite_%' wildcard bypass before execution. Coordinator also identified the WAL
+read-only side-effect boundary; header admission and a held actual-WAL fixture were added.
+A bounded helper reread of the initial implementation found no remaining material defect
+in that snapshot. Audit then identified the unauthorized forced-project hierarchy; this
+refreeze removes it from contracts and DDL and adds actual fixture-only SQL acceptance,
+not merely nullable-field serialization. That source snapshot subsequently compiled; actual original coverage and exclusions are above.
+Native independent provider review closed at source evidence. Its P2 driver finding was
+corrected by rejecting trailing-separator root spellings during initial string admission,
+before drive/filesystem inspection. The exact containment check and 13 held cases are unchanged.
+These historical review statements are source evidence; actual original runtime results are separated above.
+
+CURRENT CHECKPOINT AND LIMITS
+The bounded fresh-store baseline now has a complete thirteen-case local qualification.
+The separately admitted geometry lane subsequently passed twelve engineering cases
+with diagnostics OFF and twelve ON. All twelve cross-run lexical context hashes and
+ordered lexical rankings matched. Geometry quality outcomes were 1 gain, 8 no-measured-gain,
+1 regression and 2 mixed; it remains optional diagnostic metadata, never selected context.
+See docs/CORTEX_R2_GEOMETRY_DIAGNOSTIC.txt and the separate geometry reports.
+No installed/old-store/model/deployment evidence or Phase2 implementation is claimed.
+Live-publication cancellation and abnormal cleanup paths remain outside actual coverage.
+All original fixtures/results and corrected ordinary-user fixtures are retained.

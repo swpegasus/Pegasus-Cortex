@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pegasus.local/schemas/cortex/learning-feedback-audit-assessment.v1.schema.json",
+  "title": "Pegasus Cortex Learning Feedback Audit Assessment v1",
+  "description": "An immutable independent audit assessment. Approval is advisory unless one active bounded review grant is atomically consumed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "contractId", "canonicalization", "assessmentId", "proposalId",
+    "proposalHash", "tenantId", "namespace", "recommendation", "authorityId",
+    "auditorSubjectId", "policyRevision", "rationale", "reviewGrantId",
+    "retentionConfidence", "createdAt", "assessmentHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "pegasus.cortex.learning-feedback-audit-assessment/1.0" },
+    "canonicalization": { "const": "pegasus-canonical-json-v1" },
+    "assessmentId": { "$ref": "#/$defs/identifier" },
+    "proposalId": { "$ref": "#/$defs/identifier" },
+    "proposalHash": { "$ref": "#/$defs/hash" },
+    "tenantId": { "$ref": "#/$defs/identifier" },
+    "namespace": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "recommendation": { "enum": ["approve", "reject", "human_review"] },
+    "authorityId": { "$ref": "#/$defs/identifier" },
+    "auditorSubjectId": { "$ref": "#/$defs/identifier" },
+    "policyRevision": { "type": "integer", "minimum": 1 },
+    "rationale": { "type": "string", "minLength": 1, "maxLength": 2048 },
+    "reviewGrantId": {
+      "oneOf": [
+        { "$ref": "#/$defs/identifier" },
+        { "type": "null" }
+      ]
+    },
+    "retentionConfidence": { "enum": [0, 0.6] },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "assessmentHash": { "$ref": "#/$defs/hash" }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}

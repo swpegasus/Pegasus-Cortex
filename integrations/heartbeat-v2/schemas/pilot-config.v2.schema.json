@@ -1,0 +1,204 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pegasus.local/schemas/heartbeat-pilot-config.v2.schema.json",
+  "title": "Pegasus Heartbeat v2 isolated pilot configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "heartbeatId",
+    "enabled",
+    "mode",
+    "gates",
+    "isolation",
+    "limits",
+    "retry"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 2
+    },
+    "heartbeatId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 96
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "mode": {
+      "enum": [
+        "report-only",
+        "pilot"
+      ]
+    },
+    "gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allowStateWrites",
+        "allowProductMutation",
+        "allowModelDispatch",
+        "allowWorkerDispatch",
+        "inheritParentTranscript"
+      ],
+      "properties": {
+        "allowStateWrites": {
+          "type": "boolean"
+        },
+        "allowProductMutation": {
+          "const": false
+        },
+        "allowModelDispatch": {
+          "const": false
+        },
+        "allowWorkerDispatch": {
+          "const": false
+        },
+        "inheritParentTranscript": {
+          "const": false
+        }
+      }
+    },
+    "isolation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "allowEnvironmentConfiguration",
+        "allowNetwork",
+        "integratedAdapters"
+      ],
+      "properties": {
+        "profile": {
+          "const": "standalone-local"
+        },
+        "allowEnvironmentConfiguration": {
+          "const": false
+        },
+        "allowNetwork": {
+          "const": false
+        },
+        "integratedAdapters": {
+          "type": "array",
+          "maxItems": 0
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maxAttempts",
+        "maxConcurrentRuns",
+        "leaseSeconds",
+        "coalesceWindowSeconds",
+        "maximumDeltas",
+        "maximumCoalescedEvents",
+        "maximumReportBytes"
+      ],
+      "properties": {
+        "maxAttempts": {
+          "const": 3
+        },
+        "maxConcurrentRuns": {
+          "const": 1
+        },
+        "leaseSeconds": {
+          "type": "integer",
+          "minimum": 15,
+          "maximum": 300
+        },
+        "coalesceWindowSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600
+        },
+        "maximumDeltas": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "maximumCoalescedEvents": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "maximumReportBytes": {
+          "type": "integer",
+          "minimum": 512,
+          "maximum": 8192
+        }
+      }
+    },
+    "retry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "baseSeconds",
+        "jitterMaxSeconds"
+      ],
+      "properties": {
+        "baseSeconds": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "const": 60
+            },
+            {
+              "const": 300
+            },
+            {
+              "const": 900
+            }
+          ],
+          "items": false,
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "jitterMaxSeconds": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "const": 0
+            },
+            {
+              "const": 0
+            },
+            {
+              "const": 0
+            }
+          ],
+          "items": false,
+          "minItems": 3,
+          "maxItems": 3
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "report-only"
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "then": {
+        "properties": {
+          "gates": {
+            "properties": {
+              "allowStateWrites": {
+                "const": false
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

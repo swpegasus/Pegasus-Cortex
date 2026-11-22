@@ -1,0 +1,199 @@
+{
+  "schema": "pegasus.cortex.behavior-pack/2.0",
+  "packId": "general-knowledge-v1",
+  "packRevision": 2,
+  "description": "Portable cross-project general knowledge. Project tasks, machine history, and validation evidence are excluded.",
+  "includesTasks": false,
+  "includesMachineHistory": false,
+  "records": [
+    {
+      "recordId": "tenet.general-knowledge-repository-taxonomy.20260815",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Use one expandable structured repository with bounded namespace roles",
+      "tags": [
+        "architecture",
+        "base-first",
+        "canonicalization",
+        "deduplication",
+        "generalized",
+        "general-knowledge",
+        "geometry",
+        "isolation",
+        "knowledge-space",
+        "namespaces",
+        "overlay",
+        "repository",
+        "retention",
+        "routing",
+        "taxonomy"
+      ],
+      "source": "user",
+      "contentPath": "records/general-knowledge-repository-taxonomy.record.md",
+      "sourceRelativePath": "user-general-knowledge-consolidation-20260815"
+    },
+    {
+      "recordId": "tenet.bounded-geometric-knowledge-retrieval.20260828",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Use bounded geometric retrieval with explicit knowledge-space composition",
+      "tags": [
+        "cross-agent",
+        "exact-read",
+        "exclusion",
+        "generalized",
+        "geometry",
+        "inclusion",
+        "knowledge-space",
+        "namespace",
+        "overlap",
+        "preview",
+        "relations",
+        "retrieval",
+        "semantic-space",
+        "vector"
+      ],
+      "source": "user",
+      "contentPath": "records/bounded-geometric-knowledge-retrieval.record.md",
+      "sourceRelativePath": "user-geometric-knowledge-space-20260828"
+    },
+    {
+      "recordId": "tenet.meaningful-cross-agent-continuity.20260816",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Retain meaningful cross-agent continuity without replaying the conversation",
+      "tags": [
+        "agents",
+        "continuity",
+        "generalized",
+        "handoff",
+        "knowledge",
+        "retention",
+        "tasks"
+      ],
+      "source": "user",
+      "contentPath": "records/meaningful-cross-agent-continuity.record.md",
+      "sourceRelativePath": "user-cross-agent-continuity-20260816"
+    },
+    {
+      "recordId": "tenet.pegasus-local-core.local-interfaces",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Local interfaces and client boundary",
+      "tags": [
+        "generalized",
+        "pegasus",
+        "local-core",
+        "guidance"
+      ],
+      "source": "user",
+      "contentPath": "records/tenet.pegasus-local-core.local-interfaces.record.md",
+      "sourceRelativePath": null
+    },
+    {
+      "recordId": "tenet.pegasus-local-core.deterministic-core",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Deterministic Cortex and client intelligence",
+      "tags": [
+        "generalized",
+        "pegasus",
+        "local-core",
+        "guidance"
+      ],
+      "source": "user",
+      "contentPath": "records/tenet.pegasus-local-core.deterministic-core.record.md",
+      "sourceRelativePath": null
+    },
+    {
+      "recordId": "tenet.pegasus-local-core.minimal-context",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Programmatic contracts and minimal model context",
+      "tags": [
+        "generalized",
+        "pegasus",
+        "local-core",
+        "guidance"
+      ],
+      "source": "user",
+      "contentPath": "records/tenet.pegasus-local-core.minimal-context.record.md",
+      "sourceRelativePath": null
+    },
+    {
+      "recordId": "tenet.pegasus-local-core.fresh-data",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Fresh versioned baseline and preserved information",
+      "tags": [
+        "generalized",
+        "pegasus",
+        "local-core",
+        "guidance"
+      ],
+      "source": "user",
+      "contentPath": "records/tenet.pegasus-local-core.fresh-data.record.md",
+      "sourceRelativePath": null
+    },
+    {
+      "recordId": "tenet.pegasus-local-core.durable-context",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Durable statements and active compaction",
+      "tags": [
+        "generalized",
+        "pegasus",
+        "local-core",
+        "guidance"
+      ],
+      "source": "user",
+      "contentPath": "records/tenet.pegasus-local-core.durable-context.record.md",
+      "sourceRelativePath": null
+    },
+    {
+      "recordId": "tenet.pegasus-local-core.scoped-memory",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Scopes, identity and human preferences",
+      "tags": [
+        "generalized",
+        "pegasus",
+        "local-core",
+        "guidance"
+      ],
+      "source": "user",
+      "contentPath": "records/tenet.pegasus-local-core.scoped-memory.record.md",
+      "sourceRelativePath": null
+    },
+    {
+      "recordId": "tenet.pegasus-local-core.delivery-pickup",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Confirmed pickup and transient delivery cleanup",
+      "tags": [
+        "generalized",
+        "pegasus",
+        "local-core",
+        "guidance"
+      ],
+      "source": "user",
+      "contentPath": "records/tenet.pegasus-local-core.delivery-pickup.record.md",
+      "sourceRelativePath": null
+    },
+    {
+      "recordId": "tenet.pegasus-local-core.safe-lifecycle",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Separate compaction, archival and pruning",
+      "tags": [
+        "generalized",
+        "pegasus",
+        "local-core",
+        "guidance"
+      ],
+      "source": "user",
+      "contentPath": "records/tenet.pegasus-local-core.safe-lifecycle.record.md",
+      "sourceRelativePath": null
+    }
+  ]
+}

@@ -1,0 +1,152 @@
+Cortex R2 optional endpoint selection: frozen source and diagnostic handoff
+Task 01a12d3b-79fa-7582-aa10-461ab3506979; phase r2-geometry-ranking.
+
+Disposition
+Implemented and engineering-qualified as an optional, default-OFF pure selector.
+Blind holdout did not demonstrate a primary-target or answer-group improvement.
+This is source-only experimental evidence. Quality acceptance remains open.
+No default enablement, release, installation, service, model, schema or index change
+is part of this handoff. Do not tune v1 against this opened holdout.
+
+Implementation boundary
+CortexKnowledgeGeometry.SelectEndpoints(intent, traversal, identities?, options?,
+cancellationToken) selects from the already admitted old chain graph. It has no
+provider callback or IO. Normal SearchAsync/TraverseAsync, existing traversal
+coordinates and scores, and graph construction remain unchanged.
+Disabled selection returns the original ranked coordinates/scores and a null
+selection score. Selection scores/features/reasons are separate from old scores.
+Defaults: Enabled=false, limit=4, maxCandidates=128, diversityPenalty=.04,
+CPU deadline=5000ms. Caller cancellation throws; internal time exhaustion returns
+explicit partial status. Graph roots, paths, predecessor and query membership are
+validated. The same cached graph is used for OFF/ON/replay comparisons.
+
+Frozen v1 policy
+Shared existing Unicode term/vector utilities are reused. No fixture strings,
+gold labels, IDs, token allow/deny lists or depth-only bonus occur in the policy.
+rootAnchor = .6*rootHeaderIntent + .4*rootFullIntent
+retainedAnchor = rootAnchor*(root ? 1 : .55+.45*actualPathBottleneck)
+selfSupport = .7*headerCoverageInSummary + .3*headerSummaryCosine
+endpointEvidence = max(selfSupport, incomingHeaderAgreement)
+uncorroboratedMention = max(0,fullIntent-headerIntent)*(1-selfSupport)
+base = .4*retainedAnchor + .3*rootAnchor*endpointEvidence + .3*fullIntent
+       - .08*uncorroboratedMention
+Greedy selection subtracts .04*maximum full-vector cosine to selected endpoints.
+
+Equivalence is conservative: a trusted full canonical-content SHA and full actual
+provenance SHA, exact namespace/kind/revision/title/ordered canonical tags are all
+required. Preview/vector resemblance is insufficient; unknown hashes do not
+collapse. All aliases and coordinate decisions remain exposed. Full immutable
+fixture content and actual persisted provenance supply these hashes; gold does
+not. Unit checks preserve body order, negation, numeric/code/version, revision and
+provenance distinctions.
+
+Evidence level
+Build 17815aeb709344d8afb3b625b5ee02c9: exit 0, 0 warnings, 0 errors.
+Pure/fake check job 494e532ba7b34d0d8dae24736ac0212f: exit 0, 7 groups;
+no SQLite opened in that lane. Checks cover OFF parity, immutable graph, no
+queries, replay/path validation, sparse/dense and quote behavior, equivalence,
+invalid inputs/caps/cancellation. These are unit checks, not quality evidence.
+Real executable/local SQLite study: 97 known query units plus 8 blind holdout.
+All 105 passed OFF parity, graph immutability and deterministic selector replay;
+same graph/context and old chain replay verified; selector added provider calls=0.
+Independent arithmetic/path/equivalence audit: 105 observations, 0 failures;
+the auditor reports exit 0/no truncation. Exact audit content/hash was checked. This is a report/gold/vector audit; runtime
+provider/cancellation/regression evidence comes from the captured executable.
+No network/provider/production or real-world reliability claim is made.
+
+Known development/regression sets (NOT holdout)
+Case                    Q  oldChain2 target/meanRecall/MRR  selector target/meanRecall/MRR
+probe-long-gap          1  0 / .000000 / .000000             1 / 1.000000 / .500000
+a-b48-n2048            48 50 / .906250 / .565972            45 /  .843750 / .522569
+near-a-largest        48 21 / .385417 / .343750            37 /  .687500 / .401042
+Long-gap target moved into rank 2 using its actual two-edge path; original
+traversal score .08483240081261842 is retained and selection score is
+.2672273640982034.
+Far case: 3 gains, 11 regressions, 1 mixed, 33 unchanged; inclusive losses are
+5 target-hit, 10 rank, 12 any-target-loss queries. Loss IDs:
+q01,q03,q05,q06,q07,q15,q16(mixed),q19,q23,q33,q36,q37.
+Near case: 18 gains, 6 rank regressions, 24 unchanged; no target-hit loss.
+Rank-loss IDs: q01,q03,q05,q15,q23,q32.
+Near duplicates are artificial: 48 distinct payloads repeated 5/6 times over
+256 IDs; the observed improvement is not representative reliability.
+These 97 units reuse 48 semantic questions and cannot be called independent.
+
+Blind holdout (sealed independently; no post-opening tuning)
+8 needs, 4 families, 88 records, 10 fixed canonical primary IDs, 16 required
+answer groups, 704 disjoint role classifications. Gold is evaluator-only.
+Method       returned  target support noise  macroRecall  MRR      groups  macroGroup
+lexical         32       5      10     17       .50       .4375     8/16     .50
+current         32       5      10     17       .50       .4375     8/16     .50
+oldChain2       32       2      11     19       .25       .2500     3/16     .25
+selector        32       2      12     18       .25       .2500     3/16     .25
+Target precision@4 is .15625 lexical/current and .0625 oldChain2/selector.
+Fixed canonical pooled recall is 5/10=50% lexical/current and 2/10=20%
+oldChain2/selector. Macro recall averages the 8 per-query recalls, hence 25%
+for selector. Required-group pooled coverage is 3/16=18.75%, while the mean of
+per-query group coverage is 25%; do not interchange the denominators.
+Graph reached 9 of 10 canonical primary IDs; 1 was unseen, and 7 reached IDs were
+not selected. Alias decisions=57 and do not inflate canonical target credit.
+Per case: h01 target1/groups2of2; h02 target1/groups1of1; h03 target reached but
+unselected/groups0of2; h04 target unseen/groups0of3; h05 target reached but
+unselected/groups0of1 (one extra support); h06 target reached but unselected/
+groups0of3, losing lexical target1/groups3of3; h07 two targets reached but none
+selected/groups0of2; h08 two targets reached but none selected/groups0of2,
+losing lexical targets2/groups2of2. h03,h04,h05,h07 also have no lexical target.
+Thus selector is unchanged from oldChain2 on primary target count/recall/MRR and
+groups, improves one support/noise slot, and underperforms normal search here.
+
+Blind commitment and retained producer history
+Final v1r2 commitment at 2026-11-20 04:28:28 UTC, before payload/gold opened.
+Policy SHA 66cdccfdfb9b4b31b0ab925fd739d01e9176be9eec02759d47e2d27221d011d7.
+Final blind freeze SHA
+0cd5111d279366e7d29f9480e24faa3a916f6eae34c710d7d1b21c1e9aae952b.
+Holdout sealed 04:00:38Z; released with independently checked source/image pins.
+A temporary v2 equal-prior draft had only a dependency restore; it was never
+compiled or scored.
+Exact v1 source was restored from its pre-draft archive before v1r2 commitment.
+Draft/supersession artifacts remain and v1r2 explicitly withdraws supersession.
+No policy, source or scoring edits followed holdout opening.
+
+First known producer capture 00131a285366459188d96e439e0ed66e exited 2 at the
+payload/provenance-binding guard, before selector scores. Raw input tag order
+differed from store canonical Distinct(Ordinal).Order(Ordinal) tags. Harness-only
+correction checks that exact canonical form and hashes/parses one byte buffer.
+Read-only recovery 02d2711f8d374a66828c232c0471aeb9 reused the same pinned DB and
+baseline; no reseed, delete or extra DB. Failed DB SHA remained
+a3baa05d868c00519f4e6bb61809957c9b67dd57eff5c2d0f97991fbca760400.
+Original failure, images, source archive and recovery receipts are retained.
+
+Resources and timing
+Exactly 4 fresh task-owned DBs; 5073 heads and 5073 revisions:
+long 281, far 2352, near 2352, holdout 88.
+Measured fixture tree 13,758,464 bytes; report tree snapshot 19,736,039 bytes;
+below admitted 128MiB fixture and 64MiB report limits. Peak process memory/CPU
+were not measured. No download or paid service used; offline locked restore
+used existing package archives in new task-owned output/package roots.
+Bounded measurement batch began 04:09:55 UTC; final holdout admitted 04:34:53
+with 302 seconds remaining and 300-second registered timeout; completion was
+read back by 04:35:24 (1529 seconds from batch start, within 1800).
+Later final documentation/hash bookkeeping is separate, with no new study run.
+
+Handoff paths
+Source root: C:\CodexProjects\Pegasus Cortex
+New implementation:
+src\PegasusCortex.Core\Knowledge\Geometry\CortexKnowledgeEndpointSelection.cs
+New harness:
+tests\PegasusCortex.GeometryEndpointDiagnostic\ (project plus 3 source files)
+Build root: artifacts\build\current\gend-79fa
+Final images: bin\PegasusCortex.GeometryEndpointDiagnostic\producer-r1
+Frozen sources/policy/history: offline\
+Final metadata: offline\endpoint-runtime-freeze.v1.json
+Report root: artifacts\validation\gend-rp-79fa
+Known reports: probe-long-gap-v1, a-b48-n2048-v1, near-a-largest-v1\selection.v1.json
+Blind report: native-holdout-v1\selection.v1.json
+SHA f5b2fade48c3d2ad91fe987a519c7fa2486417f8934b40172619f971bdca06f7
+Final independent audit: independent-audit-final-v1-01a1f50b.json
+SHA 9adf4a7443c626a1248a68899f0e257fe87951fd63ca09aba27d5e4ed3faa482
+Runtime manifest carries exact source/image/cache/report/job/provenance pins,
+preservation checks, resources and limitations. Prior C3/v1/chain source,
+images/options/reports/configuration/locks and old fixtures remain preserved.
+No admin console, installed root, live data, service, registration or deployment
+action was needed. Further policy research requires a separate approved scope
+and fresh evaluation material; this opened holdout cannot become a new blind test.

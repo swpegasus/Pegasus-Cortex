@@ -1,0 +1,1 @@
+Cortex operates locally. Cerebral is the direct Windows named-pipe client; Codex and other compatible clients use MCP to the same programmatic core. Preserve existing endpoint identity and authentication. A new cloud service, network listener or transport migration is not a prerequisite.

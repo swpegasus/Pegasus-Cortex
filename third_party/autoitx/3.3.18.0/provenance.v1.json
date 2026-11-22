@@ -1,0 +1,31 @@
+{
+  "contract": "pegasus-agentops-third-party-autoitx",
+  "version": 1,
+  "product": "AutoIt/AutoItX",
+  "productVersion": "3.3.18.0",
+  "publisher": "Jonathan Bennett and the AutoIt Team",
+  "upstream": "https://www.autoitscript.com/site/autoit/",
+  "license": "https://www.autoitscript.com/autoit3/docs/license.htm",
+  "acquiredFrom": "C:\\AutoIt3\\AutoItX",
+  "signerSubjectContains": "AUTOIT CONSULTING LTD",
+  "files": [
+    {
+      "name": "AutoItX3.Assembly.dll",
+      "length": 46176,
+      "sha256": "fae52485076b73eeab592884f9583194d517e6ce404a3353665d62f525eee785",
+      "fileVersion": "3.3.17.0"
+    },
+    {
+      "name": "AutoItX3.dll",
+      "length": 517232,
+      "sha256": "f6eaf5f179759a42b330af96b822de259437a8dfe7a241576d8f70b558ed8627",
+      "fileVersion": "3.3.18.0"
+    },
+    {
+      "name": "AutoItX3_x64.dll",
+      "length": 600688,
+      "sha256": "5330debd46771f496f32d951dc933edda75498d7a929d3ca57494d8646e8db8e",
+      "fileVersion": "3.3.18.0"
+    }
+  ]
+}

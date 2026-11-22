@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "Pegasus.Cortex.Product": {
+        "type": "Project"
+      },
+      "PegasusCortex": {
+        "type": "Project",
+        "dependencies": {
+          "Pegasus.Cortex.Product": "[2.20261120.1132-a, )"
+        }
+      }
+    },
+    "net10.0/win-x64": {}
+  }
+}

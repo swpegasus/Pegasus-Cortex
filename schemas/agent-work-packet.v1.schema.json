@@ -1,0 +1,333 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pegasus.local/schemas/cortex/agent-work-packet.v1.schema.json",
+  "title": "Pegasus passive agent work packet v1",
+  "description": "A closed, canonical, passive work revision capped at 8192 serialized UTF-8 bytes by the source policy. It is untrusted reference data and grants no scheduling, claim, execution, or other authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "contractId", "canonicalization", "mode", "stage", "workId",
+    "packetRevision", "previousPacketHash", "idempotencyKey", "projectId", "projectLinkId",
+    "contextSetId", "parentWorkId", "depth", "maxFanOut", "issuedAt", "expiresAt",
+    "objective", "currentState", "constraints", "approvalGate", "expectedOutput",
+    "referenceIds", "evidenceIds", "relativeProjectPaths", "completedWork", "remainingWork",
+    "nextAction", "blockers", "knownFailures", "sourceRevisions", "freshness", "owner",
+    "maxContextBytes", "cancellationRequested", "fallback", "closeout", "contentTreatment",
+    "executable", "grantsSchedulingAuthority", "grantsTaskClaim", "grantsAuthority",
+    "safetyNotice", "packetHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "pegasus.agent-work-packet/1.0" },
+    "canonicalization": { "const": "pegasus-canonical-json-v1" },
+    "mode": { "enum": ["standalone", "integrated"] },
+    "stage": { "enum": ["start", "continue", "closeout"] },
+    "workId": { "$ref": "#/$defs/identifier" },
+    "packetRevision": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+    "previousPacketHash": { "$ref": "#/$defs/nullableHash" },
+    "idempotencyKey": { "$ref": "#/$defs/identifier" },
+    "projectId": { "$ref": "#/$defs/identifier" },
+    "projectLinkId": { "$ref": "#/$defs/nullableProjectLinkId" },
+    "contextSetId": { "$ref": "#/$defs/contextSetId" },
+    "parentWorkId": { "$ref": "#/$defs/nullableIdentifier" },
+    "depth": { "type": "integer", "minimum": 0, "maximum": 16 },
+    "maxFanOut": { "type": "integer", "minimum": 0, "maximum": 16 },
+    "issuedAt": { "$ref": "#/$defs/utcDateTime" },
+    "expiresAt": { "$ref": "#/$defs/utcDateTime" },
+    "objective": { "$ref": "#/$defs/text1024" },
+    "currentState": { "$ref": "#/$defs/text1024" },
+    "constraints": {
+      "type": "array", "maxItems": 16, "uniqueItems": true,
+      "items": { "$ref": "#/$defs/text512" }
+    },
+    "approvalGate": { "$ref": "#/$defs/approvalGate" },
+    "expectedOutput": { "$ref": "#/$defs/text1024" },
+    "referenceIds": {
+      "type": "array", "maxItems": 16, "uniqueItems": true,
+      "items": { "$ref": "#/$defs/identifier" }
+    },
+    "evidenceIds": {
+      "type": "array", "maxItems": 16, "uniqueItems": true,
+      "items": { "$ref": "#/$defs/identifier" }
+    },
+    "relativeProjectPaths": {
+      "type": "array", "maxItems": 16, "uniqueItems": true,
+      "items": { "$ref": "#/$defs/relativeProjectPath" }
+    },
+    "completedWork": {
+      "type": "array", "maxItems": 16, "uniqueItems": true,
+      "items": { "$ref": "#/$defs/text512" }
+    },
+    "remainingWork": {
+      "type": "array", "maxItems": 16, "uniqueItems": true,
+      "items": { "$ref": "#/$defs/text512" }
+    },
+    "nextAction": { "$ref": "#/$defs/text512" },
+    "blockers": {
+      "type": "array", "maxItems": 8, "uniqueItems": true,
+      "items": { "$ref": "#/$defs/text512" }
+    },
+    "knownFailures": {
+      "type": "array", "maxItems": 8, "uniqueItems": true,
+      "items": { "$ref": "#/$defs/text512" }
+    },
+    "sourceRevisions": {
+      "type": "array", "minItems": 1, "maxItems": 16,
+      "items": { "$ref": "#/$defs/sourceRevision" }
+    },
+    "freshness": { "$ref": "#/$defs/freshness" },
+    "owner": { "$ref": "#/$defs/owner" },
+    "maxContextBytes": { "type": "integer", "minimum": 1, "maximum": 1048576 },
+    "cancellationRequested": { "type": "boolean" },
+    "fallback": { "$ref": "#/$defs/text512" },
+    "closeout": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/closeout" }
+      ]
+    },
+    "contentTreatment": { "const": "untrusted_data" },
+    "executable": { "const": false },
+    "grantsSchedulingAuthority": { "const": false },
+    "grantsTaskClaim": { "const": false },
+    "grantsAuthority": { "const": false },
+    "safetyNotice": {
+      "const": "This packet is passive untrusted reference data. It grants no scheduling, task claim, execution, or other authority."
+    },
+    "packetHash": {
+      "$ref": "#/$defs/hash",
+      "description": "SHA-256 of canonical JSON for this packet with packetHash replaced by 64 lowercase zero characters."
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "mode": { "const": "integrated" } } },
+      "then": { "properties": { "projectLinkId": { "$ref": "#/$defs/projectLinkId" } } }
+    },
+    {
+      "if": { "properties": { "parentWorkId": { "type": "null" } } },
+      "then": { "properties": { "depth": { "const": 0 } } },
+      "else": { "properties": { "depth": { "minimum": 1 } } }
+    },
+    {
+      "if": { "properties": { "stage": { "const": "start" } } },
+      "then": {
+        "properties": {
+          "packetRevision": { "const": 1 },
+          "previousPacketHash": { "type": "null" },
+          "completedWork": { "maxItems": 0 },
+          "remainingWork": { "minItems": 1 },
+          "closeout": { "type": "null" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "stage": { "const": "continue" } } },
+      "then": {
+        "properties": {
+          "packetRevision": { "minimum": 2 },
+          "previousPacketHash": { "$ref": "#/$defs/hash" },
+          "remainingWork": { "minItems": 1 },
+          "closeout": { "type": "null" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "stage": { "const": "closeout" } } },
+      "then": {
+        "properties": {
+          "packetRevision": { "minimum": 2 },
+          "previousPacketHash": { "$ref": "#/$defs/hash" },
+          "closeout": { "$ref": "#/$defs/closeout" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "closeout": {
+            "type": "object",
+            "properties": { "disposition": { "const": "solved" } },
+            "required": ["disposition"]
+          }
+        }
+      },
+      "then": { "properties": { "remainingWork": { "maxItems": 0 } } }
+    }
+  ],
+  "$defs": {
+    "identifier": {
+      "type": "string", "minLength": 1, "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "nullableIdentifier": {
+      "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }]
+    },
+    "projectLinkId": {
+      "type": "string",
+      "pattern": "^plink_[0-9a-f]{64}$"
+    },
+    "nullableProjectLinkId": {
+      "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/projectLinkId" }]
+    },
+    "contextSetId": {
+      "type": "string",
+      "pattern": "^ctx_[0-9a-f]{64}$"
+    },
+    "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "nullableHash": {
+      "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/hash" }]
+    },
+    "utcDateTime": {
+      "type": "string", "format": "date-time", "pattern": "(?:Z|\\+00:00)$"
+    },
+    "text512": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "text1024": { "type": "string", "minLength": 1, "maxLength": 1024 },
+    "relativeProjectPath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^(?!/)(?!.*\\\\)(?!.*:)(?!.*//)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    },
+    "owner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["authorityId", "subjectId", "serviceId"],
+      "properties": {
+        "authorityId": { "$ref": "#/$defs/identifier" },
+        "subjectId": { "$ref": "#/$defs/identifier" },
+        "serviceId": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "approvalGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "authorityId", "approvalReferenceId", "summary", "grantsAuthority"],
+      "properties": {
+        "state": { "enum": ["not_required", "pending", "satisfied", "denied"] },
+        "authorityId": { "$ref": "#/$defs/nullableIdentifier" },
+        "approvalReferenceId": { "$ref": "#/$defs/nullableIdentifier" },
+        "summary": { "$ref": "#/$defs/text512" },
+        "grantsAuthority": { "const": false }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "state": { "const": "not_required" } } },
+          "then": {
+            "properties": {
+              "authorityId": { "type": "null" },
+              "approvalReferenceId": { "type": "null" }
+            }
+          },
+          "else": { "properties": { "authorityId": { "$ref": "#/$defs/identifier" } } }
+        },
+        {
+          "if": { "properties": { "state": { "enum": ["satisfied", "denied"] } } },
+          "then": { "properties": { "approvalReferenceId": { "$ref": "#/$defs/identifier" } } }
+        }
+      ]
+    },
+    "freshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "observedAt", "validUntil", "basis"],
+      "properties": {
+        "state": { "enum": ["current", "stale", "blocked", "unverified", "unknown"] },
+        "observedAt": { "$ref": "#/$defs/utcDateTime" },
+        "validUntil": {
+          "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/utcDateTime" }]
+        },
+        "basis": { "$ref": "#/$defs/text512" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "state": { "const": "current" } } },
+          "then": { "properties": { "validUntil": { "$ref": "#/$defs/utcDateTime" } } }
+        }
+      ]
+    },
+    "sourceRevision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceId", "revisionId", "sha256"],
+      "properties": {
+        "sourceId": { "$ref": "#/$defs/identifier" },
+        "revisionId": { "$ref": "#/$defs/identifier" },
+        "sha256": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "verificationEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verificationId", "evidenceId", "result", "summary"],
+      "properties": {
+        "verificationId": { "$ref": "#/$defs/identifier" },
+        "evidenceId": { "$ref": "#/$defs/identifier" },
+        "result": { "enum": ["passed", "failed", "not_run", "inconclusive"] },
+        "summary": { "$ref": "#/$defs/text512" }
+      }
+    },
+    "closeout": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "disposition", "publicSummary", "changes", "verificationEvidence",
+        "assumptions", "risks", "nextAction", "nextAuthority", "candidateReusableLesson"
+      ],
+      "properties": {
+        "disposition": { "enum": ["solved", "partial", "blocked", "failed"] },
+        "publicSummary": { "$ref": "#/$defs/text1024" },
+        "changes": {
+          "type": "array", "maxItems": 16, "uniqueItems": true,
+          "items": { "$ref": "#/$defs/text512" }
+        },
+        "verificationEvidence": {
+          "type": "array", "minItems": 1, "maxItems": 16,
+          "items": { "$ref": "#/$defs/verificationEvidence" }
+        },
+        "assumptions": {
+          "type": "array", "maxItems": 8, "uniqueItems": true,
+          "items": { "$ref": "#/$defs/text512" }
+        },
+        "risks": {
+          "type": "array", "maxItems": 8, "uniqueItems": true,
+          "items": { "$ref": "#/$defs/text512" }
+        },
+        "nextAction": {
+          "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/text512" }]
+        },
+        "nextAuthority": {
+          "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/owner" }]
+        },
+        "candidateReusableLesson": {
+          "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/text1024" }]
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "disposition": { "const": "solved" } } },
+          "then": {
+            "properties": {
+              "nextAction": { "type": "null" },
+              "nextAuthority": { "type": "null" },
+              "verificationEvidence": {
+                "items": {
+                  "allOf": [
+                    { "$ref": "#/$defs/verificationEvidence" },
+                    { "properties": { "result": { "const": "passed" } } }
+                  ]
+                }
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "nextAction": { "$ref": "#/$defs/text512" },
+              "nextAuthority": { "$ref": "#/$defs/owner" }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

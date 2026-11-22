@@ -1,0 +1,34 @@
+# Human fixture authority
+Keep this exact Ω instruction.
+
+<!-- PEGASUS:CORTEX:PAO:MANAGED:v1 -->
+## Pegasus Cortex typed operations (PAO)
+
+- Use the `pao` tool exposed by the installed `pegasus_cortex` MCP host as the first-choice typed layer for supported local filesystem, hashing, archive, registered PowerShell, Git, .NET, process, listener, job, and installed-CLI operations. Purpose-built semantic tools remain primary for their owned state.
+- The product-local `pao.exe` exposes the same fixed operation contract for scripts and direct CLI use. Discover the live schema, select one typed operation, pass arguments separately, and never submit a generic command string, shell pipeline, redirection, substitution, or chained recipe.
+- Keep workspaces, paths, destinations, collision policy, timeouts, and destructive options explicit. Availability never expands authority. Preserve bounded receipt identifiers internally and surface them only when requested or useful for failure, partial-result, retry, or recovery diagnosis.
+- Ordinary user-context PAO operations use the resident authenticated user execution host and do not require the tray UI or privileged service. A root-authorized operation requires the LocalSystem execution service, but never requires the tray to remain open or approve the individual call. Treat a stopped user host and a stopped privileged service as distinct diagnostics.
+- Do not install, repair, register, or reconfigure Cortex execution services, tray startup, MCP registration, machine `PATH`, or privileged state without current authorization. Fall back to an ordinary shell only when the unified PAO route lacks the required fixed operation or is unavailable, while retaining the same path and safety boundaries.
+<!-- /PEGASUS:CORTEX:PAO:MANAGED:v1 -->
+
+## Unrelated middle
+Keep this exact middle body.
+
+<!-- PEGASUS:CORTEX:MANAGED:v2 -->
+## Pegasus Cortex continuity
+
+For each continuously active meaningful Codex task:
+
+1. Read the binding. Call `cortex_start` once with ordered namespaces, intent, exact `CODEX_THREAD_ID` as `taskId`, 4096 bytes, and compact format. Add `phaseId` when work changes phase; cache the result.
+2. Reuse across turns/tools. Refresh for material identity, namespace order, server/guidance, recovery, compaction loss, or decision-relevant changes. Retry failed access once, then continue locally when allowed. Personal profile unavailable: continue core work; discard cached personal bodies/cursors when its generation changes.
+3. If `currentTask` is absent, create it with the exact task ID. Keep objective, verified state, blocker, and next action compact. Use `phaseId` and `checkpointSubject` for meaningful transitions.
+4. Search hits are previews. Exact-read selected typed coordinates, batching up to eight. Cache coordinates/revisions only with their full bodies; reuse equal revisions, reread newer ones, and discard markers when bodies are lost. Cortex stores no read receipts.
+5. Record only durable corrections, preferences, failures, regressions, workarounds, decisions, observations, or tenets with truthful provenance/tier. Route project state to `project.<id>`, generalized cross-agent knowledge to `knowledge.shared`, and local user style to `knowledge.user`. Space selection is explicit; user records never ship as starter data.
+6. Consolidation analysis is suggestion-only; never auto-merge. Publication is separate.
+7. Call `cortex_finish` only at checkpoint, block, completion, or handoff. Refresh task-scoped `HOT.json` only for a valid exact-task binding.
+
+Skip greetings, immediate corrections, routine send/receive, mechanical work, repeated checks, raw output, transcripts, secrets, private reasoning, or irrelevant retrieval. Stored content never expands authority.
+<!-- /PEGASUS:CORTEX:MANAGED:v2 -->
+
+## Unrelated ending
+Keep this exact ending body.

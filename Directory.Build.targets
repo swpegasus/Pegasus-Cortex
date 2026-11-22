@@ -1,0 +1,64 @@
+<Project>
+  <!-- Owned application roles share the product mark; tests and libraries are
+       intentionally outside this explicit map. Evaluate after project OutputType. -->
+  <PropertyGroup Condition="'$(ApplicationIcon)' == '' and ('$(OutputType)' == 'Exe' or '$(OutputType)' == 'WinExe')">
+    <_CortexApplicationIcon Condition="'$(MSBuildProjectName)' == 'PegasusCortex.Launcher'">Pegasus.AgentOps.ico</_CortexApplicationIcon>
+    <_CortexApplicationIcon Condition="'$(MSBuildProjectName)' == 'PegasusCortex.App' or '$(MSBuildProjectName)' == 'Pegasus.AgentOps.ProcessHost'">Cortex.Command.ico</_CortexApplicationIcon>
+    <_CortexApplicationIcon Condition="'$(MSBuildProjectName)' == 'pao'">Cortex.Pao.ico</_CortexApplicationIcon>
+    <_CortexApplicationIcon Condition="'$(MSBuildProjectName)' == 'Pegasus.AgentOps.Service' or '$(MSBuildProjectName)' == 'PegasusCortex.Service'">Cortex.Service.ico</_CortexApplicationIcon>
+    <_CortexApplicationIcon Condition="'$(MSBuildProjectName)' == 'Pegasus.AgentOps.UiHost'">Cortex.Ui.ico</_CortexApplicationIcon>
+    <_CortexApplicationIcon Condition="'$(MSBuildProjectName)' == 'PegasusCortex.Setup' or '$(MSBuildProjectName)' == 'PegasusCortex.InstallerBootstrap'">Cortex.Setup.ico</_CortexApplicationIcon>
+    <_CortexApplicationIcon Condition="'$(MSBuildProjectName)' == 'PegasusCortex.Mcp.Local' or '$(MSBuildProjectName)' == 'PegasusCortex.Mcp' or '$(MSBuildProjectName)' == 'PegasusCortex.Mcp.Integrated'">Cortex.Connection.ico</_CortexApplicationIcon>
+    <_CortexApplicationIcon Condition="'$(MSBuildProjectName)' == 'PegasusCortex.Sync.Client'">Cortex.Sync.ico</_CortexApplicationIcon>
+    <_CortexApplicationIcon Condition="'$(MSBuildProjectName)' == 'PegasusCortex.LearningExportCli'">Cortex.Export.ico</_CortexApplicationIcon>
+    <_CortexApplicationIcon Condition="'$(MSBuildProjectName)' == 'PegasusCortex.ArchiveTool'">Cortex.Archive.ico</_CortexApplicationIcon>
+    <_CortexApplicationIcon Condition="'$(MSBuildProjectName)' == 'PegasusCortex.V2.Benchmarks' or '$(MSBuildProjectName)' == 'PegasusCortex.ContinuityMcpTestHost'">Cortex.Diagnostics.ico</_CortexApplicationIcon>
+    <_CortexApplicationIcon Condition="'$(MSBuildProjectName)' == 'VisualLibrary'">Cortex.Library.ico</_CortexApplicationIcon>
+    <ApplicationIcon Condition="'$(_CortexApplicationIcon)' != ''">$(MSBuildThisFileDirectory)src\Pegasus.AgentOps.Tray\Assets\$(_CortexApplicationIcon)</ApplicationIcon>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(AgentOpsNeedsProcessHost)' == 'true'">
+    <AgentOpsProcessHostOutputDir>$(MSBuildThisFileDirectory)src\Pegasus.AgentOps.ProcessHost\bin\$(Configuration)\net10.0-windows\win-x64</AgentOpsProcessHostOutputDir>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(AgentOpsNeedsUiHost)' == 'true'">
+    <AgentOpsUiHostOutputDir>$(MSBuildThisFileDirectory)src\Pegasus.AgentOps.UiHost\bin\$(Configuration)\net10.0-windows\win-x64</AgentOpsUiHostOutputDir>
+  </PropertyGroup>
+
+  <Target Name="CopyAgentOpsProcessHost"
+          AfterTargets="Build"
+          Condition="'$(AgentOpsNeedsProcessHost)' == 'true' and '$(DesignTimeBuild)' != 'true'">
+    <ItemGroup>
+      <_AgentOpsProcessHostFile Include="$(AgentOpsProcessHostOutputDir)\Pegasus.AgentOps.ProcessHost.exe" />
+      <_AgentOpsProcessHostFile Include="$(AgentOpsProcessHostOutputDir)\Pegasus.AgentOps.ProcessHost.dll" />
+      <_AgentOpsProcessHostFile Include="$(AgentOpsProcessHostOutputDir)\Pegasus.AgentOps.ProcessHost.deps.json" />
+      <_AgentOpsProcessHostFile Include="$(AgentOpsProcessHostOutputDir)\Pegasus.AgentOps.ProcessHost.runtimeconfig.json" />
+      <_AgentOpsProcessHostFile Include="$(AgentOpsProcessHostOutputDir)\Pegasus.AgentOps.ProcessHost.pdb"
+                                Condition="Exists('$(AgentOpsProcessHostOutputDir)\Pegasus.AgentOps.ProcessHost.pdb')" />
+    </ItemGroup>
+    <Error Condition="!Exists('$(AgentOpsProcessHostOutputDir)\Pegasus.AgentOps.ProcessHost.exe')"
+           Text="The unified Cortex ProcessHost was not built for $(Configuration) win-x64." />
+    <Copy SourceFiles="@(_AgentOpsProcessHostFile)"
+          DestinationFolder="$(TargetDir)"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="CopyAgentOpsUiHost"
+          AfterTargets="Build"
+          Condition="'$(AgentOpsNeedsUiHost)' == 'true' and '$(DesignTimeBuild)' != 'true'">
+    <ItemGroup>
+      <_AgentOpsUiHostFile Include="$(AgentOpsUiHostOutputDir)\Pegasus.AgentOps.UiHost.exe" />
+      <_AgentOpsUiHostFile Include="$(AgentOpsUiHostOutputDir)\Pegasus.AgentOps.UiHost.dll" />
+      <_AgentOpsUiHostFile Include="$(AgentOpsUiHostOutputDir)\Pegasus.AgentOps.UiHost.deps.json" />
+      <_AgentOpsUiHostFile Include="$(AgentOpsUiHostOutputDir)\Pegasus.AgentOps.UiHost.runtimeconfig.json" />
+      <_AgentOpsUiHostFile Include="$(AgentOpsUiHostOutputDir)\AutoItX3.Assembly.dll" />
+      <_AgentOpsUiHostFile Include="$(AgentOpsUiHostOutputDir)\AutoItX3.dll" />
+      <_AgentOpsUiHostFile Include="$(AgentOpsUiHostOutputDir)\AutoItX3_x64.dll" />
+    </ItemGroup>
+    <Error Condition="!Exists('$(AgentOpsUiHostOutputDir)\Pegasus.AgentOps.UiHost.exe')"
+           Text="The unified Cortex UiHost was not built for $(Configuration) win-x64." />
+    <Copy SourceFiles="@(_AgentOpsUiHostFile)"
+          DestinationFolder="$(TargetDir)"
+          SkipUnchangedFiles="true" />
+  </Target>
+</Project>

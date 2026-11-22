@@ -1,0 +1,14 @@
+{
+  "schema": "pegasus.cortex.hot/2.0",
+  "generated": true,
+  "authoritative": false,
+  "projectId": "portable-project",
+  "contextCursor": "ctx-empty",
+  "generatedAtUtc": "1970-01-01T00:00:00+00:00",
+  "effectiveNamespaces": [
+    "project.portable",
+    "shared.programming"
+  ],
+  "items": [],
+  "hasMore": false
+}

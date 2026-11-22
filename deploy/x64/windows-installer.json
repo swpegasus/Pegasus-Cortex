@@ -1,0 +1,33 @@
+{
+  "schema": "pegasus.windows-installer/1",
+  "productId": "pegasus.cortex",
+  "name": "Pegasus Cortex",
+  "publisher": "Pegasus",
+  "productFolder": "Cortex",
+  "releaseVersion": "1.2026.09.29.22.18.A",
+  "fileVersion": "1.2026.929.2218",
+  "setupPath": "installer/PegasusCortex.Setup.exe",
+  "launchPath": "PegasusCortex.exe",
+  "iconPath": "PegasusCortex.exe",
+  "wizardIconPath": "branding/Cortex.Setup.ico",
+  "noticePath": "licenses/INSTALLATION-NOTICES.txt",
+  "trustPath": "installer/Invoke-PegasusProdAlphaTrust.ps1",
+  "payloadLayout": "adjacent",
+  "codexGuidance": true,
+  "finishReference": {
+    "schema": "pegasus.windows-installer.finish-reference/1",
+    "relativePath": "docs/STARTER_PROGRAMMING_TENETS.txt",
+    "label": "View included programming guidance"
+  },
+  "userSessionStartup": true,
+  "keepRuntimeStopped": true,
+  "userSessionShortcut": "single",
+  "removeObsoletePrograms": false,
+  "dataLocation": {
+    "schema": "pegasus.windows-installer.data-location/1",
+    "defaultBase": "commonApplicationData",
+    "relativePath": "Pegasus/Cortex",
+    "legacyRelativePath": "state",
+    "relocateLegacyData": true
+  }
+}

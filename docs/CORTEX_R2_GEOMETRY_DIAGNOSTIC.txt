@@ -1,0 +1,252 @@
+Pegasus Cortex R2 optional geometry diagnostic - qualification checkpoint
+================================================================
+Status: COMPILED. Isolated synthetic OFF and ON runs completed all 12 engineering cases.
+The five additive files are separate from the six frozen Phase 1 storage files.
+No installed ranking, source visibility, public contract, existing project,
+solution, configuration, connection, old database or model behavior is changed.
+Root verified registration definition 5 and admitted focused offline execution.
+The corrected Phase1 driver passed 13/0 skip/0 fail before this separate lane began.
+
+Owned source
+------------
+tests\PegasusCortex.GeometryDiagnostic\PegasusCortex.GeometryDiagnostic.csproj
+tests\PegasusCortex.GeometryDiagnostic\Program.cs
+tests\PegasusCortex.GeometryDiagnostic\GeometryCases.cs
+tests\PegasusCortex.GeometryDiagnostic\GeometryEvaluation.cs
+docs\CORTEX_R2_GEOMETRY_DIAGNOSTIC.txt
+
+The standalone net10.0 executable references the existing SQLite provider and
+its existing Core/Contracts dependencies. It adds no package, project reference
+to any existing file, visibility grant, solution entry or build target.
+Compiling those references later is compilation of current source, not proof of
+installed bytes or behavior. All package resolution used admitted existing local inputs; no SDK bypass occurred.
+
+Genuine retrieval paths
+-----------------------
+Baseline: public SqliteCortexV2Store.SearchHeadsAsync, canonical knowledge.shared,
+kind knowledge, MinimumMatch=1, pool limit 32, first four results in returned order.
+Candidate, only with --geometry-diagnostics: public
+SqliteCortexV2OperationalStore.SearchAsync, explicit knowledge.shared and
+Observation kind, limit 4, compact 4096 bytes, first page only.
+That method calls the current private SearchGeometricKnowledgeAsync and actual
+public CortexKnowledgeGeometry.ExpansionTerms/Rank. There is no reflection,
+algorithm copy, new weighting or direct SQL ranking implementation.
+
+Each case owns a new cortex-v2.db under the explicit fresh fixture root. Records
+are seeded through the public operational knowledge writer with synthetic fixed
+provenance and time. Only canonical fixture namespaces are used; no migration,
+starter corpus, private corpus, default path factory or installed discovery runs.
+The excluded knowledge.user sentinel is synthetic in the same isolated fixture;
+this is namespace selection evidence, not personal-profile/authentication proof.
+
+Gold freeze and scope
+---------------------
+GeometryCases.cs fixes twelve cases, at most twelve records per case, short
+titles, at most 1 KiB UTF8 bodies and at most 8 tags. All labels have written
+rationales independent of desired scores. Purposes specify ambiguous-query
+information needs. Relevant excluded-namespace records are outside eligible gold.
+
+Cases: exact lexical answer; potentially useful lexical-absent bridge; no useful
+neighbor; exact answer under neighbor pressure; network-port homonym; weak wrong
+seed for database planning latency; misleading title/tag overlap; synonym-only
+relevant item with zero seeds; intent with empty geometric features; four direct
+hits at the expansion threshold; no relevant answer; excluded user namespace.
+The bridge's lexical absence and zero-seed precondition are engineering fixture
+checks. Recovery, ranking benefit and preservation of relevance positions are
+observations, not assertions that geometry must win.
+
+Before database creation/seeding/retrieval, labels.v1.json captures the complete
+case/record/query/label/rationale manifest. Its SHA256 is repeated in both reports.
+Do not tune labels, query wording, weights or expected outcomes after measurement.
+Any later corpus revision needs a new case-set version and an explicit report of
+the change. The source freeze pins this pre-measurement manifest.
+
+Context safety and optionality
+-----------------------------
+Diagnostics default OFF. Only the baseline top four coordinates may be hydrated,
+using the exact returned revision through operational ReadAsync. Exact contents,
+titles, namespace, IDs and revisions are checked against the synthetic manifest.
+Geometry candidates are never hydrated or promoted into selected context.
+The candidate projection's Context is always the lexical-selected exact bodies;
+its separate GeometryDiagnostics field is null when disabled.
+There is no installed optional flag or installed behavior change in this lane.
+
+With diagnostics ON, the driver compares exact lexical context bytes before and
+after actual geometric retrieval, replays lexical search, and replays candidate
+search. OFF runs replay only lexical retrieval; they do not claim actual
+geometric execution or actual on/off provider comparison. The pure projection
+check separately proves that an offered geometry-only metadata item cannot
+enter the projection's Context. The report includes context hash and coordinates,
+not hydrated bodies. There is no automatic promotion or context-answer inference.
+
+Metrics and pass semantics
+--------------------------
+k=4 throughout.
+Precision@4 = relevant returned /4, including unfilled positions in denominator.
+Recall@4 = relevant returned /eligible gold relevant; null when zero gold.
+RR@4 = reciprocal first relevant rank, or 0 when absent, including zero-gold cases.
+Macro MRR includes zero-gold zeros; zero-gold case count is reported.
+Noise = irrelevant returned /returned, null for empty rankings.
+Per-case differences use geometry minus lexical. DeltaIrrelevantReturned is the
+geometry irrelevant-returned count minus the lexical irrelevant-returned count.
+Its negative participates in the quality-direction vector: extra noise is worse.
+Added relevant/irrelevant and
+displaced relevant compare top-four coordinates. Rank movements include null for
+absence from a top-four ranking. Raw lexical/geometry scores use different scales
+and must not be subtracted as quality gain.
+
+Aggregate precision/RR are macro means over completed engineering-passed cases.
+Recall averages only defined cases and reports its denominator. Aggregate noise
+is pooled over returned records. Comparison totals report added/displaced counts
+and gain/no-measured-gain/regression/mixed counts. Failed/incomplete cases remain
+in the report, are excluded from metric averages and make engineering fail.
+The outcome vector includes P, defined recall, RR and negative
+DeltaIrrelevantReturned. A "gain" has no negative direction and at least one
+positive direction; "regression" has no positive direction and at least one
+negative; conflicting directions are "mixed"; all zero is "no-measured-gain".
+Noise-only additions are regressions. Relevance gains with increased irrelevant
+returned counts are mixed. Replacing one irrelevant item with another at the
+same count remains no-measured-gain if relevance/ranks are unchanged; membership
+changes and added-irrelevant counts remain visible independently.
+Geometry need not win for engineering to pass. No quality promotion gate exists.
+
+Pure checks: hand-calculated metric arithmetic (partial, empty and zero-gold) and
+the lexical-only projection using in-memory values. Hand-calculated noise-only
+and relevant-gain-plus-noise checks assert regression and mixed classifications.
+These are not SQLite or
+semantic-quality evidence. Provider checks, when later executed, use real isolated
+SQLite FTS, knowledge writes, public search, exact reads and deterministic replay.
+They are not installed/MCP/pipe/consumer/model/end-to-end task-quality evidence.
+Synthetic overlap fixtures cannot establish general semantic value. Tiny fresh
+stores do not establish production-scale latency, saturation, paging, migration,
+personal-profile behavior or real-corpus relevance.
+
+Output, path and failure contract
+---------------------------------
+Both --fixture-root and --report-root are mandatory absent canonical absolute
+Windows paths on fixed local storage. Their immediate parents must already exist.
+Refuse UNC/device/relative/trailing-separator/unsafe-segment/reparse ancestry,
+overlapping or existing roots, or paths beyond the bounded Windows budget.
+Exclusive CreateDirectoryW and CreateNew report files refuse collision.
+Keep the ordinary caller-owned parent directories stable during execution;
+this diagnostic does not claim adversarial filesystem-custody qualification.
+
+Each case gets one bounded child directory. No sweep, recursive cleanup,
+database replacement, backup, migration, environment lookup or network call runs.
+Created roots remain after any failure. Never replay into retained roots.
+Cancellation is cooperative with a 90-second deadline and Ctrl+C, not a hard-kill
+guarantee. SQLite busy timeout is 1 second; data and per-case resources are bounded.
+An abnormal per-case failure retains a bounded type/HResult, never raw terminal
+output, exception messages or unrelated data. Partial results cannot be passes.
+
+Per run, report root contains:
+labels.v1.json - versioned frozen synthetic manifest, written before measurements
+report.v1.json - compact pegasus.cortex.geometry-diagnostic/1 report
+summary.txt - concise evidence/metric/failure summary
+Each output is capped at 256 KiB. A report write failure leaves retained partial
+artifacts and returns driver exit 2; no silent retry or replacement.
+Exit 0: all 12 engineering cases completed; relevance may gain, tie or regress.
+Exit 1: per-case failure or cancellation; incomplete cases remain explicit.
+Exit 2: driver admission, pure-check, root or report failure.
+
+Actual execution roots and repeat contract
+-----------------------------------------
+Keep build, fixture and report roots separate. Actual build artifacts root:
+C:\CodexProjects\Pegasus Cortex\artifacts\build\current\gdiag-79fa
+Actual retained fixture/report parent:
+C:\CodexProjects\Pegasus Cortex\artifacts\validation\gdiag-79fa
+
+ON arguments actually passed separately to the admitted built console Main:
+--fixture-root C:\CodexProjects\Pegasus Cortex\artifacts\validation\gdiag-79fa\fx-on
+--report-root C:\CodexProjects\Pegasus Cortex\artifacts\validation\gdiag-79fa\rp-on
+--geometry-diagnostics
+
+The actual OFF run omitted --geometry-diagnostics and used separate new fx-off/rp-off
+roots. All four roots are now retained and cannot be reused by the driver. Any future
+run requires new absent roots and its own justified scope. The actual command used
+registered dotnet exec on the built DLL; no dotnet run/test or implicit restore ran.
+
+Existing core, mixed migration/provider and starter-corpus tests are source
+locators only. This lane does not run those broad executables or import their
+corpus. Source inspection and hashes established the initial freeze; subsequent actual
+compiler, isolated SQLite and context-parity results are recorded below.
+
+
+Source review checkpoint - 2026-11-19
+-------------------------------------
+Independent bounded source review found no remaining material issue in the five
+files or their inspected public API calls. At that source-review checkpoint no runtime checks had executed. Subsequent actual
+qualification is below; source review itself remains separate evidence.
+
+Audit interpretation correction - 2026-11-19
+--------------------------------------------
+The quality vector now includes negative net irrelevant-result growth. The twelve
+queries, record contents, gold labels, rationales and production weights are
+unchanged. The additional hand-calculated checks subsequently completed in both actual runs.
+Those checks are in-memory arithmetic/projection evidence, not retrieval-quality proof.
+
+ACTUAL QUALIFICATION - 2026-11-19
+---------------------------------
+Offline locked restore job 0db020975873453199cbd87ed4e06332: exit0.
+Build job b488c4d456214e4bbfaa998f59abbb34: exit0, zero warnings/errors.
+OFF actual Main job ab5a7d28a7d64124a75f6f1bb4dfa1c0: exit0, all 12 engineering cases.
+ON actual Main job b6fe824a967f4bf5bbc59798cbf0fcba: exit0, all 12 engineering cases.
+No timeout or output truncation occurred. In-memory metric/projection/noise assertions
+ran inside those real console executions. Actual retrieval used fresh per-case SQLite,
+public lexical SearchHeadsAsync and the current operational geometry path when ON.
+All seven package content hashes matched existing locked resolution; outputs included
+the pinned 2.1.12 native SQLite DLL. Build/restore artifacts and cache remained isolated.
+Production NuGet.Config/source locks were preserved; task-only mapping retained source
+restrictions with one exact native package mapping. Audit network retrieval was disabled
+for the offline lane; no vulnerability-audit evidence is claimed.
+
+Frozen corpus manifest SHA256:
+e5e3fd932c408aa9135e0b892868f4de83a386bea71f1801133df7cdfda1a8fe
+Both labels.v1.json files and both reports carry this same hash. Source queries,
+record contents, rationales, relevance labels and production weights were unchanged.
+
+Actual cross-run parity: 12/12 lexical exact-context SHA256 values and ordered baseline
+rankings matched across separate OFF and ON fixture databases. ON internal before/after
+context comparison and lexical/candidate deterministic replay also passed. Candidate
+records never supplied selected context. OFF correctly reported no geometry measurements.
+
+Aggregate (fixed k4 denominator; recall uses 9 defined cases; 3 zero-gold RR zeros included):
+                         lexical       geometry
+mean precision@4         0.208333      0.270833
+mean defined recall@4    0.583333      0.750000
+macro reciprocal rank@4  0.541667      0.541667
+pooled noise fraction    0.444444      0.480000
+returned relevant/count  10/18         13/25
+Added relevant 3, added irrelevant 4, displaced relevant 0.
+Outcomes: gain 1, mixed 2, regression 1, no-measured-gain 8.
+
+Per-case outcomes (precision/recall/RR are lexical -> geometry; +/- are added relevant/irrelevant):
+c01 no-measured-gain: P 0.250000 -> 0.250000, R 1.000000 -> 1.000000, RR 1.000000 -> 1.000000, added 0/0, delta irrelevant 0.
+c02 mixed: P 0.250000 -> 0.500000, R 0.500000 -> 1.000000, RR 1.000000 -> 1.000000, added 1/1, delta irrelevant 1.
+c03 no-measured-gain: P 0.250000 -> 0.250000, R 1.000000 -> 1.000000, RR 1.000000 -> 1.000000, added 0/0, delta irrelevant 0.
+c04 mixed: P 0.250000 -> 0.500000, R 0.500000 -> 1.000000, RR 1.000000 -> 1.000000, added 1/2, delta irrelevant 2.
+c05 gain: P 0.250000 -> 0.500000, R 0.500000 -> 1.000000, RR 0.500000 -> 0.500000, added 1/0, delta irrelevant 0.
+c06 regression: P 0.000000 -> 0.000000, R 0.000000 -> 0.000000, RR 0.000000 -> 0.000000, added 0/1, delta irrelevant 1.
+c07 no-measured-gain: P 0.500000 -> 0.500000, R 1.000000 -> 1.000000, RR 1.000000 -> 1.000000, added 0/0, delta irrelevant 0.
+c08 no-measured-gain: P 0.000000 -> 0.000000, R 0.000000 -> 0.000000, RR 0.000000 -> 0.000000, added 0/0, delta irrelevant 0.
+c09 no-measured-gain: P 0.000000 -> 0.000000, R null -> null, RR 0.000000 -> 0.000000, added 0/0, delta irrelevant 0.
+c10 no-measured-gain: P 0.750000 -> 0.750000, R 0.750000 -> 0.750000, RR 1.000000 -> 1.000000, added 0/0, delta irrelevant 0.
+c11 no-measured-gain: P 0.000000 -> 0.000000, R null -> null, RR 0.000000 -> 0.000000, added 0/0, delta irrelevant 0.
+c12 no-measured-gain: P 0.000000 -> 0.000000, R null -> null, RR 0.000000 -> 0.000000, added 0/0, delta irrelevant 0.
+
+c02/c04 recovered relevant neighbors and added noise; c05 recovered a relevant record
+without net extra noise, but retained an irrelevant first result. c06 added only noise.
+c08's synonym-only relevant record remained unretrieved with zero seeds. c10 candidate
+order changed while these measured metrics did not. c12 excluded the user sentinel.
+This demonstrates bounded implementation behavior and both useful and harmful candidate
+expansion on this fixture set. It does not establish general semantic validity or improved
+model answers. Geometry remains optional, off by default and non-authoritative; no promotion.
+
+Retained evidence:
+artifacts/validation/gdiag-79fa/rp-off/{labels.v1.json,report.v1.json,summary.txt}
+artifacts/validation/gdiag-79fa/rp-on/{labels.v1.json,report.v1.json,summary.txt}
+artifacts/validation/gdiag-79fa/cross-run.v1.json and cross-run-summary.txt
+Original source-review and interpretation checkpoints above are historical, not extra runs.
+No installed, MCP/pipe, personal-profile, live corpus, model or production task-quality
+verification occurred. Cancellation/error branches not triggered by these successful
+runs remain source-reviewed; the engineering pass is not a quality promotion criterion.

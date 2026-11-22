@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Pegasus.AgentOps.Engine\Pegasus.AgentOps.Engine.csproj" />
+    <ProjectReference Include="..\Pegasus.AgentOps.Certificates\Pegasus.AgentOps.Certificates.csproj" />
+    <ProjectReference Include="..\Pegasus.AgentOps.ProcessHost\Pegasus.AgentOps.ProcessHost.csproj"
+                      ReferenceOutputAssembly="false" Condition="'$(CortexOwnerAdminReuseUnchangedRoles)' != 'true'" />
+    <ProjectReference Include="..\Pegasus.AgentOps.UiHost\Pegasus.AgentOps.UiHost.csproj"
+                      ReferenceOutputAssembly="false" Condition="'$(CortexOwnerAdminReuseUnchangedRoles)' != 'true'" />
+    <ProjectReference Include="..\Pegasus.AgentOps.Protocol\Pegasus.AgentOps.Protocol.csproj" />
+    <ProjectReference Include="..\PegasusCortex.Product\PegasusCortex.Product.csproj" />
+    <ProjectReference Include="..\PegasusCortex.Persistence.Sqlite\PegasusCortex.Persistence.Sqlite.csproj" />
+    <ProjectReference Include="..\PegasusCortex.Mcp.Local\PegasusCortex.Mcp.Local.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AgentOpsNeedsProcessHost>true</AgentOpsNeedsProcessHost>
+    <AgentOpsNeedsUiHost>true</AgentOpsNeedsUiHost>
+    <ApplicationIcon>Assets\Pegasus.AgentOps.ico</ApplicationIcon>
+    <AssemblyName>PegasusCortex.Host</AssemblyName>
+    <RootNamespace>Pegasus.AgentOps.Tray</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\Pegasus.AgentOps.ico"
+                      LogicalName="Pegasus.AgentOps.Tray.Icon" />
+  </ItemGroup>
+
+</Project>

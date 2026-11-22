@@ -1,0 +1,365 @@
+Pegasus Cortex shared geometry growth diagnostic - source/preparation checkpoint
+===============================================================================
+Date: 2026-11-19. Calling task: 01a12d3b-79fa-7582-aa10-461ab3506979.
+Status: candidate3 source compiled with zero warnings/errors; pure checks and
+manifest preparation passed. The authorized isolated SQLite run is now complete;
+actual runtime evidence is recorded in the final checkpoint below.
+Native/Audit focused closure and Coordinator execution GO preceded the four probes,
+then the main/OFF/near runs. The original premeasurement hold is preserved as history.
+No code, corpus, queries, labels, seeds or weights changed after measurement started.
+Old eleven-file source freeze, v1 datasets/results and all original failures stay intact.
+
+Exactly six new owned files
+---------------------------
+tests\PegasusCortex.GeometryGrowthDiagnostic\PegasusCortex.GeometryGrowthDiagnostic.csproj
+tests\PegasusCortex.GeometryGrowthDiagnostic\Program.cs
+tests\PegasusCortex.GeometryGrowthDiagnostic\GrowthQuestions.cs
+tests\PegasusCortex.GeometryGrowthDiagnostic\GrowthCorpus.cs
+tests\PegasusCortex.GeometryGrowthDiagnostic\GrowthEvaluation.cs
+docs\CORTEX_R2_GEOMETRY_GROWTH_DIAGNOSTIC.txt
+
+Standalone net10.0 console project references the existing SQLite provider and its
+current Core/Contracts closure. No new dependency, solution entry, production source,
+ranking/weight, visibility, installed setting, service, permission or model changes.
+
+Shared experimental unit
+------------------------
+48 distinct authored information needs, four per each of twelve semantic families.
+All questions in a cell see the SAME canonical knowledge.shared corpus; no query-specific
+database, namespace, kind or gold-based eligibility filter. All rows are synthetic
+active Observation records. Query/record labels are external to indexed payloads.
+The fixed base contains every canonical target plus reviewed cross-question support
+relations and unrelated synthetic background, totaling 256 unique records.
+Primary target cardinalities follow the question, not a uniform three-target rule.
+The prepared catalogue has 39 one-target questions and 9 two-target questions.
+Actual submitted Query strings include domain/task scope; InformationNeed is not
+hidden context supplied only to the gold evaluator. Target reuse is assigned per
+individual canonical facet, not inherited across every facet of a question.
+
+Main growth: bridge-owner slots0/24/48 x added unrelated0/256/2048 x variants a/b.
+One distinct useful query-direct support record is added per selected owner question.
+Variant a selects positions0/2 in each family at half size; b selects1/3.
+HalfBridgeOwnerQuestionIds are complementary24-question sets with2 owners per family.
+Owner slots describe selected records, not every question that those records help.
+Per-cell AddedSupportBeneficiaryQuestionIds and BeneficiariesByFamily are derived
+from explicit UsefulFor relations on ADDED records; fixed-base support is excluded.
+At24 owner slots, variant a benefits31 questions and b benefits29; these beneficiary
+sets overlap and their per-family counts are unequal. Both are reported in the full
+manifest and preparation summary. At full size all48 owners have a direct bridge. Base bytes/IDs and every target set remain fixed
+across growth and both variants. Variant seeds1729/2718 affect added title expression,
+background composition and deterministic insertion order, not truth or target selection.
+Nested maximal banks mean growth never regenerates records already present.
+Opaque IDs do not expose roles. No query/role/bank/label/rationale fields enter SQLite.
+Only Payload.Id/Title/Content/Tags plus constant synthetic provenance are seeded.
+
+Relevance is question-conditioned
+---------------------------------
+For each question: fixed primary target ID set and explicit useful-support ID/rationale
+map. A record can be target for qA and support for qB. No overlap is permitted for the
+same question. Explicit reusable relations connect related needs; other questions'
+bridges are not automatically noise. An eligible record outside both reviewed sets is
+noise for that question under the closed-corpus relation table. Near-noise records
+also carry 48 explicit per-question negative rationales and no positive overlap.
+Review must adjudicate
+these authored relationships before measurement; scores never determine the labels.
+Per-cell available support is the intersection with the actual eligible shared corpus.
+Added useful-support exposure can grow; the primary target recall denominator cannot.
+
+Actual code path and interpretation limits
+------------------------------------------
+Lexical comparator: public SqliteCortexV2Store.SearchHeadsAsync, kind knowledge,
+canonical knowledge.shared, MinimumMatch1, direct limit32, selected top4.
+A second public probe at limit256 observes direct-hit occupancy and lower bounds.
+At256 the probe is capped; it is not a claim of complete corpus-hit enumeration.
+More than32 observed hits demonstrates truncation of the direct32 projection.
+Candidate: public SqliteCortexV2OperationalStore.SearchAsync, Observation kind,
+selected namespace unchanged, final k4 and compact4096-byte response.
+This calls current CortexKnowledgeGeometry through the existing provider; no copied
+ranking implementation, new model, vector store, production flag or visibility change.
+
+Current geometry expands direct-hit terms ONCE when direct count<4 for k4, and uses
+maximum neighbor similarity over direct seeds. It does not accumulate density, promote
+non-direct neighbors into seeds or traverse a multi-hop bridge chain. Expansion
+eligibility reported by the diagnostic is inferred from this source rule, not a new
+internal runtime trace. Growth may help, do nothing, add useful support, crowd targets
+or add noise. Engineering never requires geometry to win.
+
+Only lexical top4 coordinates may be hydrated with their exact returned revisions.
+The code validates the exact body/title against the frozen payload and compares lexical
+context bytes before/after actual ON retrieval for EVERY question/cell.
+Geometry-only candidates remain metadata and never supply selected context.
+Default diagnostics OFF is genuinely executed later only for largest a cell; its48
+rankings/context hashes must match main-a for the same cell. Other ON cells have internal
+before/after parity, not a claim of separate full-matrix OFF execution.
+
+Metrics
+-------
+k4 precision denominator is4 even for underfilled rankings. Target recall uses that
+question's fixed target count; target MRR uses first primary target. Recall ceiling is
+reported if a target set exceeds k. Support count/precision and available-support
+coverage are separate. Noise count/fraction and helpful fraction remain visible.
+TargetOutcome is a target-metric Pareto classification based on recall/MRR deltas:
+gain, regression, mixed-target-metrics, or no-measured-target-change. Aggregate names
+ParetoTargetGainQuestions and ParetoTargetRegressionQuestions explicitly preserve
+that meaning. MixedTargetMetricQuestions is separate. Independent inclusive counters
+TargetHitLossQuestions, FirstTargetRankLossQuestions and AnyTargetMetricLossQuestions
+count losses even in a mixed result with better first-target rank. Support/noise deltas
+remain independent; a support gain cannot erase a canonical target loss.
+Per-cell aggregates weight questions equally; families each contain four questions.
+Two variants and nested cells are robustness/mechanism observations, not independent
+semantic questions. No significance, general reliability or model-task claim follows.
+
+Uniform scoped reference is ANALYTICAL MATH, not an executed provider. For eligible
+N, query-specific targets T, support S and draws r, expected target hits=rT/N,
+target recall=r/N when T>0, support hits=rS/N, noise hits=r(N-T-S)/N.
+P(any target)=1-product((N-T-i)/(N-i), i0..r-1). Report both actual-return-count matched
+and fixed-k references. Actual lexical FTS remains the primary comparator.
+
+Pure checks are hand-calculated target/support/noise arithmetic, empty ranking,
+fixed target denominator under support growth, visible target loss, uniform reference
+and lexical-only projection. The mixed-loss check uses lexical[n1,n2,t,u] versus
+geometry[t] with targets{t,u}: recall1->0.5 and RR1/3->1 yields mixed1, hit-loss1,
+any-target-metric-loss1 and Pareto-regression0. It verifies inclusive loss accounting
+without retrieval. Pure checks do not open SQLite or establish retrieval quality.
+
+Frozen separate controls - Native review before execution
+--------------------------------------------------------
+All controls reuse existing q04(deadlock) and/or q06(hardlink); no new independent query.
+P1 probe-nondirect:304 rows, base+48 non-direct alternatives, focuses q04/q06. Compare
+with main a-b48-n0000(304 rows). q04 direct-hit fixture precondition0. Paired expressions
+carry the same supporting fact; the main and alternative expressions never coexist in
+this control. Only focus q04/q06 is claimed query-nonmatching; the broader alternative
+bank is not asserted nonmatching for every other query.
+P2 probe-threshold-below:258 rows, base+two genuine q06 supporting observations;
+frozen q06 direct-hit precondition3.
+P3 probe-threshold-at:259 rows, same base/pads+the existing q06 direct bridge;
+frozen q06 direct-hit precondition4. Product seed threshold crossing is observed, not
+a required quality improvement.
+P4 probe-long-gap:281 rows, variant-b half-coverage bridges with q04 replaced by a
+direct alias pointer plus one query-nonmatching intermediate. Other scoped SQLite
+seeds q02/q06 remain visible; q04 direct-hit precondition3. The canonical target is
+unchanged. Compare with main b-b24-n0000(280 rows); the one-extra-row limitation is
+explicit. The alias connects through a rendezvous note to circular-resource-wait
+evidence. This tests the one-pass limit and need not recover the primary target.
+Malformed/unexpected fixture conditions fail engineering; no regeneration or label
+tuning follows observed results. Controls are not yet approved runtime evidence.
+
+Same-size near-noise control
+---------------------------
+near-a-largest clones a-b48-n2048: identical base,48 direct bridges, target/support
+truth and eligible N2352. It retains1792 far-unrelated rows and replaces256 with
+frozen query-overlapping costume-scene records. The payloads describe cardboard
+placards, garments and scenery; printed query phrases are not asserted operational
+facts. Gold role words never appear as indexed role labels. All 256 records carry
+explicit negative rationales for each of48 questions (12288 reviewed relationships
+required). There are256 opaque IDs but only48 unique indexed Title/Content/Tags
+payloads, repeated5 or6 times each; IDs are excluded from this diversity count.
+NearNoiseProfile freezes these values and the interpretation as artificial repeated-
+payload density stress. This is not256 diverse records or independent questions,
+and it does not establish general reliability or a representative corpus.
+Manifest validation rejects positive/negative overlap and verifies far/near target
+and useful-support sets are identical. Native must adjudicate semantic overlaps.
+
+Budgets and stop behavior
+------------------------
+Main18 databases /18864 rows /864 paired measurements, only48 distinct questions.
+Representative OFF1 database /2352 rows /48 parity comparisons.
+Four mechanism-control databases /1102 rows, separate from main aggregates.
+One near-noise control /2352 rows /48 questions, separate from main aggregates.
+Total24 databases /24670 seeded rows; peak2352 per cell.
+Hard ceilings25 fresh DBs and30000 seeded rows. Manifest validation enforces the plan.
+Per-record body<=512 UTF8 bytes; manifest<=8MiB; each report<=2MiB.
+SQLite maximum4096 pages per DB, one cell at a time. Fixture budget512MiB.
+Main cooperative deadline360seconds, OFF180, near-noise180, mechanism controls90.
+Use registered PAO timeouts below600seconds (main480, OFF/near240, probes150).
+Future benchmark-batch budget1800seconds covers sequential measurement shards;
+source compilation/manifest preparation is a separately bounded premeasurement phase.
+Stop launching
+work that lacks remaining allowance. Partial/cancelled/unexecuted status cannot pass.
+Cell-level setup/budget failures stop further cells and remain explicit.
+No automatic retries, global cleanup, sweeping, replacement or source/data deletion.
+Per-query exceptions remain failures. Safe failure envelopes contain fixed stage
+and invariant codes, numeric expected/observed counts and lower-bound flags where
+appropriate, exception type/HResult and optional SQLite primary/extended or native
+numeric codes. No arbitrary exception messages, record bodies, environment or stacks
+are persisted. Probe direct counts, seeded revisions, shared eligible-row counts and
+fixture-byte limits retain expected/observed evidence. Pure checks exercise failure
+envelopes using constructed errors; this is not live SQLite failure-path evidence.
+Retain original jobs/logs and fixtures. Unexpected effects need reconciliation.
+
+Paths and modes
+---------------
+Build/restore root: C:\CodexProjects\Pegasus Cortex\artifacts\build\current\ggrow-79fa
+Fixture parent: C:\CodexProjects\Pegasus Cortex\artifacts\validation\ggrow-fx-79fa
+Report/preparation parent: C:\CodexProjects\Pegasus Cortex\artifacts\validation\ggrow-rp-79fa
+All output roots are explicit new, canonical, fixed-local Windows paths with ordinary
+stable ancestry, no trailing separator, no overlap and bounded generated components.
+Native exclusive directory creation and CreateNew output files refuse collisions.
+Input files are canonical ordinary bounded files. Fixture directories are never product
+defaults; only fresh cortex-v2.db files are created in later measurement mode.
+
+Currently admitted Main arguments:
+--prepare-manifest --report-root <new ggrow-rp-79fa root>
+This executes pure checks, creates the deterministic full manifest, preparation JSON
+and review summary. It DOES NOT construct/open SQLite stores or execute retrieval.
+
+Future only after Root/Native/Audit manifest review:
+--measure --manifest <manifest.v1.json> --expected-manifest-sha256 <reviewed64hex>
+--run <main-a|main-b|off-a-largest|near-a-largest|one frozen probe> --fixture-root <new shard root>
+--report-root <new shard root> [--geometry-diagnostics]
+Diagnostic flag is absent by default. ON runs require it explicitly; OFF run rejects it.
+Only run plans in the pinned manifest are accepted. No implicit dotnet run/test/restore.
+--compare reads actual main-a/OFF reports and checks representative48-query parity.
+
+Preparation and freeze
+----------------------
+Full generated payloads, target/support sets/rationales, bridge owners and beneficiaries,
+cell membership, probes and budgets are in manifest.v1.json before any measurement.
+The reviewed SHA256 must match for measurement; schema/role/budget checks repeat.
+No content, labels, queries, seeds or weights may be tuned to benchmark results.
+Use the existing registered dotnet v5 and task-only corrected offline mapping/strict
+lock recipe. Existing local archives only; no source config/lock/global cache-policy
+change, network download, registration repair or storage13-case rerun.
+Preparation/compilation results and final source pins will be recorded below.
+
+
+PREMEASUREMENT CANDIDATE HISTORY AND CURRENT FREEZE
+-------------------------------------------------
+Candidate1 compiled and prepared successfully but was REJECTED before measurement:
+short actual queries omitted needed scope, and some reuse labels asserted absent
+facts or inherited relationships across all target facets.
+Preserved manifest: artifacts/validation/ggrow-rp-79fa/manifest.v1.json
+SHA256:3669a42ec0f24eacb88e5bbf892fb0964aaf53b8858db87be6968996b77087bb
+candidate-01-rejected.v1.json records the rejection. No observed benchmark was overwritten.
+
+Candidate2 uses generator shared-48-growth/2 with the original opaque identifier
+domain. All 256 base payloads and per-question canonical target IDs were compared
+with candidate1 and remained identical. The 48 submitted queries are now scoped.
+The q02 identity edge was removed; q07 spelling-only collision reuse was removed;
+q24 unpublished cleanup now supports cleanup, not an absent cancellation-check fact.
+Additional-facet reuse is explicitly adjudicated in GrowthQuestions.cs.
+Scoped long-gap control was revised from 305 to 281 rows, explaining the24-row
+difference from an earlier provisional near-noise budget. No padding was added.
+
+Preserved candidate2 manifest:
+artifacts/validation/ggrow-rp-79fa/candidate-02/manifest.v1.json
+SHA256:74af1869e47b1dee50ec1d54c972d6250cea12d94b0f0c73239296b295ef4803
+Its original source/document archive and source/review freezes remain unchanged.
+
+Candidate3 uses generator shared-48-growth/3 and the original opaque identifier
+domain. Readback against candidate2 confirmed all256 indexed base payloads, all48
+submitted scoped queries and every primary target ID set are unchanged.
+Exact new base support labels:
+- re33bb21f273a95b90592652c, q20/canonical/0, is useful for q24 cleanup.
+- r86b6e2a95b0c3a4fb0adc026, q36/canonical/0, is useful for q20 exact-object cleanup.
+Neither new relation propagates across other canonical facets.
+Removed support-fact edges q12->q35, q28->q26, q32->q40 and q44->q48 in both variants'
+direct and non-direct expressions:16 removed relations. q18's four added-support
+payloads and matching rationales now say "published visible generation" rather than
+"admitted visible generation". Only those four added-support payloads changed.
+The full catalogue now has341 useful-support relations,145 cross-question relations.
+Owner/beneficiary exposure, near-noise diversity and inclusive loss reporting are
+described above and encoded in source/manifest; observed retrieval did not set labels.
+
+Current complete candidate3 manifest:
+artifacts/validation/ggrow-rp-79fa/candidate-03/manifest.v1.json
+SHA256:d5c739195a665589c4869a38f1435d72aa00773b6b27075aa02013ddc681d494
+5777312 bytes;4804 maximal-pool records;48 questions/12 families;256 fixed base.
+Preparation job 4f1667c74a06452b88deb2783e837bba: exit0, pure checks passed, no SQLite
+connection or retrieval executed, no timeout/truncation. Source build
+job 569b0bed0d83480b86b40492b5ecb51f: exit0, zero warnings/errors. Existing offline
+locked restore job e3bbe925933d491f8cc0da681454255b succeeded; seven package content
+hashes matched the existing lock graph and the pinned native SQLite input.
+Driver DLL SHA256:6da7a5ccc5ae593a6dec723e8367a9acd5763889772d1d8367a3f7a1fe39f6c0
+This is compiler/pure assertion/manifest evidence only, not FTS/probe/quality evidence.
+Benchmark fixture parent ggrow-fx-79fa remained absent; no .db exists under preparation.
+
+At the premeasurement freeze, focused review of the exact candidate3 source and
+manifest preceded the first SQLite benchmark; proposed probe counts were unverified.
+The source/preparation-only document is preserved at
+artifacts/build/current/ggrow-79fa/offline/candidate-03-premeasurement-document.txt
+with its original SHA256:9dead256b5d00d0d59a6d9ffd65fc3c1ced6e35a1d7578570cf244c9e259838c
+No old storage13 rerun, v1 result change, production ranking/weight change, model run
+or automatic geometry promotion occurred.
+
+ACTUAL ISOLATED SQLITE RUNTIME CHECKPOINT
+-----------------------------------------
+Batch start:2026-11-20 00:09:01 UTC (2026-11-19 local date).
+Measurement and actual parity complete by:2026-11-20 00:18:08 UTC.
+Elapsed through parity readback:547 seconds, within1800-second batch allowance.
+Every launch checked remaining allowance; no retry or duplicate run was issued.
+The manifest and all five code/project files remained candidate3. Documentation
+alone gained this evidence checkpoint. No build/restore occurred after execution GO.
+
+Four frozen probes executed FIRST and all engineering preconditions passed:
+probe-nondirect: job b71135170ba642e68e062b82dcb3c456,2/2 observations.
+  q04 direct0, q06 direct1. q04 returned no lexical or geometry results.
+probe-threshold-below: job a16fc8abe6b64a0da021f080d25d066f,1/1.
+  q06 direct3; expansion eligible by the unchanged source rule.
+probe-threshold-at: job 6c46b32084f142f084218b15885d9e12,1/1.
+  q06 direct4; expansion not eligible by the unchanged source rule.
+probe-long-gap: job 71fc815ae59148c98436b5c89eebf913,1/1.
+  q04 direct3; no target recovery and one extra noise result versus lexical.
+Eligibility is inferred from the verified public path's count rule, not an internal
+instrumentation trace. At/below probes both improved first-target rank; reranking
+can still operate when expansion is disabled, so rank gain alone is not expansion proof.
+
+main-a: job 820788de4a90474cba4e587344d6ca81,432/432 observations passed.
+  report SHA256:b3d2da7d06c6a3652ce4d607053025935c1a21d1d6c5f7b2a8d34a21bfdc02aa
+main-b: job dc6f61bc292e49ed92bbf68c22a88b31,432/432 observations passed.
+  report SHA256:48e22d797853d25c40704ddc250226a48091a7ee655e9c8a97a5a8fac1e5dc90
+off-a-largest: job 562ca8ded32f467ba4ca291f72e8c043,48/48 observations passed.
+  report SHA256:cf19428f91adea5d87783c29d5f3766a7c6c94dab1beece4703018abe1f1df31
+near-a-largest: job 19bdfa0b985f46c484b6b85e5fdb0120,48/48 observations passed.
+  report SHA256:a1d20ea05f83379793a818f21be84160d23fb2cdda18b2d08ffb4ab7a7d9edf0
+Actual OFF/ON compare: job 65325108df274b8098f870c88d773136,48/48 parity passed.
+  parity SHA256:cdcb96f86123a8623f0ce6ebd1b91bdacea3784e8d0b8044d67879d7c8fa1da2
+Original PAO jobs/logs and every fixture/report are retained.
+Report root:artifacts/validation/ggrow-rp-79fa/runs-candidate-03/
+Each run has report.v1.json and summary.txt; off-on-parity has parity.v1.json.
+
+All eight measurement processes and the comparison exited0, without output
+truncation or timeout.965/965 planned observations completed:864 main,5 probes,
+48 actual OFF and48 near-noise. No cell/query engineering failure, cancellation,
+missing observation, lexical-context mismatch or replay mismatch was reported.
+Every one of917 ON observations checked before/after exact lexical context and replay.
+Separate actual OFF/ON rankings and lexical context matched for the largest a cell.
+These are actual isolated native-SQLite runtime results, not production/model proof.
+
+Actual resources:24 .db files,24670 seeded rows summed once per fresh database.
+Fixture bytes67739648 (about64.6MiB); largest database6287360 bytes.
+No non-database fixture files remained at final readback. Caps25DB/30000rows/
+512MiB were met; peak2352 records per database. Reports remained below2MiB.
+
+Main quality, across864 QUESTION-CELL PAIRS (not864 distinct questions):
+Pareto target-metric gain12, regression37, mixed0, unchanged815.
+Inclusive target-hit loss22, first-target-rank loss24, any-target-metric loss37.
+Any-loss questions were q08,q13,q17,q24 across repeated cells.
+Counter readback independently recomputed inclusive losses from raw per-observation
+deltas. These categories overlap and cannot be added into a unique-question count.
+Total target hits759 lexical ->749 geometry; useful support663 ->660; noise1911 ->2023.
+Geometry underfilling differs from lexical, so totals include actual returned counts
+and never substitute for fixed-k4 precision or per-question recall denominators.
+
+Mean target recall over48 questions, lexical -> geometry:
+a owners0:0.9166667 ->0.9166667 at every far-noise level.
+a owners24:0.7604167 ->0.7395833 at every far-noise level.
+b owners0:0.9166667 ->0.9166667 at every far-noise level.
+b owners24:0.6666667 ->0.6979167 at every far-noise level.
+a/b owners48:0.6041667 ->0.5833333 at noise0/256;
+             0.6041667 ->0.5937500 at noise2048.
+No monotonic target-quality improvement follows added useful bridges.
+Main direct32 truncation was observed in48 question-cells. The auxiliary256 probe
+reached its cap in12 question-cells; those hit counts are lower bounds.
+The source-rule expansion condition held in60 question-cells, including6 with zero
+direct seeds. Full per-cell actual counts remain in the raw reports.
+
+Near-noise is a separate authored repeated-payload stress result at N2352:
+lexical and geometry target recall/RR both0. Actual selected lexical totals were
+0 target/46 support/146 noise; geometry0 target/4 support/188 noise (192 each).
+Geometry removed42 support results and added42 noise results. Direct32 truncation
+was observed for35 questions and one auxiliary probe reached256 (lower bound).
+Its zero loss-counter values mean both methods already had zero target recall,
+not successful retrieval. The48 unique payloads repeated5/6 times do not establish
+representative-corpus reliability. There was no model-answer evaluation, significance
+claim, installed-state change, ranking/weight change or automatic geometry promotion.

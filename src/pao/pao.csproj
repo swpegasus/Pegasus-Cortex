@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Pegasus.AgentOps.Engine\Pegasus.AgentOps.Engine.csproj" />
+    <ProjectReference Include="..\Pegasus.AgentOps.ProcessHost\Pegasus.AgentOps.ProcessHost.csproj"
+                      ReferenceOutputAssembly="false" Condition="'$(CortexOwnerAdminReuseUnchangedRoles)' != 'true'" />
+    <ProjectReference Include="..\Pegasus.AgentOps.Protocol\Pegasus.AgentOps.Protocol.csproj" />
+    <ProjectReference Include="..\PegasusCortex.Product\PegasusCortex.Product.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishSingleFile>true</PublishSingleFile>
+    <AssemblyName>pao</AssemblyName>
+    <AgentOpsNeedsProcessHost>true</AgentOpsNeedsProcessHost>
+  </PropertyGroup>
+
+</Project>

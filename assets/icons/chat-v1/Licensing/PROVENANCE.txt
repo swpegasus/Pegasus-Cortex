@@ -1,0 +1,24 @@
+Pack: pegasus.chat-icons, version 1.0.0
+Artwork publisher: Microsoft Fluent SYSTEM Icons (not the Fluent Emoji project).
+Repository: https://github.com/microsoft/fluentui-system-icons
+Exact revision: cd332ec1f90cda2fad16f86754f8da52f1e9ab30
+License: MIT, copyright (c) 2020 Microsoft Corporation
+Primary license checked 2026-10-07:
+https://raw.githubusercontent.com/microsoft/fluentui-system-icons/cd332ec1f90cda2fad16f86754f8da52f1e9ab30/LICENSE
+License text is bundled as Fluent-System-Icons-LICENSE.txt; local legacy LICENSE.txt
+contains the same notice. Permission includes distribution with the copyright/permission
+notice. Keep the license with exported whole packs and individual icons.
+Existing UPSTREAM-NOTICE.txt is also carried as Fluent-System-Icons-NOTICE.txt.
+The pinned NOTICE URL was unavailable in the current web check; its upstream bytes were
+not reverified by this plugin task. No upstream build tools/dependencies are included.
+catalog.ini records the eleven original SVG filenames, exact source URLs and local SHA-256.
+SVG bytes are the pre-existing pinned pack; native WPF geometry remains in index.ini.
+Unicode text alternatives are text characters; OS font/emoji artwork is not redistributed.
+
+Other candidates considered but not bundled:
+OpenMoji: https://openmoji.org/ and https://github.com/hfg-gmuend/openmoji
+Fluent Emoji: https://github.com/microsoft/fluentui-emoji
+Svgmoji: https://github.com/svgmoji/svgmoji
+Remix Icon: https://remixicon.com/
+They require separate license/provenance/format review before any future import.
+Do not assume this pack's MIT notice covers those candidates or unrelated assets.

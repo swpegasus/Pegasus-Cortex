@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageId>Pegasus.Cortex.Persistence.Sqlite</PackageId>
+    <Title>Pegasus Cortex SQLite Persistence</Title>
+    <Description>Local-only transactional retention provider for passive Cortex agent documents.</Description>
+    <Authors>Pegasus</Authors>
+    <IsPackable>true</IsPackable>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="[10.0.10]" />
+    <!-- Match the product native SQLite pin; its lower transitive version is vulnerable. -->
+    <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="[2.1.12]" />
+    <ProjectReference Include="..\PegasusCortex.Contracts\PegasusCortex.Contracts.csproj" />
+    <ProjectReference Include="..\PegasusCortex.Core\PegasusCortex.Core.csproj" />
+  </ItemGroup>
+</Project>

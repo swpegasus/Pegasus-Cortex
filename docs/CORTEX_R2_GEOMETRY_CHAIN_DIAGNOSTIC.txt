@@ -1,0 +1,192 @@
+Pegasus Cortex optional knowledge traversal - source and runtime checkpoint
+=========================================================================
+Task:01a12d3b-79fa-7582-aa10-461ab3506979. Phase:r2-geometry-chain.
+Local date:2026-11-19. Completed isolated SQLite verification:2026-11-20 UTC.
+Status:implemented;97/97 fixed query units passed engineering. Production adoption,
+model-answer evaluation, installation and transport exposure are not part of this work.
+
+Public library contract
+-----------------------
+Core:CortexKnowledgeGeometry.TraverseAsync.
+Options:CortexKnowledgeTraversalOptions, default Enabled=false.
+SQLite:SqliteCortexV2OperationalStore.TraverseKnowledgeAsync, separate from SearchAsync.
+Default OFF makes no seed or neighbor provider call and returns no traversal metadata.
+Normal SearchAsync and its established scorer remain unchanged.97 real SQLite
+lexical/current rankings, scores and selected-context hashes match exact C3 references.
+
+New code:
+src/PegasusCortex.Core/Knowledge/Geometry/CortexKnowledgeGeometryTraversal.cs
+src/PegasusCortex.Persistence.Sqlite/Knowledge/Geometry/SqliteCortexKnowledgeTraversal.cs
+Existing CortexKnowledgeGeometry.cs became partial and factors one private term
+extractor. The original public ExpansionTerms wrapper still selects only Direct=true.
+Frontier extraction does not relabel discovered points Direct.
+The new diagnostic project links the four C3 source files unchanged rather than copying
+their corpus, seeding, baseline retrieval or normal-context validation implementation.
+No schema, protocol, package, model, installed setting, service or permission changes.
+
+The SQLite adapter admits active knowledge of the requested kind and selected namespace
+BEFORE both seed and intermediate traversal. Every parent queries its own namespace.
+Accepted metadata retains exact namespace/type/record/revision and source provenance.
+Similarity candidates are not logical proof or authority, and are never hydrated into
+selected context. Exact lexical coordinates/revisions alone supply context.
+
+Traversal identity and path policy
+-----------------------------------
+Direct candidates are depth0. Identity is structured namespace/knowledge/record/revision;
+caller Point.Key is ignored. New qualified nodes remain non-direct. Cycles/visited
+coordinates are deduplicated. Admission is breadth-first at the first admitted depth,
+using the best encountered same-depth score, then first query ordinal; this is not a
+globally optimal path. Incomplete-depth proposals are discarded on early budget stops,
+while attempted/completed query records remain explicit.
+Each admitted non-seed names the actual querying predecessor and query ordinal;
+that query's bounded returned-coordinate list proves membership. Parent references
+reconstruct visited paths; only top4 paths are repeated in compact diagnostic reports.
+
+Frozen policy
+-------------
+Original immutable scoring/options plan:
+artifacts/build/current/gchain-79fa/offline/chain-options.v1.json
+SHA256:8524fce6239ca5bf0cf1ee0ce790ec8ed93864afdbf2d968bb4aa27e53226582
+Enabled only explicitly; maximum depth2 or3 for this study.
+32 direct candidates,4 namespaces maximum, beam4,12 neighbor logical pooled calls,
+32 returned candidates per call,384 accepted candidate occurrences,128 admitted nodes,
+8 terms per parent,512-byte joined and encoded term budgets,5000ms traversal deadline,
+result k4, minimum shared normalized features1, minimum edge cosine0.08.
+Caller cancellation propagates; internal deadline returns an explicit time-limit.
+Zero seeds cannot start discovery. Expansion has no directCount<k prerequisite.
+Hop decay0.8; original-intent weight0.7. A discovered node at depth d scores:
+pow(0.8,d)*(0.7*originalIntentCosine+0.3*minimumEdgeCosineAlongPath).
+A direct seed scores0.7*originalIntentCosine and has no invented edge evidence.
+The new scorer also reranks depth0 seeds. This study does NOT isolate the causal
+benefit of traversal from that reranking; no extra ablation was executed.
+
+Core counts accepted projections. The adapter separately retains pre-filter raw pooled
+counts, rejection counts and raw saturation for each query ordinal. These are logical
+calls, not instrumented SQL statement counts. Shared namespace fans out to3physical
+FTS sources through the existing utility:12 neighbor calls imply at most36 such
+physical searches, plus3 initial seed searches. The library trace has its own bounded
+contract; standard SearchRequest.MaxUtf8Bytes does not cap the entire traversal trace.
+
+Study and resource plan
+------------------------
+Exact C3 manifest:
+artifacts/validation/ggrow-rp-79fa/candidate-03/manifest.v1.json
+SHA256:d5c739195a665589c4869a38f1435d72aa00773b6b27075aa02013ddc681d494
+Frozen corpus/queries/primary and support labels/rationales are unchanged.
+Three fresh quality DBs:long-gap281/q04; far-a-largest2352/48; matched near2352/48.
+97 query units reuse48 distinct semantic questions. Four methods share each corpus:
+lexical, unchanged current single-pass, chain2, chain3. Both chain depths replayed.
+Near control contains256 IDs but48 unique indexed payloads repeated5/6 times, and is
+an artificial wrong-task density stress, not representative-corpus reliability.
+No864 matrix, old storage13 cases or old databases were rerun or modified.
+
+Limits:128MiB fixtures;64MiB total reports;16MiB per report;1800-second batch.
+Cooperative long-gap90seconds, far/near360; PAO limits150/480/480seconds.
+Compact proofs have explicit node/coordinate/query byte bounds; frozen worst-case
+largest report16056320 bytes is below16777216 before SQL execution.
+Actual final resources:6 physical DBs,5000 heads,5002 revisions,13705216 fixture bytes.
+The extra two revisions are synthetic archive actions, not extra seeded heads.
+Report readback used12740977 bytes before later audit/closure artifacts.
+Largest quality report7286740 bytes.
+
+Original failures and recovery - retained, never counted as passes
+-----------------------------------------------------------------
+Job59f834b1548c4c10b6dd574299a3788e exited2 after5creates: fixture archive omitted
+required Core-stamped EffectiveProvenance. Unchanged provider guard rejected it.
+Fix:stamp only the synthetic archive; no validation weakening.
+Joba7225a8d194e403ebeb8caeda609f237 exited2 at a fixture expectation: it required
+two raw adapter rejections, but Archive sets revision2/Archived/non-searchable and
+removes that record from FTS first. Actual retained heads/index confirmed this.
+Fix:separately assert exact archived state/absence, raw active wrong-kind presence
+and its rejection, outside-scope absence, and only allowed seed/bridge admission.
+Both failed fixtures/jobs remain. No retained fixture was reseeded or replayed.
+Coordinator recovery02:d76a9a4794b2040ebbcf1edcb6000c6ae19c69c19f3245873fff969b514a9a23
+authorized one final fresh contract plus both failures and the same quality cells:
+maximum6 DB/5000 heads. Original scoring plan8524 remains unchanged.
+Historical resource-only execution draft5d914f4f... is retained separately and was
+not used by quality runs; each quality report binds original plan8524.
+
+Actual contract pass:
+job179d8132ccea4b4e9c9212476a4dfe28, exit0.
+contract.v1.json SHA256:0eebb40231ab8283bb4f4ca3abc76c2df03c9bfc1c126a8a0c7e13b5b75de7c5
+Raw direct IDs:contract-seed and contract-wrong-kind; archive and outside absent.
+Archive exact revision2/Archived. Each of two neighbor calls had raw3/accepted2/
+rejected1; only seed/bridge admitted. Default-off calls0; actual one-query cap stopped
+at query-limit. Pre-cancelled actual API call rejected; in-flight cancellation/deadline
+coverage is fake-provider unit evidence, not a live SQLite interruption test.
+
+Build and pure evidence
+------------------------
+Offline strict-locked restore:e5b9f56784424dc0bb8e0967b8fe91d5, exit0.
+Final affected build:611b18712f2d49e5966f5d447007aba4, exit0,0warnings/errors.
+Final pure checks:990190a2aa3b4bea926fddc5da1f5d58, exit0,12groups.
+Pure tests cover generic single-alias2/3edge chains, real-parent membership, coordinate
+namespace/revision/key collisions, cycles, default-off/zero seeds, provider failures,
+query/candidate/visited caps, caller/internal cancellation, compact proof byte bounds,
+bounded input/unsafe output rejection and preserved C3 arithmetic/loss checks.
+No package download or machine registration change. All builds use gchain-79fa,
+leaving completed C3 build/images in ggrow-79fa intact.
+
+Actual quality reports
+-----------------------
+Root:artifacts/validation/gchain-rp-79fa/
+long-gap:probe-long-gap/report.v1.json
+jobcc76c5e737bf4c29a9a1cc678275094d,1/1 passed.
+SHA256:39c7d431cc7f18a32c142fc740e1a602f8d8fc6a5796bbc10f8f52d4b413b2eb
+far:a-b48-n2048/report.v1.json
+jobd4d5d02faeee4ce787306ff619e5296f,48/48 passed.
+SHA256:714f91dbab9fd4688a372e4c685141f569d84460c614c4ac186c432d7a8afe24
+near:near-a-largest/report.v1.json
+job29173e260a8d409d9941b8a55ade0f3f,48/48 passed.
+SHA256:403607647b98ba98e331c0d4b5da8e42df815cf46af451eaf005a58f8ff291f1
+All97 default-off/no-call, lexical context, deterministic replay and C3 reference
+checks passed; no missing or failed quality observation.2/3-hop top4 coordinates and
+scores were exactly identical for97/97 queries. Every trace disclosed pruning;
+9primary traces reached visited-limit (1depth2 near,8depth3 near). No time-limit occurred.
+
+Mean target recall over each case:
+                 lexical     current     chain2      chain3
+long-gap1        0           0           0           0
+far48            0.6041667   0.5937500   0.9062500   0.9062500
+near48           0           0           0.3854167   0.3854167
+
+Selected far totals (target/support/noise):
+lexical34/58/99; current33/59/100; chain2=chain3:50/62/80.
+Selected near totals:
+lexical0/46/146; current0/4/188; chain2=chain3:21/40/131.
+Far versus current, each chain depth:30 Pareto gains,3 regressions,1 mixed,14unchanged.
+Inclusive losses:target-hit2, first-target-rank3, any-target-metric4. Near:21gains/
+27unchanged, no target-metric losses. These are query-level case observations.
+Support gains never erase target loss; the mixed result remains in inclusive counters.
+
+Discovery versus selection and attribution
+------------------------------------------
+Long-gap target was actually discovered via:
+SQLite deadlock rendezvous(depth0)
+ ->Rendezvous circular resource waits(depth1,query1,edge cosine0.44183542089905414)
+ ->Circular resource waits(depth2,query6,edge cosine0.8519065343475631).
+The path exists in both modes; target score0.08483240081261842 did not reach top4.
+Depth3 reached actual3-edge paths, but its target still first appeared at depth2.
+Far selected target hits:48fromdepth0 and2fromdepth1, in BOTH modes.
+Near selected target hits:19fromdepth0 and2fromdepth1, in BOTH modes.
+No selected target hit came from depth2 or3 in this fixed study. Most selected gains
+therefore coexist with reranking already-direct candidates; no causal multi-hop
+ranking-benefit claim follows. Long-gap proves discovery, not successful selection.
+Far has target discovery in48/48 questions; near44/48; this means at least one
+canonical target discovered, not every target revision or complete graph exploration.
+
+Primary neighbor logical calls:depth2=770;depth3=1147 (+377,about49%).
+Including deterministic replays:388seed +3834neighbor logical pooled calls.
+The derived three-source physical-FTS upper bound is12666 for these chain calls;
+baseline/context-query cost is not included or claimed instrumented.
+Depth3 admitted1208extra primary nodes without changing a single top4 ranking.
+Similarity/path existence and quality improvement remain separate claims.
+
+Preservation
+-------------
+Before any edit, completed C3six sources plus original Core/helper and adapter were
+snapshotted in c3-source-completed.zip (9entries including snapshot manifest).
+Archive SHA256:f933b229ad81ab85a3cc1b5ef0cce5e8f845a83ba04cb33e2a4b4e8f179e6e90;
+archive integrity test passed. C3manifests/reports/images/old11/v1/config/locks remain
+retained. New source/binary/final preservation pins live in the companion runtime freeze.
+No installed/current connection, model, Phase2, release or deployment action occurred.

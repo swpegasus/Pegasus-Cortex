@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageId>Pegasus.Cortex.Product</PackageId>
+    <Title>Pegasus Cortex Product Contracts</Title>
+    <Description>Unified Pegasus Cortex identity, installation layout, catalog, and state-migration contracts.</Description>
+    <Authors>Pegasus</Authors>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="PegasusCortex.Mcp.Hosting" />
+  </ItemGroup>
+</Project>

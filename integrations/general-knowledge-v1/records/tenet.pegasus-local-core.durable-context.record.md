@@ -1,0 +1,1 @@
+Clients may author concise useful durable statements with source, evidence and uncertainty. Active compaction unloads context without deleting durable knowledge. Recover a complete useful small-project brief when it fits. A reference alone is not proof that its body is loaded.

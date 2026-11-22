@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageId>Pegasus.Cortex.Persistence.File</PackageId>
+    <Title>Pegasus Cortex File Persistence</Title>
+    <Description>Isolated canonical file persistence for one registered local project brief.</Description>
+    <Authors>Pegasus</Authors>
+    <IsPackable>true</IsPackable>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PegasusCortex.Contracts\PegasusCortex.Contracts.csproj" />
+    <ProjectReference Include="..\PegasusCortex.Core\PegasusCortex.Core.csproj" />
+  </ItemGroup>
+</Project>

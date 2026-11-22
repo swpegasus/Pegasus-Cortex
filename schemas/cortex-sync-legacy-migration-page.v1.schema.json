@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pegasus.local/schemas/cortex/cortex-sync-legacy-migration-page.v1.schema.json",
+  "title": "Pegasus Cortex paged legacy migration cursor and page v1",
+  "description": "Hash-bound, acknowledgment-gated paging over immutable offline bundles. Cursors carry no authorization or cleanup authority.",
+  "oneOf": [{ "$ref": "#/$defs/cursor" }, { "$ref": "#/$defs/page" }],
+  "$defs": {
+    "identifier": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" },
+    "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "contractId": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*/[0-9]+\\.[0-9]+$" },
+    "extension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contractId", "required", "payloadBase64Url", "payloadBytes", "payloadSha256"],
+      "properties": {
+        "contractId": { "$ref": "#/$defs/contractId" },
+        "required": { "type": "boolean" },
+        "payloadBase64Url": { "type": "string", "minLength": 2, "maxLength": 21848, "pattern": "^[A-Za-z0-9_-]+$" },
+        "payloadBytes": { "type": "integer", "minimum": 1, "maximum": 16384 },
+        "payloadSha256": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "extensions": { "type": "array", "maxItems": 16, "items": { "$ref": "#/$defs/extension" } },
+    "cursor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion", "contractId", "canonicalization", "migrationId", "sourceManifestHash",
+        "sourceInventoryHash", "sourceFileCount",
+        "storeId", "storeEpoch", "projectId", "sourceRootId", "pageNumber", "nextFileIndex",
+        "nextChunkIndex", "nextSequence", "previousBundleHash", "priorEventHash", "completed",
+        "contentTreatment", "executable", "extensions", "cursorHash"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "contractId": { "const": "pegasus.cortex.legacy-migration-cursor/1.0" },
+        "canonicalization": { "const": "pegasus-canonical-json-v1" },
+        "migrationId": { "$ref": "#/$defs/identifier" },
+        "sourceManifestHash": { "$ref": "#/$defs/hash" },
+        "sourceInventoryHash": { "$ref": "#/$defs/hash" },
+        "sourceFileCount": { "type": "integer", "minimum": 1, "maximum": 4096 },
+        "storeId": { "$ref": "#/$defs/identifier" },
+        "storeEpoch": { "$ref": "#/$defs/identifier" },
+        "projectId": { "$ref": "#/$defs/identifier" },
+        "sourceRootId": { "$ref": "#/$defs/identifier" },
+        "pageNumber": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "nextFileIndex": { "type": "integer", "minimum": 0, "maximum": 4096 },
+        "nextChunkIndex": { "type": "integer", "minimum": 0, "maximum": 63 },
+        "nextSequence": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "previousBundleHash": { "$ref": "#/$defs/hash" },
+        "priorEventHash": { "$ref": "#/$defs/hash" },
+        "completed": { "type": "boolean" },
+        "contentTreatment": { "const": "untrusted_data" },
+        "executable": { "const": false },
+        "extensions": { "$ref": "#/$defs/extensions" },
+        "cursorHash": { "$ref": "#/$defs/hash" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "completed": { "const": true } }, "required": ["completed"] },
+          "then": { "properties": { "nextChunkIndex": { "const": 0 } } }
+        }
+      ]
+    },
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion", "contractId", "canonicalization", "pageId", "sourceInventory", "currentCursor", "bundle",
+        "nextCursor", "acknowledgmentRequired", "sourceMutationAllowed", "contentTreatment",
+        "executable", "extensions", "pageHash"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "contractId": { "const": "pegasus.cortex.legacy-migration-page/1.0" },
+        "canonicalization": { "const": "pegasus-canonical-json-v1" },
+        "pageId": { "$ref": "#/$defs/identifier" },
+        "sourceInventory": { "$ref": "cortex-sync-legacy-migration-inventory.v1.schema.json" },
+        "currentCursor": { "$ref": "#/$defs/cursor" },
+        "bundle": { "$ref": "cortex-sync-offline-bundle.v1.schema.json#/$defs/offlineBundle" },
+        "nextCursor": { "$ref": "#/$defs/cursor" },
+        "acknowledgmentRequired": { "const": true },
+        "sourceMutationAllowed": { "const": false },
+        "contentTreatment": { "const": "untrusted_data" },
+        "executable": { "const": false },
+        "extensions": { "$ref": "#/$defs/extensions" },
+        "pageHash": { "$ref": "#/$defs/hash" }
+      }
+    }
+  }
+}

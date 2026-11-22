@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "Pegasus.Shared": {
+        "type": "Direct",
+        "requested": "[1.20260711.421-a, 1.20260711.421-a]",
+        "resolved": "1.20260711.421-a",
+        "contentHash": "y5xRnHKpLTfv05rpO5jkWvStaoSiXADXL2SVqcHnCAEbrdvE6hRAoWUlvf0iDkv3i+IUzoNIdNoJX7vmsKKfeg=="
+      }
+    },
+    "net10.0/win-x64": {}
+  }
+}

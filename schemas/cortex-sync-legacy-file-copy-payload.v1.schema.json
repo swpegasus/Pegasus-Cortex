@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pegasus.local/schemas/cortex/cortex-sync-legacy-file-copy-payload.v1.schema.json",
+  "title": "Pegasus Cortex legacy file-copy payload v1",
+  "description": "Closed data-only envelope for one byte-preserved legacy file.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "contractId", "canonicalization", "sourceRootId", "sourceRelativePath",
+    "role", "mappingId", "chunkIndex", "chunkCount", "chunkOffset", "sourceBytes", "sourceSha256",
+    "chunkBytesBase64Url", "chunkBytes", "chunkSha256", "contentTreatment", "executable"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "pegasus.cortex.legacy-file-copy/1.0" },
+    "canonicalization": { "const": "pegasus-canonical-json-v1" },
+    "sourceRootId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" },
+    "sourceRelativePath": {
+      "type": "string", "minLength": 1, "maxLength": 512,
+      "pattern": "^(?![\\\\/])(?![A-Za-z]:)(?!.*(?:^|[\\\\/])\\.{1,2}(?:[\\\\/]|$))[^:\u0000-\u001F\u007F]+$"
+    },
+    "role": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" },
+    "mappingId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" },
+    "chunkIndex": { "type": "integer", "minimum": 1, "maximum": 64 },
+    "chunkCount": { "type": "integer", "minimum": 1, "maximum": 64 },
+    "chunkOffset": { "type": "integer", "minimum": 0, "maximum": 16777216 },
+    "sourceBytes": { "type": "integer", "minimum": 0, "maximum": 16777216 },
+    "sourceSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "chunkBytesBase64Url": { "type": "string", "minLength": 0, "maxLength": 512000, "pattern": "^[A-Za-z0-9_-]*$" },
+    "chunkBytes": { "type": "integer", "minimum": 0, "maximum": 384000 },
+    "chunkSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "contentTreatment": { "const": "untrusted_data" },
+    "executable": { "const": false }
+  }
+}

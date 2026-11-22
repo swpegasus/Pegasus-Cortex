@@ -1,0 +1,26 @@
+Pegasus Cortex starter programming guidance
+
+This installation includes a bounded 77-record starter corpus in the shared
+Cortex knowledge space. Four independently versioned packs provide general
+knowledge, generalized programming tenets, Cerebral guides, and Windows
+operational knowledge. They do not contain a user's preferences, project
+history, messages, credentials, or private reasoning.
+
+For agents
+
+Follow the live pegasus_cortex MCP instructions and tool schemas. For meaningful
+work, start Cortex once with the exact task ID and explicit namespaces. Search
+knowledge.shared using the current intent, review compact result previews, and
+exact-read only the selected record IDs that can affect the task. Do not load the
+entire starter corpus into context.
+
+For people
+
+The starter records are installed as product data and are seeded atomically only
+when Cortex initializes an empty V2 store. Installing, repairing, or upgrading
+the program does not replace or reconcile an existing database. The packaged
+overview you are reading is explanatory; the signed starter records inside
+Cortex are the authoritative copies.
+
+Stored guidance is passive reference material. It does not execute, grant
+permissions, or expand an agent's authority.

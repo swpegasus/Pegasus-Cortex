@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pegasus.local/schemas/cortex/cortex-sync-capabilities.v1.schema.json",
+  "title": "Pegasus Cortex synchronization capabilities and compatibility v1",
+  "description": "Exact-set, bounded protocol negotiation. Capability documents describe support only and never grant identity or namespace authority.",
+  "oneOf": [
+    { "$ref": "#/$defs/capabilities" },
+    { "$ref": "#/$defs/compatibilityRequest" },
+    { "$ref": "#/$defs/compatibilityDecision" }
+  ],
+  "$defs": {
+    "identifier": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" },
+    "contractId": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*/[0-9]+\\.[0-9]+$" },
+    "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "contractIds": { "type": "array", "maxItems": 64, "uniqueItems": true, "items": { "$ref": "#/$defs/contractId" } },
+    "nonEmptyContractIds": { "type": "array", "minItems": 1, "maxItems": 64, "uniqueItems": true, "items": { "$ref": "#/$defs/contractId" } },
+    "capabilityIds": { "type": "array", "maxItems": 64, "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+    "nonEmptyCapabilityIds": { "type": "array", "minItems": 1, "maxItems": 64, "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+    "protectionSuites": { "type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+    "limits": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "maximumEventPayloadBytes", "maximumEventsPerBundle", "maximumCanonicalBundleBytes",
+        "maximumExtensions", "maximumExtensionPayloadBytes", "maximumReceiptOutcomes",
+        "maximumMigrationFiles", "maximumJsonDepth"
+      ],
+      "properties": {
+        "maximumEventPayloadBytes": { "type": "integer", "minimum": 1, "maximum": 524288 },
+        "maximumEventsPerBundle": { "type": "integer", "minimum": 1, "maximum": 256 },
+        "maximumCanonicalBundleBytes": { "type": "integer", "minimum": 1, "maximum": 33554432 },
+        "maximumExtensions": { "type": "integer", "minimum": 0, "maximum": 16 },
+        "maximumExtensionPayloadBytes": { "type": "integer", "minimum": 1, "maximum": 16384 },
+        "maximumReceiptOutcomes": { "type": "integer", "minimum": 1, "maximum": 256 },
+        "maximumMigrationFiles": { "type": "integer", "minimum": 1, "maximum": 4096 },
+        "maximumJsonDepth": { "type": "integer", "minimum": 1, "maximum": 32 }
+      }
+    },
+    "extension": {
+      "type": "object", "additionalProperties": false,
+      "required": ["contractId", "required", "payloadBase64Url", "payloadBytes", "payloadSha256"],
+      "properties": {
+        "contractId": { "$ref": "#/$defs/contractId" },
+        "required": { "type": "boolean" },
+        "payloadBase64Url": { "type": "string", "minLength": 2, "maxLength": 21848, "pattern": "^[A-Za-z0-9_-]+$" },
+        "payloadBytes": { "type": "integer", "minimum": 1, "maximum": 16384 },
+        "payloadSha256": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "extensions": { "type": "array", "maxItems": 16, "items": { "$ref": "#/$defs/extension" } },
+    "capabilities": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "schemaVersion", "contractId", "canonicalization", "serviceVersion", "supportedContractIds",
+        "acceptedPayloadContractIds", "supportedCapabilityIds", "requiredClientCapabilityIds",
+        "supportedExtensionContractIds", "requiredClientExtensionContractIds", "supportedProtectionSuiteIds",
+        "supportedReceiptProofContractIds", "limits", "extensions", "capabilitiesHash"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "contractId": { "const": "pegasus.cortex.sync-capabilities/1.0" },
+        "canonicalization": { "const": "pegasus-canonical-json-v1" },
+        "serviceVersion": { "$ref": "#/$defs/identifier" },
+        "supportedContractIds": { "$ref": "#/$defs/nonEmptyContractIds" },
+        "acceptedPayloadContractIds": { "$ref": "#/$defs/nonEmptyContractIds" },
+        "supportedCapabilityIds": { "$ref": "#/$defs/nonEmptyCapabilityIds" },
+        "requiredClientCapabilityIds": { "$ref": "#/$defs/capabilityIds" },
+        "supportedExtensionContractIds": { "$ref": "#/$defs/contractIds" },
+        "requiredClientExtensionContractIds": { "$ref": "#/$defs/contractIds" },
+        "supportedProtectionSuiteIds": { "$ref": "#/$defs/protectionSuites" },
+        "supportedReceiptProofContractIds": { "type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true, "items": { "$ref": "#/$defs/contractId" } },
+        "limits": { "$ref": "#/$defs/limits" },
+        "extensions": { "$ref": "#/$defs/extensions" },
+        "capabilitiesHash": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "compatibilityRequest": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "schemaVersion", "contractId", "canonicalization", "requestId", "clientVersion",
+        "supportedContractIds", "requiredServerContractIds", "offeredPayloadContractIds",
+        "supportedCapabilityIds", "requiredServerCapabilityIds", "supportedExtensionContractIds",
+        "requiredServerExtensionContractIds", "supportedProtectionSuiteIds",
+        "supportedReceiptProofContractIds", "limits", "extensions"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "contractId": { "const": "pegasus.cortex.sync-compatibility-request/1.0" },
+        "canonicalization": { "const": "pegasus-canonical-json-v1" },
+        "requestId": { "$ref": "#/$defs/identifier" },
+        "clientVersion": { "$ref": "#/$defs/identifier" },
+        "supportedContractIds": { "$ref": "#/$defs/nonEmptyContractIds" },
+        "requiredServerContractIds": { "$ref": "#/$defs/nonEmptyContractIds" },
+        "offeredPayloadContractIds": { "$ref": "#/$defs/nonEmptyContractIds" },
+        "supportedCapabilityIds": { "$ref": "#/$defs/nonEmptyCapabilityIds" },
+        "requiredServerCapabilityIds": { "$ref": "#/$defs/capabilityIds" },
+        "supportedExtensionContractIds": { "$ref": "#/$defs/contractIds" },
+        "requiredServerExtensionContractIds": { "$ref": "#/$defs/contractIds" },
+        "supportedProtectionSuiteIds": { "$ref": "#/$defs/protectionSuites" },
+        "supportedReceiptProofContractIds": { "type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true, "items": { "$ref": "#/$defs/contractId" } },
+        "limits": { "$ref": "#/$defs/limits" },
+        "extensions": { "$ref": "#/$defs/extensions" }
+      }
+    },
+    "issue": {
+      "type": "object", "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": { "$ref": "#/$defs/identifier" },
+        "message": { "type": "string", "minLength": 1, "maxLength": 1024 }
+      }
+    },
+    "compatibilityDecision": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "schemaVersion", "contractId", "canonicalization", "requestId", "accepted",
+        "selectedPayloadContractIds", "selectedProtectionSuiteId", "selectedReceiptProofContractId",
+        "effectiveLimits", "issues"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "contractId": { "const": "pegasus.cortex.sync-compatibility-decision/1.0" },
+        "canonicalization": { "const": "pegasus-canonical-json-v1" },
+        "requestId": { "$ref": "#/$defs/identifier" },
+        "accepted": { "type": "boolean" },
+        "selectedPayloadContractIds": { "$ref": "#/$defs/contractIds" },
+        "selectedProtectionSuiteId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "selectedReceiptProofContractId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/contractId" }] },
+        "effectiveLimits": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/limits" }] },
+        "issues": { "type": "array", "maxItems": 32, "items": { "$ref": "#/$defs/issue" } }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "accepted": { "const": true } }, "required": ["accepted"] },
+          "then": {
+            "properties": {
+              "selectedPayloadContractIds": { "minItems": 1 },
+              "selectedProtectionSuiteId": { "$ref": "#/$defs/identifier" },
+              "selectedReceiptProofContractId": { "$ref": "#/$defs/contractId" },
+              "effectiveLimits": { "$ref": "#/$defs/limits" },
+              "issues": { "maxItems": 0 }
+            }
+          },
+          "else": {
+            "properties": {
+              "selectedPayloadContractIds": { "maxItems": 0 },
+              "selectedProtectionSuiteId": { "type": "null" },
+              "selectedReceiptProofContractId": { "type": "null" },
+              "effectiveLimits": { "type": "null" },
+              "issues": { "minItems": 1 }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <AssemblyName>PegasusCortex.Mcp.Local</AssemblyName>
+    <RootNamespace>Pegasus.Cortex.Mcp.Local</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RestoreLockedMode>true</RestoreLockedMode>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PegasusCortex.LocalTransport\PegasusCortex.LocalTransport.csproj" />
+    <ProjectReference Include="..\PegasusCortex.Mcp\PegasusCortex.Mcp.csproj" />
+    <ProjectReference Include="..\PegasusCortex.OfflineJournal\PegasusCortex.OfflineJournal.csproj" />
+    <ProjectReference Include="..\PegasusCortex.Persistence.File\PegasusCortex.Persistence.File.csproj" />
+    <ProjectReference Include="..\PegasusCortex.Persistence.Sqlite\PegasusCortex.Persistence.Sqlite.csproj" />
+    <ProjectReference Include="..\PegasusCortex.Product\PegasusCortex.Product.csproj" />
+    <ProjectReference Include="..\PegasusCortex.Mcp.Hosting\PegasusCortex.Mcp.Hosting.csproj" />
+    <ProjectReference Include="../PegasusCortex.Geometry.Shadow/PegasusCortex.Geometry.Shadow.csproj" />
+    <ProjectReference Include="..\pao\pao.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="PegasusCortex.Mcp.Local.Tests" />
+  </ItemGroup>
+</Project>

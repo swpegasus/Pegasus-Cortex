@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageId>Pegasus.Cortex.OfflineJournal</PackageId>
+    <Title>Pegasus Cortex Offline Journal</Title>
+    <Description>Portable, bounded, copy-first offline journal for Pegasus Cortex.</Description>
+    <Authors>Pegasus</Authors>
+    <IsPackable>true</IsPackable>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageReadmeFile>CHECKPOINT_1.2026.07.14.18.28.A.md</PackageReadmeFile>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)..\..\artifacts\packages\$(PegasusReleaseVersion)</PackageOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PegasusCortex.Contracts\PegasusCortex.Contracts.csproj" />
+    <PackageReference Include="Pegasus.Shared" Version="[1.20260711.421-a]" />
+    <None Include="..\..\docs\CHECKPOINT_1.2026.07.14.18.28.A.md"
+          Pack="true"
+          PackagePath="\" />
+    <None Include="..\..\docs\CORTEX_SYNC_AND_LEGACY_MIGRATION_V1.md"
+          Pack="true"
+          PackagePath="\" />
+    <None Include="..\..\schemas\cortex-offline-journal-retention-plan.v1.schema.json"
+          Pack="true"
+          PackagePath="schemas\" />
+  </ItemGroup>
+</Project>

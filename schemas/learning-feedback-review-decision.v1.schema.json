@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pegasus.local/schemas/cortex/learning-feedback-review-decision.v1.schema.json",
+  "title": "Pegasus Cortex Learning Feedback Review Decision v1",
+  "description": "An immutable, authority-qualified review decision over one exact learning-feedback proposal hash.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "contractId", "canonicalization", "decisionId", "proposalId", "proposalHash",
+    "tenantId", "namespace", "state", "authorityId", "reviewerSubjectId", "policyRevision", "reason",
+    "createdAt", "decisionHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "pegasus.cortex.learning-feedback-review-decision/1.0" },
+    "canonicalization": { "const": "pegasus-canonical-json-v1" },
+    "decisionId": { "$ref": "#/$defs/identifier" },
+    "proposalId": { "$ref": "#/$defs/identifier" },
+    "proposalHash": { "$ref": "#/$defs/hash" },
+    "tenantId": { "$ref": "#/$defs/identifier" },
+    "namespace": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "state": { "enum": ["approved", "rejected"] },
+    "authorityId": { "$ref": "#/$defs/identifier" },
+    "reviewerSubjectId": { "$ref": "#/$defs/identifier" },
+    "policyRevision": { "type": "integer", "minimum": 1 },
+    "reason": { "type": "string", "minLength": 1, "maxLength": 2048 },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "decisionHash": { "$ref": "#/$defs/hash" }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "format": "pegasus-agentops-ui-examples/1",
+  "placeholderIdentity": {
+    "hwnd": "0x0000000000012345",
+    "pid": 4242,
+    "start": "2026-08-27T20:15:30.1234567Z",
+    "ctrl": "0x0000000000012350"
+  },
+  "requests": [
+    { "name": "status", "valid": true, "input": { "op": "ui_status" } },
+    { "name": "find", "valid": true, "input": { "op": "ui_find", "title": "AgentOps UI Fixture", "match": "exact", "tmo": 5 } },
+    { "name": "find-with-empty-text", "valid": true, "input": { "op": "ui_find", "title": "AgentOps UI Fixture", "window_text": "", "match": "exact", "tmo": 5 } },
+    { "name": "window", "valid": true, "input": { "op": "ui_window", "hwnd": "0x0000000000012345", "pid": 4242, "start": "2026-08-27T20:15:30.1234567Z", "tmo": 5 } },
+    { "name": "control-by-class", "valid": true, "input": { "op": "ui_control", "hwnd": "0x0000000000012345", "pid": 4242, "start": "2026-08-27T20:15:30.1234567Z", "control_class": "Edit", "instance": 1, "tmo": 5 } },
+    { "name": "control-by-handle", "valid": true, "input": { "op": "ui_control", "hwnd": "0x0000000000012345", "pid": 4242, "start": "2026-08-27T20:15:30.1234567Z", "ctrl": "0x0000000000012350", "tmo": 5 } },
+    { "name": "activate", "valid": true, "input": { "op": "ui_activate", "hwnd": "0x0000000000012345", "pid": 4242, "start": "2026-08-27T20:15:30.1234567Z", "tmo": 5 } },
+    { "name": "move", "valid": true, "input": { "op": "ui_move", "hwnd": "0x0000000000012345", "pid": 4242, "start": "2026-08-27T20:15:30.1234567Z", "x": 120, "y": 80, "width": 800, "height": 600, "tmo": 5 } },
+    { "name": "focus", "valid": true, "input": { "op": "ui_focus", "hwnd": "0x0000000000012345", "pid": 4242, "start": "2026-08-27T20:15:30.1234567Z", "ctrl": "0x0000000000012350", "tmo": 5 } },
+    { "name": "click", "valid": true, "input": { "op": "ui_click", "hwnd": "0x0000000000012345", "pid": 4242, "start": "2026-08-27T20:15:30.1234567Z", "ctrl": "0x0000000000012350", "button": "left", "count": 1, "tmo": 5 } },
+    { "name": "set-text-ephemeral", "valid": true, "ephemeralFields": ["text"], "input": { "op": "ui_set_text", "hwnd": "0x0000000000012345", "pid": 4242, "start": "2026-08-27T20:15:30.1234567Z", "ctrl": "0x0000000000012350", "tmo": 5, "text": "Fixture value" } },
+    { "name": "capture-window", "valid": true, "input": { "op": "ui_capture", "hwnd": "0x0000000000012345", "pid": 4242, "start": "2026-08-27T20:15:30.1234567Z", "dst": "captures/window.png", "ws": "project", "fmt": "png", "tmo": 5 } },
+    { "name": "stale-identity-shape", "valid": true, "expectedRuntimeError": "stale_target", "input": { "op": "ui_activate", "hwnd": "0x0000000000012345", "pid": 4242, "start": "2020-01-01T00:00:00.0000000Z", "tmo": 5 } },
+    { "name": "denied-global-send", "valid": false, "expectedValidationError": "invalid", "input": { "op": "ui_send", "text": "not permitted" } }
+  ]
+}

@@ -1,0 +1,11 @@
+Pegasus AgentOps third-party notices
+
+AutoIt / AutoItX 3.3.18.0
+Copyright Jonathan Bennett and the AutoIt Team.
+https://www.autoitscript.com/site/autoit/
+
+Pegasus AgentOps redistributes the unchanged AutoItX managed wrapper and x86
+and x64 native libraries for registration-free, signed-in-user UI automation.
+The AutoIt end-user license agreement is installed at
+licenses\AutoIt-EULA.txt. AutoIt and AutoItX names and trademarks remain the
+property of their respective owners.

@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pegasus.local/schemas/cortex/cortex-offline-journal-retention-plan.v1.schema.json",
+  "title": "Pegasus Cortex offline journal retention plan v1",
+  "description": "Read-only evidence listing only durably reconciled spool candidates. This contract grants no delete, quarantine, or legacy-source mutation authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "contractId", "canonicalization", "planId", "journalId", "storeId",
+    "projectId", "reconciledBefore", "plannedAt", "candidates", "quarantinedArtifacts",
+    "quarantineDisposition", "applySupported", "sourceMutationAllowed",
+    "operatorApprovalRequired", "planHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "pegasus.cortex.offline-journal-retention-plan/1.0" },
+    "canonicalization": { "const": "pegasus-canonical-json-v1" },
+    "planId": { "$ref": "#/$defs/identifier" },
+    "journalId": { "$ref": "#/$defs/identifier" },
+    "storeId": { "$ref": "#/$defs/identifier" },
+    "projectId": { "$ref": "#/$defs/identifier" },
+    "reconciledBefore": { "$ref": "#/$defs/utcDateTime" },
+    "plannedAt": { "$ref": "#/$defs/utcDateTime" },
+    "candidates": { "type": "array", "maxItems": 1024, "items": { "$ref": "#/$defs/candidate" } },
+    "quarantinedArtifacts": { "type": "integer", "minimum": 0, "maximum": 200000 },
+    "quarantineDisposition": { "const": "operator_review_only" },
+    "applySupported": { "const": false },
+    "sourceMutationAllowed": { "const": false },
+    "operatorApprovalRequired": { "const": true },
+    "planHash": { "$ref": "#/$defs/hash" }
+  },
+  "$defs": {
+    "identifier": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" },
+    "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "utcDateTime": { "type": "string", "format": "date-time", "pattern": "(?:Z|\\+00:00)$" },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entryId", "sequence", "createdAt", "entrySha256", "receiptId"],
+      "properties": {
+        "entryId": { "$ref": "#/$defs/identifier" },
+        "sequence": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "createdAt": { "$ref": "#/$defs/utcDateTime" },
+        "entrySha256": { "$ref": "#/$defs/hash" },
+        "receiptId": { "$ref": "#/$defs/identifier" }
+      }
+    }
+  }
+}

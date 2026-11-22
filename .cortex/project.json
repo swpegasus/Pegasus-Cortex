@@ -1,0 +1,1 @@
+{"schema":"pegasus.cortex.file-project/2.0","projectId":"pegasus-cortex","writeNamespace":"project.pegasus-cortex","readNamespaces":["project.pegasus-cortex","knowledge.shared"],"hotMaximumUtf8Bytes":4096,"chunkMaximumRecords":32,"chunkMaximumUtf8Bytes":65536}

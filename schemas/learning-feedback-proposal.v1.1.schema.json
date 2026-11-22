@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pegasus.local/schemas/cortex/learning-feedback-proposal.v1.1.schema.json",
+  "title": "Pegasus Cortex Learning Feedback Proposal v1.1",
+  "description": "A backward-compatible bounded learning-feedback proposal with optional searchable taxonomy, keywords, and product/component applicability metadata. It remains screened non-executable untrusted data and is not publication, export, or training authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "contractId", "canonicalization", "proposalId", "tenantId", "namespace",
+    "feedbackKind", "source", "summary", "payload", "intendedUses", "evidence", "screening",
+    "reviewState", "contentTreatment", "executable", "createdAt", "proposalHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "pegasus.cortex.learning-feedback-proposal/1.1" },
+    "canonicalization": { "const": "pegasus-canonical-json-v1" },
+    "proposalId": { "$ref": "#/$defs/identifier" },
+    "tenantId": { "$ref": "#/$defs/identifier" },
+    "namespace": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "feedbackKind": { "enum": ["correction", "failure", "preference", "quality", "regression", "safety", "success"] },
+    "source": { "$ref": "#/$defs/source" },
+    "summary": { "type": "string", "minLength": 1, "maxLength": 4096 },
+    "payload": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 32,
+      "propertyNames": { "type": "string", "minLength": 1, "maxLength": 128 },
+      "additionalProperties": { "type": "string", "maxLength": 65536 }
+    },
+    "intendedUses": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": { "enum": ["distillation", "evaluation", "fine_tuning", "retrieval"] }
+    },
+    "evidence": {
+      "type": "array",
+      "maxItems": 32,
+      "items": { "$ref": "#/$defs/evidence" }
+    },
+    "screening": { "$ref": "#/$defs/screening" },
+    "reviewState": { "const": "pending" },
+    "contentTreatment": { "const": "untrusted_data" },
+    "executable": { "const": false },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "proposalHash": { "$ref": "#/$defs/hash" },
+    "taxonomy": { "$ref": "#/$defs/identifier" },
+    "keywords": {
+      "type": "array",
+      "maxItems": 16,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 128 }
+    },
+    "applicability": {
+      "type": "array",
+      "maxItems": 16,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/applicability" }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "applicability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["productId", "componentId"],
+      "properties": {
+        "productId": { "$ref": "#/$defs/identifier" },
+        "componentId": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authorityId", "subjectId", "serviceId", "agentId", "instanceId", "machineId", "operationId",
+        "taskId", "correlationId", "recordId", "revisionId", "contentHash", "occurredAt"
+      ],
+      "properties": {
+        "authorityId": { "$ref": "#/$defs/identifier" },
+        "subjectId": { "$ref": "#/$defs/identifier" },
+        "serviceId": { "$ref": "#/$defs/identifier" },
+        "agentId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "instanceId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "machineId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "operationId": { "$ref": "#/$defs/identifier" },
+        "taskId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "correlationId": { "$ref": "#/$defs/identifier" },
+        "recordId": { "$ref": "#/$defs/identifier" },
+        "revisionId": { "$ref": "#/$defs/identifier" },
+        "contentHash": { "$ref": "#/$defs/hash" },
+        "occurredAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidenceId", "reference", "mediaType", "sha256", "verification"],
+      "properties": {
+        "evidenceId": { "$ref": "#/$defs/identifier" },
+        "reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^(artifact|record|revision|hash)://"
+        },
+        "mediaType": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "sha256": { "$ref": "#/$defs/hash" },
+        "verification": { "const": "verified" }
+      }
+    },
+    "screening": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "redactionDecision", "privacyReview", "secretReview", "reasoningReview", "providerCredentialReview",
+        "usageRights", "policyRevision", "authorityId", "decisionId", "decisionHash", "decidedAt"
+      ],
+      "properties": {
+        "redactionDecision": { "const": "sanitized" },
+        "privacyReview": { "const": "passed" },
+        "secretReview": { "const": "passed" },
+        "reasoningReview": { "const": "passed" },
+        "providerCredentialReview": { "const": "passed" },
+        "usageRights": { "enum": ["retrieval_only", "evaluation", "training_and_evaluation"] },
+        "policyRevision": { "type": "integer", "minimum": 1 },
+        "authorityId": { "$ref": "#/$defs/identifier" },
+        "decisionId": { "$ref": "#/$defs/identifier" },
+        "decisionHash": { "$ref": "#/$defs/hash" },
+        "decidedAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

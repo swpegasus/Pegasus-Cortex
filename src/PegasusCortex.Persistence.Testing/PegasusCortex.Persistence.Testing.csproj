@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <Title>Pegasus Cortex Persistence Testing</Title>
+    <Description>Deterministic non-production repository implementations for Cortex application conformance tests.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PegasusCortex.Core\PegasusCortex.Core.csproj" />
+  </ItemGroup>
+</Project>

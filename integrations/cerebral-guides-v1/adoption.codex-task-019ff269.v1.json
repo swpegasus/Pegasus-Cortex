@@ -1,0 +1,37 @@
+{
+  "schema": "pegasus.cortex.behavior-pack-adoption/1.0",
+  "packId": "pegasus-cerebral-guides-v1",
+  "packRevision": 9,
+  "priorSourceId": "codex-task-019ff269-3c07-7082-87cf-d9325d7e24ba",
+  "priorSource": "user",
+  "records": [
+    {
+      "recordId": "Knowledge.Cerebral.Guide",
+      "expectedRevision": 1
+    },
+    {
+      "recordId": "Knowledge.Cerebral.Guide.ToolRouting",
+      "expectedRevision": 1
+    },
+    {
+      "recordId": "Knowledge.Cerebral.Guide.FilesImagesArchives",
+      "expectedRevision": 2
+    },
+    {
+      "recordId": "Knowledge.Cerebral.Guide.ModelCapabilitySelection",
+      "expectedRevision": 1
+    },
+    {
+      "recordId": "Knowledge.Cerebral.Guide.RecoveryCompaction",
+      "expectedRevision": 1
+    },
+    {
+      "recordId": "Knowledge.Cerebral.Guide.PluginAuthoring",
+      "expectedRevision": 1
+    },
+    {
+      "recordId": "Knowledge.Cerebral.Guide.PersistentEnvironmentsSessions",
+      "expectedRevision": 1
+    }
+  ]
+}

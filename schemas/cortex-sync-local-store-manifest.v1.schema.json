@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pegasus.local/schemas/cortex/cortex-sync-local-store-manifest.v1.schema.json",
+  "title": "Pegasus Cortex local store manifest v1",
+  "description": "Stable local identity and contained layout. Queue progress is derived from immutable bundles and receipts, not this manifest.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "contractId", "canonicalization", "storeId", "storeEpoch",
+    "projectId", "projectDisplayName", "createdAt", "stateRootRelativePath",
+    "bundleDirectory", "receiptDirectory", "quarantineDirectory",
+    "payloadProtectionRequired", "sourceKind", "sourceMigrationId",
+    "contentTreatment", "executable", "extensions", "manifestHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "pegasus.cortex.local-store-manifest/1.0" },
+    "canonicalization": { "const": "pegasus-canonical-json-v1" },
+    "storeId": { "$ref": "#/$defs/identifier" },
+    "storeEpoch": { "$ref": "#/$defs/identifier" },
+    "projectId": { "$ref": "#/$defs/identifier" },
+    "projectDisplayName": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "createdAt": { "$ref": "#/$defs/utcDateTime" },
+    "stateRootRelativePath": { "$ref": "#/$defs/relativePath" },
+    "bundleDirectory": { "$ref": "#/$defs/relativePath" },
+    "receiptDirectory": { "$ref": "#/$defs/relativePath" },
+    "quarantineDirectory": { "$ref": "#/$defs/relativePath" },
+    "payloadProtectionRequired": { "const": true },
+    "sourceKind": { "enum": ["new", "legacy_copy"] },
+    "sourceMigrationId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+    "contentTreatment": { "const": "untrusted_data" },
+    "executable": { "const": false },
+    "extensions": { "$ref": "#/$defs/extensions" },
+    "manifestHash": { "$ref": "#/$defs/hash" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "sourceKind": { "const": "new" } }, "required": ["sourceKind"] },
+      "then": { "properties": { "sourceMigrationId": { "type": "null" } } },
+      "else": { "properties": { "sourceMigrationId": { "$ref": "#/$defs/identifier" } } }
+    }
+  ],
+  "$defs": {
+    "identifier": {
+      "type": "string", "minLength": 1, "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "utcDateTime": { "type": "string", "format": "date-time", "pattern": "(?:Z|\\+00:00)$" },
+    "relativePath": {
+      "type": "string", "minLength": 1, "maxLength": 512,
+      "pattern": "^(?![\\\\/])(?![A-Za-z]:)(?!.*(?:^|[\\\\/])\\.{1,2}(?:[\\\\/]|$))[^:\u0000-\u001F\u007F]+$"
+    },
+    "contractId": {
+      "type": "string", "minLength": 1, "maxLength": 256,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*/[0-9]+\\.[0-9]+$"
+    },
+    "extension": {
+      "type": "object", "additionalProperties": false,
+      "required": ["contractId", "required", "payloadBase64Url", "payloadBytes", "payloadSha256"],
+      "properties": {
+        "contractId": { "$ref": "#/$defs/contractId" },
+        "required": { "type": "boolean" },
+        "payloadBase64Url": { "type": "string", "minLength": 2, "maxLength": 21848, "pattern": "^[A-Za-z0-9_-]+$" },
+        "payloadBytes": { "type": "integer", "minimum": 1, "maximum": 16384 },
+        "payloadSha256": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "extensions": {
+      "type": "array", "maxItems": 16, "items": { "$ref": "#/$defs/extension" }
+    }
+  }
+}

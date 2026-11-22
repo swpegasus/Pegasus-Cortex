@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pegasus.local/schemas/cortex/cortex-sync-gateway.v1.schema.json",
+  "title": "Pegasus Cortex authenticated reconnect gateway v1",
+  "description": "Closed non-MCP wire contracts for exact project/store head reads and current-recovery submits. Tenant and namespace authority remain server-derived.",
+  "oneOf": [
+    { "$ref": "#/$defs/headRequest" },
+    { "$ref": "#/$defs/head" },
+    { "$ref": "#/$defs/submitRequest" },
+    { "$ref": "#/$defs/submitResult" }
+  ],
+  "$defs": {
+    "identifier": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" },
+    "projectLinkId": { "type": "string", "pattern": "^plink_[0-9a-f]{64}$" },
+    "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "nonZeroHash": { "type": "string", "pattern": "^(?!0{64}$)[0-9a-f]{64}$" },
+    "contextSetId": { "type": "string", "pattern": "^ctx_[0-9a-f]{64}$" },
+    "utcDateTime": { "type": "string", "format": "date-time", "pattern": "\\+00:00$" },
+    "headRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "contractId", "canonicalization", "projectLinkId", "storeId", "storeEpoch", "projectId"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "contractId": { "const": "pegasus.cortex.sync-gateway-head-request/1.0" },
+        "canonicalization": { "const": "pegasus-canonical-json-v1" },
+        "projectLinkId": { "$ref": "#/$defs/projectLinkId" },
+        "storeId": { "$ref": "#/$defs/identifier" },
+        "storeEpoch": { "$ref": "#/$defs/identifier" },
+        "projectId": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "existingHead": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion", "contractId", "canonicalization", "exists", "projectLinkId", "storeId",
+        "storeEpoch", "projectId", "highWaterSequence", "lastEventId", "lastEventHash",
+        "lastBundleId", "lastBundleHash", "authorityHash", "retainedPayloadHash",
+        "retainedSnapshotRevision", "retainedSnapshotHash", "contextSetId", "serverRevision",
+        "observedAt", "headHash"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "contractId": { "const": "pegasus.cortex.sync-gateway-head/1.0" },
+        "canonicalization": { "const": "pegasus-canonical-json-v1" },
+        "exists": { "const": true },
+        "projectLinkId": { "$ref": "#/$defs/projectLinkId" },
+        "storeId": { "$ref": "#/$defs/identifier" },
+        "storeEpoch": { "$ref": "#/$defs/identifier" },
+        "projectId": { "$ref": "#/$defs/identifier" },
+        "highWaterSequence": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "lastEventId": { "$ref": "#/$defs/identifier" },
+        "lastEventHash": { "$ref": "#/$defs/nonZeroHash" },
+        "lastBundleId": { "$ref": "#/$defs/identifier" },
+        "lastBundleHash": { "$ref": "#/$defs/nonZeroHash" },
+        "authorityHash": { "$ref": "#/$defs/hash" },
+        "retainedPayloadHash": { "$ref": "#/$defs/hash" },
+        "retainedSnapshotRevision": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "retainedSnapshotHash": { "$ref": "#/$defs/hash" },
+        "contextSetId": { "$ref": "#/$defs/contextSetId" },
+        "serverRevision": { "$ref": "#/$defs/identifier" },
+        "observedAt": { "$ref": "#/$defs/utcDateTime" },
+        "headHash": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "missingHead": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion", "contractId", "canonicalization", "exists", "projectLinkId", "storeId",
+        "storeEpoch", "projectId", "highWaterSequence", "lastEventId", "lastEventHash",
+        "lastBundleId", "lastBundleHash", "authorityHash", "retainedPayloadHash",
+        "retainedSnapshotRevision", "retainedSnapshotHash", "contextSetId", "serverRevision",
+        "observedAt", "headHash"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "contractId": { "const": "pegasus.cortex.sync-gateway-head/1.0" },
+        "canonicalization": { "const": "pegasus-canonical-json-v1" },
+        "exists": { "const": false },
+        "projectLinkId": { "$ref": "#/$defs/projectLinkId" },
+        "storeId": { "$ref": "#/$defs/identifier" },
+        "storeEpoch": { "$ref": "#/$defs/identifier" },
+        "projectId": { "$ref": "#/$defs/identifier" },
+        "highWaterSequence": { "const": 0 },
+        "lastEventId": { "type": "null" },
+        "lastEventHash": { "const": "0000000000000000000000000000000000000000000000000000000000000000" },
+        "lastBundleId": { "type": "null" },
+        "lastBundleHash": { "const": "0000000000000000000000000000000000000000000000000000000000000000" },
+        "authorityHash": { "type": "null" },
+        "retainedPayloadHash": { "type": "null" },
+        "retainedSnapshotRevision": { "const": 0 },
+        "retainedSnapshotHash": { "type": "null" },
+        "contextSetId": { "type": "null" },
+        "serverRevision": { "type": "null" },
+        "observedAt": { "$ref": "#/$defs/utcDateTime" },
+        "headHash": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "head": {
+      "oneOf": [
+        { "$ref": "#/$defs/existingHead" },
+        { "$ref": "#/$defs/missingHead" }
+      ]
+    },
+    "submitRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "contractId", "canonicalization", "projectLinkId", "bundle", "requestHash"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "contractId": { "const": "pegasus.cortex.sync-gateway-submit-request/1.0" },
+        "canonicalization": { "const": "pegasus-canonical-json-v1" },
+        "projectLinkId": { "$ref": "#/$defs/projectLinkId" },
+        "bundle": { "$ref": "cortex-sync-offline-bundle.v1.schema.json" },
+        "requestHash": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "submitResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "contractId", "canonicalization", "receipt", "head", "resultHash"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "contractId": { "const": "pegasus.cortex.sync-gateway-submit-result/1.0" },
+        "canonicalization": { "const": "pegasus-canonical-json-v1" },
+        "receipt": { "$ref": "cortex-sync-receipt.v1.schema.json" },
+        "head": { "$ref": "#/$defs/existingHead" },
+        "resultHash": { "$ref": "#/$defs/hash" }
+      }
+    }
+  }
+}

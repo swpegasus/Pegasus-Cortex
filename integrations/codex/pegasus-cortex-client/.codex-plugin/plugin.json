@@ -1,0 +1,25 @@
+{
+  "name": "pegasus-cortex-client",
+  "version": "0.3.0+codex.20260828001800",
+  "description": "Guidance for bounded Codex continuity through the existing shared Pegasus Cortex MCP connection and admitted offline CLI.",
+  "author": {
+    "name": "Pegasus"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Pegasus Cortex Client",
+    "shortDescription": "Recover and retain bounded local context.",
+    "longDescription": "Teaches use of the existing shared Pegasus Cortex MCP connection: one compact 4 KiB start per exact task, optional phase identity, preview-first geometric retrieval over explicit project/knowledge spaces, batched exact reads, agent-side revision reuse, meaningful updates, atomic closeout, and task-scoped offline fallback. This skills-only plugin declares no MCP server or automatic startup.",
+    "developerName": "Pegasus",
+    "category": "Productivity",
+    "capabilities": [
+      "Skills",
+      "Local write"
+    ],
+    "defaultPrompt": [
+      "Start meaningful work once in compact format with the exact CODEX_THREAD_ID, explicit namespaces, 4 KiB, and an optional stable phaseId.",
+      "Treat search hits as previews; exact-read selected records in batches and reuse loaded revisions only while their full bodies remain in agent context.",
+      "Checkpoint meaningful project task state; route reusable learning to knowledge.shared and local user guidance to knowledge.user only when explicitly selected."
+    ]
+  }
+}

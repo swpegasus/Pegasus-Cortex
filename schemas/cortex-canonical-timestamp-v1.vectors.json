@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "contractId": "pegasus.cortex.canonical-timestamp-vectors/1.0",
+  "vectors": [
+    {
+      "id": "utc-z-to-explicit-offset",
+      "inputJson": "{\"schemaVersion\":1,\"revision\":1,\"contractId\":\"pegasus.cortex.canonical-timestamp-vector/1.0\",\"capturedAt\":\"2026-08-02T12:34:56.123456Z\"}",
+      "canonicalJson": "{\"capturedAt\":\"2026-08-02T12:34:56.123456+00:00\",\"contractId\":\"pegasus.cortex.canonical-timestamp-vector/1.0\",\"revision\":1,\"schemaVersion\":1}",
+      "canonicalUtf8Base64": "eyJjYXB0dXJlZEF0IjoiMjAyNi0wOC0wMlQxMjozNDo1Ni4xMjM0NTYrMDA6MDAiLCJjb250cmFjdElkIjoicGVnYXN1cy5jb3J0ZXguY2Fub25pY2FsLXRpbWVzdGFtcC12ZWN0b3IvMS4wIiwicmV2aXNpb24iOjEsInNjaGVtYVZlcnNpb24iOjF9",
+      "sha256": "438f6ab3abe8695b0e9d1538af839c7872c95462fdf3521d7e9bef3926d03c6f"
+    }
+  ]
+}

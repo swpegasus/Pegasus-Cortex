@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\PegasusCortex.Core\PegasusCortex.Core.csproj" />
+    <ProjectReference Include="..\..\src\PegasusCortex.Persistence.Testing\PegasusCortex.Persistence.Testing.csproj" />
+  </ItemGroup>
+</Project>

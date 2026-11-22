@@ -1,0 +1,66 @@
+Portable passive icon catalog contract pegasus.asset-pack/1
+
+UTF-8 INI catalog.ini, no JSON catalog, at most 65536 bytes; duplicate sections/properties
+and unknown fields reject. Comments start with ;. Maximum 64 icons. Required header:
+
+[pack]
+contract=pegasus.asset-pack/1
+id=<lowercase pack id: leading letter, then letters/digits/dot/hyphen, at most 63 chars>
+version=<System.Version-compatible version>
+namespace=<id followed by a dot>
+license=MIT
+license-file=Licensing/<actual copyright and MIT permission text>.txt
+notice-file=Licensing/<actual accompanying publisher notices>.txt
+publisher=<bounded descriptive publisher>
+upstream=<credential-free HTTPS publisher repository URL>
+revision=<bounded exact upstream revision>
+viewport=20
+
+Required icon section, using a stable namespace-qualified identity:
+
+[<id>.<immutable semantic key>]
+alias=<unique bounded compatibility alias; cannot collide with any exact icon key>
+label=<nonempty human label, max 128 chars>
+description=<nonempty accessible meaning, max 512 chars>
+file=svg/<contained source filename>.svg
+sha256=<exact lowercase 64-hex SHA-256 of source bytes>
+text=<plain Unicode text alternative, at most 16 UTF-16 chars>
+source=<credential-free HTTPS exact upstream source URL>
+
+Identities use lowercase ASCII letters/digits/dots/hyphens, maximum 127 chars and the
+declared namespace. Key/alias comparisons are ordinal case-sensitive. Known artwork
+IDs never acquire different meanings in an update; version incompatible replacements
+separately and retain aliases only when their meaning remains compatible.
+
+Contained paths use forward slashes, no empty/dot/dot-dot segments, backslash, colon,
+absolute forms or link/reparse targets. Asset SVGs are at most 131072 bytes. Licensing
+documents are nonempty strict UTF-8 text at most 65536 bytes. Metadata disallows controls.
+A license tag/file is evidence to inspect, not a legal authorization inferred by validation.
+
+Passive SVG admission owner: AssetPack.cs in the Chat Icons plugin/standalone PackTool.
+XML DTDs, external entities, processing instructions, foreign namespaces/elements and
+unsupported attributes reject. Allowed SVG elements: svg, path, g, title, desc.
+Allowed non-namespace attributes: width, height, viewBox, fill, fill-rule, clip-rule, d, id.
+Fill accepts only none, currentColor or literal #RGB/#RGBA/#RRGGBB/#RRGGBBAA colors.
+Fill/clip rules accept only nonzero/evenodd. No CSS escapes, paint servers, named colors,
+href, event handlers, scripts, image, foreignObject, style, animation or URL fills.
+A path is required. XML parsing is bounded and has no resolver. No asset is executed.
+This is intentionally a small static icon subset, not a general SVG or image decoder.
+
+Rendering owner: consumers render validated SVG with their own documented passive renderer.
+The Cerebral adapter does not load an SVG renderer; its eleven known previews and message
+decorations reuse DesktopIcons' bounded geometry and live host brush. Unknown aliases get a
+readable geometric preview fallback and keep their real portable SVG/file reference.
+Raster/PNG formats, external fetch and arbitrary engine/plugin templates are outside v1.
+
+catalogSha256 = SHA-256 of the exact UTF-8 catalog bytes.
+packSha256 = SHA-256 of UTF-8 canonical records sorted by ordinal contained relative path:
+<relative-path><NUL><lowercase file SHA-256><LF>
+Include catalog.ini, the two header-declared Licensing files and each unique SVG path.
+Extra docs/examples are outside this core content identity. Installer/container hashes
+may additionally bind all shipped files. Roots and modification times are excluded.
+
+Reference tuple: pack id, version, exact key, relative target, asset SHA-256,
+catalog SHA-256, pack SHA-256. It is metadata, not a URL, Cortex asset ID, or access grant.
+Optional Cortex metadata adds real namespace/knowledge recordId/revision plus the actual
+granted external root/path. Preserve the portable relative mapping on copy/export.

@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pegasus.local/schemas/cortex/cortex-sync-legacy-migration-record.v1.schema.json",
+  "title": "Pegasus Cortex legacy migration record revision v1",
+  "description": "Closed data-only record revision with stable identity, namespace/provenance hints, explicit supersession, and tombstone semantics.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "contractId", "canonicalization", "recordId", "revisionId",
+    "namespaceHint", "recordKind", "sourceRootId", "sourceManifestHash", "sourceInventoryHash",
+    "sourceFileIndex", "sourceRelativePath", "sourceBytes",
+    "sourceSha256", "supersedesRevisionId", "tombstone", "chunkIndex", "chunkCount",
+    "chunkOffset", "contentBase64Url", "contentBytes", "contentSha256",
+    "contentTreatment", "executable"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "pegasus.cortex.legacy-migration-record/1.0" },
+    "canonicalization": { "const": "pegasus-canonical-json-v1" },
+    "recordId": { "$ref": "#/$defs/identifier" },
+    "revisionId": { "$ref": "#/$defs/identifier" },
+    "namespaceHint": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" },
+    "recordKind": { "$ref": "#/$defs/identifier" },
+    "sourceRootId": { "$ref": "#/$defs/identifier" },
+    "sourceManifestHash": { "$ref": "#/$defs/hash" },
+    "sourceInventoryHash": { "$ref": "#/$defs/hash" },
+    "sourceFileIndex": { "type": "integer", "minimum": 0, "maximum": 4095 },
+    "sourceRelativePath": { "$ref": "#/$defs/relativePath" },
+    "sourceBytes": { "type": "integer", "minimum": 0, "maximum": 16777216 },
+    "sourceSha256": { "$ref": "#/$defs/hash" },
+    "supersedesRevisionId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+    "tombstone": { "type": "boolean" },
+    "chunkIndex": { "type": "integer", "minimum": 0, "maximum": 64 },
+    "chunkCount": { "type": "integer", "minimum": 0, "maximum": 64 },
+    "chunkOffset": { "type": "integer", "minimum": 0, "maximum": 16777216 },
+    "contentBase64Url": { "type": "string", "minLength": 0, "maxLength": 512000, "pattern": "^[A-Za-z0-9_-]*$" },
+    "contentBytes": { "type": "integer", "minimum": 0, "maximum": 384000 },
+    "contentSha256": { "$ref": "#/$defs/hash" },
+    "contentTreatment": { "const": "untrusted_data" },
+    "executable": { "const": false }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "tombstone": { "const": true } }, "required": ["tombstone"] },
+      "then": {
+        "properties": {
+          "sourceBytes": { "const": 0 },
+          "supersedesRevisionId": { "$ref": "#/$defs/identifier" },
+          "chunkIndex": { "const": 0 },
+          "chunkCount": { "const": 0 },
+          "chunkOffset": { "const": 0 },
+          "contentBase64Url": { "const": "" },
+          "contentBytes": { "const": 0 },
+          "contentSha256": { "const": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" }
+        }
+      },
+      "else": {
+        "properties": {
+          "chunkIndex": { "type": "integer", "minimum": 1, "maximum": 64 },
+          "chunkCount": { "type": "integer", "minimum": 1, "maximum": 64 }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "identifier": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" },
+    "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "relativePath": {
+      "type": "string", "minLength": 1, "maxLength": 512,
+      "pattern": "^(?![\\\\/])(?![A-Za-z]:)(?!.*(?:^|[\\\\/])\\.{1,2}(?:[\\\\/]|$))[^:\u0000-\u001F\u007F]+$"
+    }
+  }
+}

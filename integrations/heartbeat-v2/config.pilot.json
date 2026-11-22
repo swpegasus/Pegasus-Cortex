@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 2,
+  "heartbeatId": "pegasus-coordination-heartbeat-v2-local",
+  "enabled": false,
+  "mode": "report-only",
+  "gates": {
+    "allowStateWrites": false,
+    "allowProductMutation": false,
+    "allowModelDispatch": false,
+    "allowWorkerDispatch": false,
+    "inheritParentTranscript": false
+  },
+  "isolation": {
+    "profile": "standalone-local",
+    "allowEnvironmentConfiguration": false,
+    "allowNetwork": false,
+    "integratedAdapters": []
+  },
+  "limits": {
+    "maxAttempts": 3,
+    "maxConcurrentRuns": 1,
+    "leaseSeconds": 90,
+    "coalesceWindowSeconds": 300,
+    "maximumDeltas": 64,
+    "maximumCoalescedEvents": 16,
+    "maximumReportBytes": 8192
+  },
+  "retry": {
+    "baseSeconds": [
+      60,
+      300,
+      900
+    ],
+    "jitterMaxSeconds": [
+      0,
+      0,
+      0
+    ]
+  }
+}

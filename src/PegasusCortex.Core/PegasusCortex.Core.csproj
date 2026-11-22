@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <PackageId>Pegasus.Cortex.Core</PackageId>
+    <Title>Pegasus Cortex Core</Title>
+    <Description>Namespace-authorized Pegasus Cortex application, outcome-ingestion, and secure transport boundaries.</Description>
+    <Authors>Pegasus</Authors>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageReadmeFile>CHECKPOINT_1.2026.07.14.18.28.A.md</PackageReadmeFile>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)..\..\artifacts\packages\$(PegasusReleaseVersion)</PackageOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Pegasus.Shared" Version="[1.20260711.421-a]" />
+    <ProjectReference Include="..\PegasusCortex.Contracts\PegasusCortex.Contracts.csproj" />
+    <None Include="..\..\docs\CHECKPOINT_1.2026.07.14.18.28.A.md"
+          Pack="true"
+          PackagePath="\" />
+    <None Include="..\..\docs\CORTEX_SYNC_AND_LEGACY_MIGRATION_V1.md"
+          Pack="true"
+          PackagePath="\" />
+    <None Include="..\..\docs\SHARED_421_ALIGNMENT.md"
+          Pack="true"
+          PackagePath="\" />
+    <None Include="..\..\docs\OUTCOME_AND_TRANSPORT_CONTRACTS.md"
+          Pack="true"
+          PackagePath="\" />
+    <None Include="..\..\schemas\cortex-project-brief.v1.schema.json"
+          Pack="true"
+          PackagePath="schemas\" />
+  </ItemGroup>
+</Project>

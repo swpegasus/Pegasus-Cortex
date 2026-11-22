@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pegasus.local/schemas/cortex/agent-work-packet-handoff-receipt.v1.schema.json",
+  "title": "Pegasus passive agent work-packet handoff receipt v1",
+  "description": "Producer-authored assertion that exact packet bytes were offered to an intended owner. Its hash proves byte linkage, not delivery or observation, and grants no authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "contractId", "canonicalization", "receiptId", "workId",
+    "idempotencyKey", "packetStage", "packetRevision", "packetHash", "fromOwner",
+    "intendedOwner", "handedOffAt", "packetExpiresAt", "contentTreatment",
+    "executable", "grantsSchedulingAuthority", "grantsTaskClaim", "grantsAuthority", "receiptHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "pegasus.agent-work-packet-handoff-receipt/1.0" },
+    "canonicalization": { "const": "pegasus-canonical-json-v1" },
+    "receiptId": { "$ref": "#/$defs/identifier" },
+    "workId": { "$ref": "#/$defs/identifier" },
+    "idempotencyKey": { "$ref": "#/$defs/identifier" },
+    "packetStage": { "enum": ["start", "continue", "closeout"] },
+    "packetRevision": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+    "packetHash": { "$ref": "#/$defs/hash" },
+    "fromOwner": { "$ref": "#/$defs/owner" },
+    "intendedOwner": { "$ref": "#/$defs/owner" },
+    "handedOffAt": { "$ref": "#/$defs/utcDateTime" },
+    "packetExpiresAt": { "$ref": "#/$defs/utcDateTime" },
+    "contentTreatment": { "const": "untrusted_data" },
+    "executable": { "const": false },
+    "grantsSchedulingAuthority": { "const": false },
+    "grantsTaskClaim": { "const": false },
+    "grantsAuthority": { "const": false },
+    "receiptHash": {
+      "$ref": "#/$defs/hash",
+      "description": "SHA-256 of canonical JSON for this receipt with receiptHash replaced by 64 lowercase zero characters."
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string", "minLength": 1, "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "utcDateTime": {
+      "type": "string", "format": "date-time", "pattern": "(?:Z|\\+00:00)$"
+    },
+    "owner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["authorityId", "subjectId", "serviceId"],
+      "properties": {
+        "authorityId": { "$ref": "#/$defs/identifier" },
+        "subjectId": { "$ref": "#/$defs/identifier" },
+        "serviceId": { "$ref": "#/$defs/identifier" }
+      }
+    }
+  }
+}

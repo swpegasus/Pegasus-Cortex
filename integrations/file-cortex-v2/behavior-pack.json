@@ -1,0 +1,796 @@
+{
+  "schema": "pegasus.cortex.behavior-pack/2.0",
+  "packId": "generalized-programming-tenets",
+  "packRevision": 1,
+  "description": "Portable generalized programming tenets. Content is exact; task and machine history are excluded.",
+  "includesTasks": false,
+  "includesMachineHistory": false,
+  "records": [
+    {
+      "recordId": "tenet.AGENTS",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "AGENTS.md — Programming Tenets Library",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/AGENTS.record.md",
+      "sourceRelativePath": "AGENTS.md"
+    },
+    {
+      "recordId": "tenet.CONTRIBUTING",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Contributing Tenets",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/CONTRIBUTING.record.md",
+      "sourceRelativePath": "CONTRIBUTING.md"
+    },
+    {
+      "recordId": "tenet.core-authority-security-and-integrity",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Authority, Security, and Integrity",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/core/authority-security-and-integrity.record.md",
+      "sourceRelativePath": "core/authority-security-and-integrity.md"
+    },
+    {
+      "recordId": "tenet.core-communication-and-handoff",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Communication and Handoff",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/core/communication-and-handoff.record.md",
+      "sourceRelativePath": "core/communication-and-handoff.md"
+    },
+    {
+      "recordId": "tenet.core-delivery-and-scope",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Delivery, Scope, and Triage",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/core/delivery-and-scope.record.md",
+      "sourceRelativePath": "core/delivery-and-scope.md"
+    },
+    {
+      "recordId": "tenet.core-failures-diagnostics-and-evidence",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Failures, Diagnostics, and Evidence",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/core/failures-diagnostics-and-evidence.record.md",
+      "sourceRelativePath": "core/failures-diagnostics-and-evidence.md"
+    },
+    {
+      "recordId": "tenet.core-modularity-and-reuse",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Modularity and Reuse",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/core/modularity-and-reuse.record.md",
+      "sourceRelativePath": "core/modularity-and-reuse.md"
+    },
+    {
+      "recordId": "tenet.core-verification-and-efficiency",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Verification and Efficiency",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/core/verification-and-efficiency.record.md",
+      "sourceRelativePath": "core/verification-and-efficiency.md"
+    },
+    {
+      "recordId": "tenet.core-workspace-artifacts-and-path-safety",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Workspace, Artifacts, and Path Safety",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/core/workspace-artifacts-and-path-safety.record.md",
+      "sourceRelativePath": "core/workspace-artifacts-and-path-safety.md"
+    },
+    {
+      "recordId": "tenet.disciplines-architecture-and-dependency-direction",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Architecture and Dependency Direction",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/disciplines/architecture-and-dependency-direction.record.md",
+      "sourceRelativePath": "disciplines/architecture-and-dependency-direction.md"
+    },
+    {
+      "recordId": "tenet.disciplines-concurrency-and-resource-lifecycle",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Concurrency and Resource Lifecycle",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/disciplines/concurrency-and-resource-lifecycle.record.md",
+      "sourceRelativePath": "disciplines/concurrency-and-resource-lifecycle.md"
+    },
+    {
+      "recordId": "tenet.disciplines-configuration-and-feature-controls",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Configuration and Feature Controls",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/disciplines/configuration-and-feature-controls.record.md",
+      "sourceRelativePath": "disciplines/configuration-and-feature-controls.md"
+    },
+    {
+      "recordId": "tenet.disciplines-data-persistence-and-migrations",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Data, Persistence, and Migrations",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/disciplines/data-persistence-and-migrations.record.md",
+      "sourceRelativePath": "disciplines/data-persistence-and-migrations.md"
+    },
+    {
+      "recordId": "tenet.disciplines-dependencies-and-supply-chain",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Dependencies and Supply Chain",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/disciplines/dependencies-and-supply-chain.record.md",
+      "sourceRelativePath": "disciplines/dependencies-and-supply-chain.md"
+    },
+    {
+      "recordId": "tenet.disciplines-domain-modeling-types-and-identifiers",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Domain Modeling, Types, and Identifiers",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/disciplines/domain-modeling-types-and-identifiers.record.md",
+      "sourceRelativePath": "disciplines/domain-modeling-types-and-identifiers.md"
+    },
+    {
+      "recordId": "tenet.disciplines-interfaces-contracts-and-serialization",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Interfaces, Contracts, and Serialization",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/disciplines/interfaces-contracts-and-serialization.record.md",
+      "sourceRelativePath": "disciplines/interfaces-contracts-and-serialization.md"
+    },
+    {
+      "recordId": "tenet.disciplines-maintenance-and-documentation",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Maintenance and Documentation",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/disciplines/maintenance-and-documentation.record.md",
+      "sourceRelativePath": "disciplines/maintenance-and-documentation.md"
+    },
+    {
+      "recordId": "tenet.disciplines-networking-distribution-and-messaging",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Networking, Distribution, and Messaging",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/disciplines/networking-distribution-and-messaging.record.md",
+      "sourceRelativePath": "disciplines/networking-distribution-and-messaging.md"
+    },
+    {
+      "recordId": "tenet.disciplines-observability-and-operability",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Observability and Operability",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/disciplines/observability-and-operability.record.md",
+      "sourceRelativePath": "disciplines/observability-and-operability.md"
+    },
+    {
+      "recordId": "tenet.disciplines-performance-capacity-and-caching",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Performance, Capacity, and Caching",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/disciplines/performance-capacity-and-caching.record.md",
+      "sourceRelativePath": "disciplines/performance-capacity-and-caching.md"
+    },
+    {
+      "recordId": "tenet.disciplines-portability-time-and-encoding",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Portability, Time, and Encoding",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/disciplines/portability-time-and-encoding.record.md",
+      "sourceRelativePath": "disciplines/portability-time-and-encoding.md"
+    },
+    {
+      "recordId": "tenet.disciplines-privacy-and-data-lifecycle",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Privacy and Data Lifecycle",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/disciplines/privacy-and-data-lifecycle.record.md",
+      "sourceRelativePath": "disciplines/privacy-and-data-lifecycle.md"
+    },
+    {
+      "recordId": "tenet.disciplines-release-deployment-and-rollback",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Release, Deployment, and Rollback",
+      "tags": [
+        "artifact",
+        "code-signing",
+        "deployment",
+        "generalized",
+        "manifest",
+        "private-key",
+        "programming",
+        "public-trust",
+        "release",
+        "rollback",
+        "supply-chain",
+        "trust-installation"
+      ],
+      "source": "imported",
+      "contentPath": "records/disciplines/release-deployment-and-rollback.record.md",
+      "sourceRelativePath": "disciplines/release-deployment-and-rollback.md"
+    },
+    {
+      "recordId": "tenet.disciplines-reliability-backup-and-recovery",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Reliability, Backup, and Recovery",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/disciplines/reliability-backup-and-recovery.record.md",
+      "sourceRelativePath": "disciplines/reliability-backup-and-recovery.md"
+    },
+    {
+      "recordId": "tenet.disciplines-requirements-and-decisions",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Requirements and Decisions",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/disciplines/requirements-and-decisions.record.md",
+      "sourceRelativePath": "disciplines/requirements-and-decisions.md"
+    },
+    {
+      "recordId": "tenet.disciplines-security-engineering",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Security Engineering",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/disciplines/security-engineering.record.md",
+      "sourceRelativePath": "disciplines/security-engineering.md"
+    },
+    {
+      "recordId": "tenet.disciplines-tenancy-and-isolation",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Tenancy and Isolation",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/disciplines/tenancy-and-isolation.record.md",
+      "sourceRelativePath": "disciplines/tenancy-and-isolation.md"
+    },
+    {
+      "recordId": "tenet.disciplines-user-facing-quality-and-accessibility",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "User-Facing Quality and Accessibility",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/disciplines/user-facing-quality-and-accessibility.record.md",
+      "sourceRelativePath": "disciplines/user-facing-quality-and-accessibility.md"
+    },
+    {
+      "recordId": "tenet.disciplines-version-control-and-change-history",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Version Control and Change History",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/disciplines/version-control-and-change-history.record.md",
+      "sourceRelativePath": "disciplines/version-control-and-change-history.md"
+    },
+    {
+      "recordId": "tenet.README",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Programming Tenets",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/README.record.md",
+      "sourceRelativePath": "README.md"
+    },
+    {
+      "recordId": "tenet.specializations-architectures-arm64",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "ARM64 Portability",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/specializations/architectures/arm64.record.md",
+      "sourceRelativePath": "specializations/architectures/arm64.md"
+    },
+    {
+      "recordId": "tenet.specializations-ecosystems-steam-integration",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Steam Integration Tenets",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/specializations/ecosystems/steam/integration.record.md",
+      "sourceRelativePath": "specializations/ecosystems/steam/integration.md"
+    },
+    {
+      "recordId": "tenet.specializations-environments-codex-agent-work",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Codex and Coding-Agent Tenets",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/specializations/environments/codex/agent-work.record.md",
+      "sourceRelativePath": "specializations/environments/codex/agent-work.md"
+    },
+    {
+      "recordId": "tenet.specializations-environments-containers-platform",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Container Environment Tenets",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/specializations/environments/containers/platform.record.md",
+      "sourceRelativePath": "specializations/environments/containers/platform.md"
+    },
+    {
+      "recordId": "tenet.specializations-interfaces-command-line",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Command-Line Interface Tenets",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/specializations/interfaces/command-line.record.md",
+      "sourceRelativePath": "specializations/interfaces/command-line.md"
+    },
+    {
+      "recordId": "tenet.specializations-languages-csharp-dotnet",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "C# and .NET Tenets",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/specializations/languages/csharp-dotnet.record.md",
+      "sourceRelativePath": "specializations/languages/csharp-dotnet.md"
+    },
+    {
+      "recordId": "tenet.specializations-languages-javascript-typescript",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "JavaScript and TypeScript Tenets",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/specializations/languages/javascript-typescript.record.md",
+      "sourceRelativePath": "specializations/languages/javascript-typescript.md"
+    },
+    {
+      "recordId": "tenet.specializations-languages-python",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Python Tenets",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/specializations/languages/python.record.md",
+      "sourceRelativePath": "specializations/languages/python.md"
+    },
+    {
+      "recordId": "tenet.specializations-languages-sql",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "SQL and Relational Database Tenets",
+      "tags": [
+        "concurrency",
+        "database",
+        "deadlock",
+        "generalized",
+        "isolation",
+        "locking",
+        "programming",
+        "relational-database",
+        "schema",
+        "sql",
+        "sqlite",
+        "transaction"
+      ],
+      "source": "imported",
+      "contentPath": "records/specializations/languages/sql.record.md",
+      "sourceRelativePath": "specializations/languages/sql.md"
+    },
+    {
+      "recordId": "tenet.specializations-platforms-linux-platform",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Linux Platform Tenets",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/specializations/platforms/linux/platform.record.md",
+      "sourceRelativePath": "specializations/platforms/linux/platform.md"
+    },
+    {
+      "recordId": "tenet.specializations-platforms-web-platform",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Web Platform Tenets",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/specializations/platforms/web/platform.record.md",
+      "sourceRelativePath": "specializations/platforms/web/platform.md"
+    },
+    {
+      "recordId": "tenet.specializations-platforms-windows-platform",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Windows Platform Tenets",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/specializations/platforms/windows/platform.record.md",
+      "sourceRelativePath": "specializations/platforms/windows/platform.md"
+    },
+    {
+      "recordId": "tenet.specializations-platforms-windows-registry",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Windows Registry Tenets",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/specializations/platforms/windows/registry.record.md",
+      "sourceRelativePath": "specializations/platforms/windows/registry.md"
+    },
+    {
+      "recordId": "tenet.specializations-protocols-mcp",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Model Context Protocol Tenets",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/specializations/protocols/mcp.record.md",
+      "sourceRelativePath": "specializations/protocols/mcp.md"
+    },
+    {
+      "recordId": "tenet.specializations-tools-cmd",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "CMD Tenets",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/specializations/tools/cmd.record.md",
+      "sourceRelativePath": "specializations/tools/cmd.md"
+    },
+    {
+      "recordId": "tenet.specializations-tools-git",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Git Tenets",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/specializations/tools/git.record.md",
+      "sourceRelativePath": "specializations/tools/git.md"
+    },
+    {
+      "recordId": "tenet.specializations-tools-powershell",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "PowerShell Tenets",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/specializations/tools/powershell.record.md",
+      "sourceRelativePath": "specializations/tools/powershell.md"
+    },
+    {
+      "recordId": "tenet.workflows-adding-features",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Adding Features",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/workflows/adding-features.record.md",
+      "sourceRelativePath": "workflows/adding-features.md"
+    },
+    {
+      "recordId": "tenet.workflows-building",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Building Software",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/workflows/building.record.md",
+      "sourceRelativePath": "workflows/building.md"
+    },
+    {
+      "recordId": "tenet.workflows-code-review",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Code Review Workflow",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/workflows/code-review.record.md",
+      "sourceRelativePath": "workflows/code-review.md"
+    },
+    {
+      "recordId": "tenet.workflows-continuous-integration",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Continuous Integration",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/workflows/continuous-integration.record.md",
+      "sourceRelativePath": "workflows/continuous-integration.md"
+    },
+    {
+      "recordId": "tenet.workflows-debugging",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Debugging Workflow",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/workflows/debugging.record.md",
+      "sourceRelativePath": "workflows/debugging.md"
+    },
+    {
+      "recordId": "tenet.workflows-playing-and-interactive-testing",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Playing and Interactive Testing",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/workflows/playing-and-interactive-testing.record.md",
+      "sourceRelativePath": "workflows/playing-and-interactive-testing.md"
+    },
+    {
+      "recordId": "tenet.workflows-refactoring",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Refactoring Workflow",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/workflows/refactoring.record.md",
+      "sourceRelativePath": "workflows/refactoring.md"
+    },
+    {
+      "recordId": "tenet.workflows-testing",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Testing",
+      "tags": [
+        "generalized",
+        "programming"
+      ],
+      "source": "imported",
+      "contentPath": "records/workflows/testing.record.md",
+      "sourceRelativePath": "workflows/testing.md"
+    },
+    {
+      "recordId": "tenet.workflows-question-driven-prototyping",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Question-Driven Prototyping",
+      "tags": [
+        "generalized",
+        "programming",
+        "prototyping",
+        "workflow"
+      ],
+      "source": "imported",
+      "contentPath": "records/workflows/question-driven-prototyping.record.md",
+      "sourceRelativePath": "workflows/question-driven-prototyping.md"
+    },
+    {
+      "recordId": "workaround.dotnet-processpath-apphost.20260813",
+      "kind": "workaround",
+      "tier": "verified",
+      "title": "Use the .NET apphost when a harness resolves files from ProcessPath",
+      "tags": [
+        "apphost",
+        "dotnet",
+        "processpath",
+        "runtime",
+        "testing",
+        "workaround"
+      ],
+      "source": "agent",
+      "contentPath": "records/workarounds/dotnet-processpath-apphost.record.md",
+      "sourceRelativePath": "verified-cortex-harness-20260813"
+    },
+    {
+      "recordId": "workaround.verify-live-runtime-attachment.20260813",
+      "kind": "workaround",
+      "tier": "verified",
+      "title": "Verify the runtime actually attached after configuration or installation changes",
+      "tags": [
+        "attachment",
+        "configuration",
+        "deployment",
+        "mcp",
+        "process-lifecycle",
+        "runtime",
+        "verification",
+        "workaround"
+      ],
+      "source": "imported",
+      "contentPath": "records/workarounds/verify-live-runtime-attachment.record.md",
+      "sourceRelativePath": "legacy-file-cortex-curation-20260813"
+    }
+  ]
+}

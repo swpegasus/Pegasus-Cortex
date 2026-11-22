@@ -1,0 +1,168 @@
+{
+  "schema": "pegasus.cortex.behavior-pack/2.0",
+  "packId": "windows-operational-knowledge-v1",
+  "packRevision": 1,
+  "description": "Portable Windows operational knowledge for local applications, identity, IPC, process ownership, services, installers, diagnostics, and resilient file transfer. Machine state and secrets are excluded.",
+  "includesTasks": false,
+  "includesMachineHistory": false,
+  "records": [
+    {
+      "recordId": "Knowledge.Windows",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Knowledge.Windows — Windows Operational Knowledge Catalog",
+      "tags": [
+        "catalog",
+        "generalized",
+        "knowledge",
+        "object-hierarchy",
+        "verified-platform-guidance",
+        "windows"
+      ],
+      "source": "agent",
+      "contentPath": "records/windows.record.md",
+      "sourceRelativePath": "knowledge-shared-windows-v1"
+    },
+    {
+      "recordId": "Knowledge.Windows.FileTransfer.Robocopy",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Knowledge.Windows.FileTransfer.Robocopy — Resilient Windows Directory Transfer",
+      "tags": [
+        "copy",
+        "file-transfer",
+        "generalized",
+        "network",
+        "object-hierarchy",
+        "progress",
+        "robocopy",
+        "windows"
+      ],
+      "source": "user",
+      "contentPath": "records/file-transfer/robocopy.record.md",
+      "sourceRelativePath": "knowledge-shared-windows-file-transfer-robocopy-v1"
+    },
+    {
+      "recordId": "Knowledge.Windows.Identity.SIDAndProfileScope",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Knowledge.Windows.Identity.SIDAndProfileScope — Portable Identity and Profile Boundaries",
+      "tags": [
+        "identity",
+        "generalized",
+        "knowledge",
+        "object-hierarchy",
+        "portability",
+        "profile",
+        "sid",
+        "verified-platform-guidance",
+        "windows"
+      ],
+      "source": "agent",
+      "contentPath": "records/identity/sid-and-profile-scope.record.md",
+      "sourceRelativePath": "knowledge-shared-windows-identity-sid-profile-v1"
+    },
+    {
+      "recordId": "Knowledge.Windows.IPC.NamedPipes",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Knowledge.Windows.IPC.NamedPipes — Local Authenticated Pipe Contract",
+      "tags": [
+        "acl",
+        "authentication",
+        "generalized",
+        "ipc",
+        "knowledge",
+        "named-pipe",
+        "object-hierarchy",
+        "verified-platform-guidance",
+        "windows"
+      ],
+      "source": "agent",
+      "contentPath": "records/ipc/named-pipes.record.md",
+      "sourceRelativePath": "knowledge-shared-windows-ipc-named-pipes-v1"
+    },
+    {
+      "recordId": "Knowledge.Windows.Process.JobObjects",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Knowledge.Windows.Process.JobObjects — Owned Process Trees and Cancellation",
+      "tags": [
+        "cancellation",
+        "job-object",
+        "generalized",
+        "knowledge",
+        "lifecycle",
+        "object-hierarchy",
+        "process",
+        "verified-platform-guidance",
+        "windows"
+      ],
+      "source": "agent",
+      "contentPath": "records/process/job-objects.record.md",
+      "sourceRelativePath": "knowledge-shared-windows-process-job-objects-v1"
+    },
+    {
+      "recordId": "Knowledge.Windows.Service.UserSessionBoundary",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Knowledge.Windows.Service.UserSessionBoundary — Service and Signed-In User Separation",
+      "tags": [
+        "knowledge",
+        "generalized",
+        "object-hierarchy",
+        "scm",
+        "service",
+        "session-zero",
+        "startup",
+        "tray",
+        "verified-platform-guidance",
+        "windows"
+      ],
+      "source": "agent",
+      "contentPath": "records/service/user-session-boundary.record.md",
+      "sourceRelativePath": "knowledge-shared-windows-service-user-session-v1"
+    },
+    {
+      "recordId": "Knowledge.Windows.Installer.Maintenance",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Knowledge.Windows.Installer.Maintenance — Traditional Install, Modify, Repair, and Uninstall",
+      "tags": [
+        "arp",
+        "installer",
+        "generalized",
+        "knowledge",
+        "object-hierarchy",
+        "repair",
+        "uninstall",
+        "upgrade",
+        "verified-platform-guidance",
+        "windows"
+      ],
+      "source": "agent",
+      "contentPath": "records/installer/maintenance.record.md",
+      "sourceRelativePath": "knowledge-shared-windows-installer-maintenance-v1"
+    },
+    {
+      "recordId": "Knowledge.Windows.Diagnostics.EventLog",
+      "kind": "tenet",
+      "tier": "explicit",
+      "title": "Knowledge.Windows.Diagnostics.EventLog — Bounded Windows Event Diagnostics",
+      "tags": [
+        "diagnostics",
+        "event-log",
+        "generalized",
+        "knowledge",
+        "object-hierarchy",
+        "provider",
+        "telemetry",
+        "verified-platform-guidance",
+        "windows"
+      ],
+      "source": "agent",
+      "contentPath": "records/diagnostics/event-log.record.md",
+      "sourceRelativePath": "knowledge-shared-windows-diagnostics-event-log-v1"
+    }
+  ]
+}

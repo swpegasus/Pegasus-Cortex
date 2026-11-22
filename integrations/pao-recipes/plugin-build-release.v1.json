@@ -1,0 +1,18 @@
+{
+  "name": "plugin-build-release",
+  "definitionVersion": 1,
+  "action": 3,
+  "toolName": "dotnet",
+  "fixedArguments": [
+    "build", "{{project}}", "--configuration", "Release",
+    "--disable-build-servers", "--verbosity", "minimal"
+  ],
+  "variables": [
+    { "name": "project", "type": 3, "required": true, "maxUtf8Bytes": 1024 }
+  ],
+  "mode": 0,
+  "timeoutSeconds": 120,
+  "expectedExitCodes": [0],
+  "outputBehavior": 0,
+  "maxOutputBytes": 16384
+}

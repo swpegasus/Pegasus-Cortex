@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>PegasusCortex.Mcp</AssemblyName>
+    <RootNamespace>Pegasus.Cortex.Mcp</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RestoreLockedMode>true</RestoreLockedMode>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PegasusCortex.Core\PegasusCortex.Core.csproj" />
+    <ProjectReference Include="..\PegasusCortex.DefaultLibrary\PegasusCortex.DefaultLibrary.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource
+      Include="Knowledge\continuity-guide.md"
+      LogicalName="Pegasus.Cortex.Mcp.Knowledge.continuity-guide.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="PegasusCortex.Mcp.Tests" />
+    <InternalsVisibleTo Include="PegasusCortex.Mcp.Local" />
+    <InternalsVisibleTo Include="PegasusCortex.Mcp.Local.Tests" />
+    <InternalsVisibleTo Include="PegasusCortex.Mcp.Integrated" />
+    <InternalsVisibleTo Include="PegasusCortex.Mcp.Integrated.Tests" />
+  </ItemGroup>
+</Project>

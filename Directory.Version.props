@@ -1,0 +1,8 @@
+<Project>
+  <PropertyGroup>
+    <PegasusReleaseVersion>2.2026.11.21.22.34.A</PegasusReleaseVersion>
+    <PegasusNuGetVersion>2.20261121.2234-a</PegasusNuGetVersion>
+    <PegasusAssemblyVersion>2.0.0.0</PegasusAssemblyVersion>
+    <PegasusFileVersion>2.2026.1121.2234</PegasusFileVersion>
+  </PropertyGroup>
+</Project>

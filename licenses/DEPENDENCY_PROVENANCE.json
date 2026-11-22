@@ -1,0 +1,320 @@
+{
+  "schemaVersion": 1,
+  "packages": [
+    {
+      "id": "Npgsql",
+      "version": "10.0.3",
+      "sha256": "75d0970923a8c9fcbbd37e4ebe72fee0b10362a1e36723e86777df1b6728316d",
+      "license": "PostgreSQL",
+      "source": "https://api.nuget.org/v3-flatcontainer/npgsql/10.0.3/npgsql.10.0.3.nupkg",
+      "repositoryCommit": "d3768398c17877b3a916c3c4d87e8e11698991fc",
+      "presentInAuditedProduct": false
+    },
+    {
+      "id": "Microsoft.Extensions.Logging.Abstractions",
+      "version": "10.0.0",
+      "sha256": "067860199734d47c134b1a206afabb51eab857b88c037c0f9db7d1c10e118469",
+      "license": "MIT",
+      "thirdPartyNoticesSha256": "6d15e10a101c6bfff2ab4429ed061bf76c456fc4b23ad6b03e0d0f8377148a21",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.logging.abstractions/10.0.0/microsoft.extensions.logging.abstractions.10.0.0.nupkg",
+      "repositoryCommit": "b0f34d51fccc69fd334253924abd8d6853fad7aa",
+      "presentInAuditedProduct": false,
+      "thirdPartyNoticesFile": "Microsoft.NET-10.0.15-THIRD-PARTY-NOTICES.txt"
+    },
+    {
+      "id": "Microsoft.Extensions.DependencyInjection.Abstractions",
+      "version": "10.0.0",
+      "sha256": "f62a1d5cfdfd62a831a269ce3cec5dfe6cdb1b425f3925f3168354de8993d8fb",
+      "license": "MIT",
+      "thirdPartyNoticesSha256": "6d15e10a101c6bfff2ab4429ed061bf76c456fc4b23ad6b03e0d0f8377148a21",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.dependencyinjection.abstractions/10.0.0/microsoft.extensions.dependencyinjection.abstractions.10.0.0.nupkg",
+      "repositoryCommit": "b0f34d51fccc69fd334253924abd8d6853fad7aa",
+      "presentInAuditedProduct": false,
+      "thirdPartyNoticesFile": "Microsoft.NET-10.0.15-THIRD-PARTY-NOTICES.txt"
+    },
+    {
+      "id": "Microsoft.Data.Sqlite",
+      "version": "10.0.10",
+      "sha256": "a9d833ae3e34081b16f2948ae07549924cdb1c49dab5c79ba82dd693bb3b986f",
+      "license": "MIT",
+      "licenseMetadataSource": "nuspec-expression",
+      "licenseFile": "Microsoft.Data.Sqlite-10.0.10-LICENSE.txt",
+      "licenseFileSha256": "cfc21f5e8bd655ae997eec916138b707b1d290b83272c02a95c9f821b8c87310",
+      "noticeFile": "Microsoft.Data.Sqlite-10.0.10-NOTICE.txt",
+      "noticeFileSha256": "2a047314378461681b381254dcf0d9505d5e5863b18ea2941c6b66548de05b61",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.data.sqlite/10.0.10/microsoft.data.sqlite.10.0.10.nupkg",
+      "repositoryUrl": "https://github.com/dotnet/dotnet",
+      "repositoryCommit": "f7d90799ce4ef09a0bb257852a57248d2a8fb8dd",
+      "presentInAuditedProduct": true
+    },
+    {
+      "id": "Microsoft.Data.Sqlite.Core",
+      "version": "10.0.10",
+      "sha256": "dd5fc629b84581e5b6a31d9d6d1186997ced72d9ea62b825f1cf0abc76abe695",
+      "license": "MIT",
+      "licenseMetadataSource": "nuspec-expression",
+      "licenseFile": "Microsoft.Data.Sqlite-10.0.10-LICENSE.txt",
+      "licenseFileSha256": "cfc21f5e8bd655ae997eec916138b707b1d290b83272c02a95c9f821b8c87310",
+      "noticeFile": "Microsoft.Data.Sqlite-10.0.10-NOTICE.txt",
+      "noticeFileSha256": "2a047314378461681b381254dcf0d9505d5e5863b18ea2941c6b66548de05b61",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.data.sqlite.core/10.0.10/microsoft.data.sqlite.core.10.0.10.nupkg",
+      "repositoryUrl": "https://github.com/dotnet/dotnet",
+      "repositoryCommit": "f7d90799ce4ef09a0bb257852a57248d2a8fb8dd",
+      "presentInAuditedProduct": true
+    },
+    {
+      "id": "SQLitePCLRaw.bundle_e_sqlite3",
+      "version": "2.1.11",
+      "sha256": "91645aa4c4d511f71cd03c6723d022d7e470000711dbe1d4bbe585f8e78b242b",
+      "license": "Apache-2.0",
+      "licenseMetadataSource": "nuspec-expression",
+      "licenseFile": "SQLitePCLRaw-2.1.11-LICENSE.txt",
+      "licenseFileSha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "noticeFile": "SQLitePCLRaw-2.1.11-NOTICE.txt",
+      "noticeFileSha256": "ea755312f315084322d9f494a182e2eeffb181653031000f259d1a0e30d91ffb",
+      "source": "https://api.nuget.org/v3-flatcontainer/sqlitepclraw.bundle_e_sqlite3/2.1.11/sqlitepclraw.bundle_e_sqlite3.2.1.11.nupkg",
+      "repositoryUrl": "https://github.com/ericsink/SQLitePCL.raw",
+      "presentInAuditedProduct": true
+    },
+    {
+      "id": "SQLitePCLRaw.core",
+      "version": "2.1.11",
+      "sha256": "b3f7f112862535ff5cd82e0766e78cccf081be98958835654a983b7a90741976",
+      "license": "Apache-2.0",
+      "licenseMetadataSource": "nuspec-expression",
+      "licenseFile": "SQLitePCLRaw-2.1.11-LICENSE.txt",
+      "licenseFileSha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "noticeFile": "SQLitePCLRaw-2.1.11-NOTICE.txt",
+      "noticeFileSha256": "ea755312f315084322d9f494a182e2eeffb181653031000f259d1a0e30d91ffb",
+      "source": "https://api.nuget.org/v3-flatcontainer/sqlitepclraw.core/2.1.11/sqlitepclraw.core.2.1.11.nupkg",
+      "repositoryUrl": "https://github.com/ericsink/SQLitePCL.raw",
+      "presentInAuditedProduct": true
+    },
+    {
+      "id": "SQLitePCLRaw.lib.e_sqlite3",
+      "version": "2.1.12",
+      "sha256": "4a22c02ffcf489792903cf263def9fce27739716883f965f0b5eeff1637430ac",
+      "license": "Apache-2.0",
+      "licenseMetadataSource": "nuspec-expression",
+      "licenseFile": "SQLitePCLRaw-2.1.11-LICENSE.txt",
+      "licenseFileSha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "noticeFile": "SQLitePCLRaw-2.1.11-NOTICE.txt",
+      "noticeFileSha256": "ea755312f315084322d9f494a182e2eeffb181653031000f259d1a0e30d91ffb",
+      "runtimeAssetsFile": "SQLitePCLRaw.lib.e_sqlite3-2.1.12-RUNTIME-ASSETS.json",
+      "runtimeAssetsFileSha256": "878ff7fdb00566f62047aacef8e6e9cf0356a4d8a9e1eb596bba3cce1034d51c",
+      "runtimeAssetCount": 25,
+      "runtimeAssetsFingerprintSha256": "a83ccbce7523d3aaa562a59cb8955ae1ba75c1bb303e14f10c9492b8c71a2089",
+      "source": "https://api.nuget.org/v3-flatcontainer/sqlitepclraw.lib.e_sqlite3/2.1.12/sqlitepclraw.lib.e_sqlite3.2.1.12.nupkg",
+      "repositoryUrl": "https://github.com/ericsink/SQLitePCL.raw",
+      "presentInAuditedProduct": true,
+      "historicalRuntimeAssetsFile": "SQLitePCLRaw.lib.e_sqlite3-2.1.11-RUNTIME-ASSETS.json",
+      "publishedAsset": {
+        "archivePath": "runtimes/win-x64/native/e_sqlite3.dll",
+        "upstreamSha256": "b7385d722c83fb52142a00477a726723745916d22a555711ee89834c1111fb2e",
+        "signedProductPath": "bin/host/e_sqlite3.dll",
+        "signedProductSha256": "ebad7544875942567f7057b41a3f0098d46b4e84fa7dfee8ce3b187f77e85b0e",
+        "transformation": "The publisher Authenticode-signs shipped PE files before the signed product manifest. Upstream archive/runtime-asset hashes describe the original bytes; signed product hashes describe transformed distribution bytes and are intentionally different."
+      }
+    },
+    {
+      "id": "SQLitePCLRaw.provider.e_sqlite3",
+      "version": "2.1.11",
+      "sha256": "2dd7d5df6e409988013b09b03fb30d67130966434ee9bc2b1ef07a0b94b222d0",
+      "license": "Apache-2.0",
+      "licenseMetadataSource": "nuspec-expression",
+      "licenseFile": "SQLitePCLRaw-2.1.11-LICENSE.txt",
+      "licenseFileSha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "noticeFile": "SQLitePCLRaw-2.1.11-NOTICE.txt",
+      "noticeFileSha256": "ea755312f315084322d9f494a182e2eeffb181653031000f259d1a0e30d91ffb",
+      "source": "https://api.nuget.org/v3-flatcontainer/sqlitepclraw.provider.e_sqlite3/2.1.11/sqlitepclraw.provider.e_sqlite3.2.1.11.nupkg",
+      "repositoryUrl": "https://github.com/ericsink/SQLitePCL.raw",
+      "presentInAuditedProduct": true
+    },
+    {
+      "id": "System.Memory",
+      "version": "4.5.3",
+      "sha256": "0af97b45b45b46ef6a2b37910568dabd492c793da3859054595d523e2a545859",
+      "license": "MIT",
+      "licenseMetadataSource": "embedded-license-file",
+      "embeddedLicenseSha256": "d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b",
+      "licenseFile": "System.Memory-4.5.3-LICENSE.txt",
+      "licenseFileSha256": "cfc21f5e8bd655ae997eec916138b707b1d290b83272c02a95c9f821b8c87310",
+      "embeddedThirdPartyNoticesSha256": "7864a01e2fdef7e8fdf81b906efb1466f083206affea7ba7e6dadea429754765",
+      "thirdPartyNoticesFile": "System.Memory-4.5.3-THIRD-PARTY-NOTICES.txt",
+      "thirdPartyNoticesFileSha256": "06cf69d8c3f1170895d57ce881d3e0ab22676fc2cfa41459d035c4f699f2fa83",
+      "source": "https://api.nuget.org/v3-flatcontainer/system.memory/4.5.3/system.memory.4.5.3.nupkg",
+      "projectUrl": "https://dot.net/",
+      "licenseUrl": "https://github.com/dotnet/corefx/blob/master/LICENSE.TXT",
+      "sourceCommitHint": "c6cf790234e063b855fcdb50f3fb1b3cfac73275",
+      "presentInAuditedProduct": false
+    },
+    {
+      "id": "Microsoft.Extensions.Hosting.WindowsServices",
+      "version": "10.0.10",
+      "sha256": "8e0d37c56284713decae9aeb7e9dbc18aecdcfcd08209a6273a431a168d4c26b",
+      "license": "MIT",
+      "licenseMetadataSource": "nuspec-expression",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.hosting.windowsservices/10.0.10/microsoft.extensions.hosting.windowsservices.10.0.10.nupkg",
+      "repositoryUrl": "https://github.com/dotnet/dotnet",
+      "repositoryCommit": "f7d90799ce4ef09a0bb257852a57248d2a8fb8dd",
+      "presentInAuditedProduct": true,
+      "licenseFile": "Microsoft.NET-10.0.15-LICENSE.txt",
+      "licenseFileSha256": "d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b",
+      "noticeFile": "Microsoft.NET-10.0.15-THIRD-PARTY-NOTICES.txt",
+      "noticeFileSha256": "6d15e10a101c6bfff2ab4429ed061bf76c456fc4b23ad6b03e0d0f8377148a21"
+    },
+    {
+      "id": "System.ServiceProcess.ServiceController",
+      "version": "10.0.10",
+      "sha256": "07d3fafd03a0ca229a9745f32d1ce4b2f7a767dd6611dd70d3b34cf48a39e2b2",
+      "license": "MIT",
+      "licenseMetadataSource": "nuspec-expression",
+      "source": "https://api.nuget.org/v3-flatcontainer/system.serviceprocess.servicecontroller/10.0.10/system.serviceprocess.servicecontroller.10.0.10.nupkg",
+      "repositoryUrl": "https://github.com/dotnet/dotnet",
+      "repositoryCommit": "f7d90799ce4ef09a0bb257852a57248d2a8fb8dd",
+      "presentInAuditedProduct": true,
+      "licenseFile": "Microsoft.NET-10.0.15-LICENSE.txt",
+      "licenseFileSha256": "d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b",
+      "noticeFile": "Microsoft.NET-10.0.15-THIRD-PARTY-NOTICES.txt",
+      "noticeFileSha256": "6d15e10a101c6bfff2ab4429ed061bf76c456fc4b23ad6b03e0d0f8377148a21"
+    },
+    {
+      "id": "Microsoft.NETCore.App.Runtime.win-x64",
+      "version": "10.0.15",
+      "sha256": "7423f58917342b9e4bf276fb164d5726d2c90fe2fe989c552b9e39056256a035",
+      "license": "MIT",
+      "licenseMetadataSource": "nuspec-expression",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.netcore.app.runtime.win-x64/10.0.15/microsoft.netcore.app.runtime.win-x64.10.0.15.nupkg",
+      "repositoryUrl": "https://github.com/dotnet/dotnet",
+      "repositoryCommit": "8e0f8ed2312954727f8919d7d1c2f78b483b4ee7",
+      "presentInAuditedProduct": true,
+      "licenseFile": "Microsoft.NET-10.0.15-LICENSE.txt",
+      "licenseFileSha256": "d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b",
+      "noticeFile": "Microsoft.NET-10.0.15-THIRD-PARTY-NOTICES.txt",
+      "noticeFileSha256": "6d15e10a101c6bfff2ab4429ed061bf76c456fc4b23ad6b03e0d0f8377148a21",
+      "assetKind": "runtime-pack",
+      "deployment": "self-contained win-x64",
+      "additionalLicenseTerms": [
+        {
+          "license": "LicenseRef-Microsoft-NET-Library",
+          "licenseFile": "Microsoft-NET-Library-LICENSE.html",
+          "licenseFileSha256": "0f69be2c8ac44c3980047664c3347ff22cba5842dc9d8b0a88a4f0914645a780",
+          "appliesTo": [
+            "coreclr.dll",
+            "Microsoft.DiaSymReader.Native.amd64.dll"
+          ],
+          "source": "https://dotnet.microsoft.com/en-us/dotnet_library_license.htm",
+          "applicabilitySource": "https://github.com/dotnet/core/blob/main/license-information-windows.md",
+          "note": "The runtime-pack nuspec and embedded main license declare MIT; official Windows binary-specific terms additionally apply to these bundled files. This record is not a blanket MIT grant for all Windows runtime binaries."
+        }
+      ]
+    },
+    {
+      "id": "Microsoft.AspNetCore.App.Runtime.win-x64",
+      "version": "10.0.15",
+      "sha256": "d2a18c23269c91106c7d87695600f7fc25d56672dcdb9c59ed947f8f71611a72",
+      "license": "MIT",
+      "licenseMetadataSource": "nuspec-expression",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.aspnetcore.app.runtime.win-x64/10.0.15/microsoft.aspnetcore.app.runtime.win-x64.10.0.15.nupkg",
+      "repositoryUrl": "https://github.com/dotnet/dotnet",
+      "repositoryCommit": "8e0f8ed2312954727f8919d7d1c2f78b483b4ee7",
+      "presentInAuditedProduct": true,
+      "licenseFile": "Microsoft.NET-10.0.15-LICENSE.txt",
+      "licenseFileSha256": "d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b",
+      "noticeFile": "ASP.NETCore-10.0.15-THIRD-PARTY-NOTICES.txt",
+      "noticeFileSha256": "307d014f65d8482314f1400ddeae7a0cbabb96c2207bcc77f6233cc10588e5d9",
+      "assetKind": "runtime-pack",
+      "deployment": "self-contained win-x64"
+    },
+    {
+      "id": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
+      "version": "10.0.15",
+      "sha256": "a036c174bac57a716e21dedccf96459804e4d8d8c31a08e3a8de649bf7684497",
+      "license": "MIT",
+      "licenseMetadataSource": "nuspec-expression",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.windowsdesktop.app.runtime.win-x64/10.0.15/microsoft.windowsdesktop.app.runtime.win-x64.10.0.15.nupkg",
+      "repositoryUrl": "https://github.com/dotnet/dotnet",
+      "repositoryCommit": "8e0f8ed2312954727f8919d7d1c2f78b483b4ee7",
+      "presentInAuditedProduct": true,
+      "licenseFile": "WindowsDesktop-10.0.15-LICENSE.txt",
+      "licenseFileSha256": "a89886665765362eb77e0f8e26602c924520041d1711b2eedc136434fe4d01ab",
+      "noticeFile": "WindowsForms-10.0.15-THIRD-PARTY-NOTICES.txt",
+      "noticeFileSha256": "5a412b38efae0b162dc0893b319023f4cd14a8985a0f9f9ae01ac052b37a36eb",
+      "assetKind": "runtime-pack",
+      "deployment": "self-contained win-x64",
+      "publishedSubset": "Windows Forms runtime assets observed in the audited Host role; WPF/Windows SDK binaries are not asserted as shipped.",
+      "noticeSource": "https://raw.githubusercontent.com/dotnet/winforms/v10.0.15/THIRD-PARTY-NOTICES.TXT"
+    }
+  ],
+  "auditedProduct": {
+    "releaseVersion": "2.2026.11.21.19.02.A",
+    "runtimeIdentifier": "win-x64",
+    "deployment": "self-contained",
+    "evidence": "Published role .deps.json and .runtimeconfig.json metadata in the signed 19.02 candidate; source notice update does not modify that candidate.",
+    "sdkVersionIsNotRuntimePackVersion": true
+  },
+  "noticeDeduplication": [
+    {
+      "file": "Microsoft.NET-10.0.15-THIRD-PARTY-NOTICES.txt",
+      "sha256": "6d15e10a101c6bfff2ab4429ed061bf76c456fc4b23ad6b03e0d0f8377148a21",
+      "exactSourceFiles": [
+        "Microsoft.NETCore.App.Runtime.win-x64/10.0.15/THIRD-PARTY-NOTICES.TXT",
+        "Microsoft.Extensions.Hosting.WindowsServices/10.0.10/THIRD-PARTY-NOTICES.TXT",
+        "System.ServiceProcess.ServiceController/10.0.10/THIRD-PARTY-NOTICES.TXT"
+      ],
+      "basis": "These original package notice files have identical SHA256 digests; one unmodified copy is retained."
+    }
+  ],
+  "officialSourceDocuments": [
+    {
+      "file": "WindowsForms-10.0.15-THIRD-PARTY-NOTICES.txt",
+      "version": "10.0.15",
+      "source": "https://raw.githubusercontent.com/dotnet/winforms/v10.0.15/THIRD-PARTY-NOTICES.TXT",
+      "sha256": "5a412b38efae0b162dc0893b319023f4cd14a8985a0f9f9ae01ac052b37a36eb"
+    },
+    {
+      "file": "Microsoft-NET-Library-LICENSE.html",
+      "source": "https://dotnet.microsoft.com/en-us/dotnet_library_license.htm",
+      "sha256": "0f69be2c8ac44c3980047664c3347ff22cba5842dc9d8b0a88a4f0914645a780",
+      "retrievedAtUtc": "2026-11-22T05:59:33.0824992+00:00",
+      "format": "Unmodified official static HTML license document; its terms are not replaced by the package MIT expression."
+    }
+  ],
+  "bundledToolLicensing": [
+    {
+      "id": "AutoItX",
+      "version": "3.3.18.0",
+      "licenseFile": "AutoIt-EULA.txt",
+      "noticeFile": "AgentOps-THIRD-PARTY-NOTICES.txt",
+      "source": "https://www.autoitscript.com/autoit3/docs/license.htm"
+    },
+    {
+      "id": "NSIS",
+      "version": "3.12",
+      "productLicenseFile": "licenses/nsis-3.12/COPYING",
+      "source": "https://nsis.sourceforge.io/License",
+      "sourceAvailability": "https://sourceforge.net/projects/nsis/files/NSIS%203/3.12/nsis-3.12-src.tar.bz2/download",
+      "note": "The product publisher retains the distribution COPYING and component license files. NSIS includes separate compression-module terms and the LZMA linking exception; the Pegasus product license does not replace those terms."
+    }
+  ],
+  "firstPartyLicensing": [
+    {
+      "component": "Pegasus.Shared/1.20260711.421-a",
+      "provenance": "dependencies/packages/PROVENANCE.md",
+      "licensor": "Shayne Winter",
+      "license": "Pegasus Community License 1.0",
+      "licenseFile": "Pegasus-Community-License-1.0.txt",
+      "sourceLicenseFile": "../LICENSE",
+      "status": "Owner explicitly confirmed ownership and public licensing on November 21, 2026. The external grant accompanies the unchanged package; no grant is inferred from nuspec author metadata."
+    },
+    {
+      "component": "SharedMcp/0.1.0-dev",
+      "provenance": "third_party/SharedMcp/PROVENANCE.md",
+      "licensor": "Shayne Winter",
+      "license": "Pegasus Community License 1.0",
+      "licenseFile": "Pegasus-Community-License-1.0.txt",
+      "sourceLicenseFile": "../LICENSE",
+      "status": "Owner explicitly confirmed ownership and public licensing on November 21, 2026. The product grant covers this pinned first-party snapshot; third-party framework terms remain independent."
+    }
+  ]
+}

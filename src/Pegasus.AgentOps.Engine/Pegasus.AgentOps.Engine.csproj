@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <Compile Include="..\Pegasus.AgentOps.ProcessHost\ApplicationHostFrames.cs" Link="ApplicationHostFrames.cs" />
+    <ProjectReference Include="..\Pegasus.AgentOps.Protocol\Pegasus.AgentOps.Protocol.csproj" />
+    <ProjectReference Include="..\PegasusCortex.Product\PegasusCortex.Product.csproj" />
+    <ProjectReference Include="..\Pegasus.AgentOps.Windows.Registry\Pegasus.AgentOps.Windows.Registry.csproj" />
+    <ProjectReference Include="..\Pegasus.AgentOps.Certificates\Pegasus.AgentOps.Certificates.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.10" />
+    <!-- Override the vulnerable 2.1.11 native bundle selected transitively. -->
+    <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.12" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

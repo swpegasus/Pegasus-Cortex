@@ -1,0 +1,16 @@
+{
+  "schema": "pegasus.windows-installer/1",
+  "productId": "pegasus.example",
+  "name": "Pegasus Example",
+  "publisher": "Pegasus",
+  "productFolder": "Example",
+  "releaseVersion": "1.0.0",
+  "fileVersion": "1.0.0.0",
+  "setupPath": "installer/Example.Setup.exe",
+  "launchPath": "bin/Example.exe",
+  "iconPath": "bin/Example.exe",
+  "trustPath": "installer/Invoke-PegasusProdAlphaTrust.ps1",
+  "codexGuidance": false,
+  "userSessionStartup": false,
+  "removeObsoletePrograms": false
+}

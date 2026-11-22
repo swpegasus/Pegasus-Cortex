@@ -1,0 +1,11 @@
+Logical presentation roles used by the optional Chat Icons adapter:
+Go -> pegasus.chat-icons.status.working
+Stop -> pegasus.chat-icons.status.cancelled
+Good -> pegasus.chat-icons.status.success
+NoGood -> pegasus.chat-icons.status.error
+GoodToGo -> pegasus.chat-icons.status.success
+
+These are editable local user preferences in the plugin-owned DataDirectory/roles.ini.
+They do not rename assets, change execution state, classify a result, grant permission,
+or imply that an operation completed successfully. Prefer the precise state label too.
+The portable catalog contains immutable artwork IDs; individual exports keep those IDs.

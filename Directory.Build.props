@@ -1,0 +1,22 @@
+<Project>
+  <Import Project="$(MSBuildThisFileDirectory)Directory.Version.props" />
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Version>$(PegasusNuGetVersion)</Version>
+    <AssemblyVersion>$(PegasusAssemblyVersion)</AssemblyVersion>
+    <FileVersion>$(PegasusFileVersion)</FileVersion>
+    <InformationalVersion>$(PegasusReleaseVersion)</InformationalVersion>
+    <!-- Catalog admission uses the exact declared release version. Git provenance
+         belongs in release evidence, not an SDK-appended product-version suffix. -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Deterministic>true</Deterministic>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <LangVersion>latest</LangVersion>
+    <PegasusPackageFeed Condition="'$(PegasusPackageFeed)' == ''">$(MSBuildThisFileDirectory)dependencies\packages</PegasusPackageFeed>
+    <RestoreAdditionalProjectSources>$(RestoreAdditionalProjectSources);$(PegasusPackageFeed)</RestoreAdditionalProjectSources>
+  </PropertyGroup>
+</Project>
