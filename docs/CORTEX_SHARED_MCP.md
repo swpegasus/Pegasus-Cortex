@@ -24,6 +24,24 @@ remove the exact managed legacy `pegasus_cortex` entry, but never creates or
 re-enables it. The accompanying plugin supplies skills and guidance only and
 declares no second MCP connection.
 
+## Results and requested detail
+
+Normal PAO MCP requests return the useful result without repeating the submitted
+command, request ID or routine receipt metadata. Queued work retains its job ID;
+failures, partial results, uncertainty and truncation retain actionable evidence.
+For full machine receipts choose `output: "structured"`; `detail: true` also
+requests retained command/receipt details during selected-job inspection. These
+presentation choices do not change execution, persisted receipts or CLI JSON.
+
+`cortex_start` and `cortex_search` default to compact previews. Explicit
+`format: "detailed"` retains the full preview shape. Namespace, revision,
+provenance and continuation information needed to use the result remain available.
+Exact reads retain the requested full record bodies, and file reads and command
+execution retain useful content rather than replacing it with a success receipt.
+
+These defaults describe current source; an older prepared release keeps the
+presentation contract it was built with.
+
 ## Configuration and ownership
 
 The protected setting is `<selected DataRoot>/install/shared-mcp.v1.json`.

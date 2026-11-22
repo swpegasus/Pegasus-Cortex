@@ -28,13 +28,12 @@ Retryability is not permission to wake Cortex. Wait for explicit user startup
 or another relevant availability change; do not poll or clear maintenance.
 
 ```text
-Codex plugin
-  -> one local STDIO command:
-     C:\Program Files\Pegasus\Cortex\PegasusCortex.exe
-      -> immutable selected version
-          -> eight-tool MCP adapter
+Compatible MCP client, including Codex
+  -> configured shared HTTPS endpoint (loopback by default)
+      -> selected existing Application or Service listener owner
+          -> admitted ordinary owner Host and bounded dispatcher
               -> provider-neutral V2 application
-                  -> central cortex-v2.db (authority)
+                  -> owner-private cortex-v2.db
 
 <DataRoot>/install/active.v1.json
                                -> admitted machine product/component selection
@@ -60,6 +59,14 @@ launcher and binaries beneath `bin` are common machine read/execute content.
 Every mutable directory uses the registered data root. Installer metadata,
 privileged service state, and SID-private user database/configuration/log/
 receipt/tray/execution state remain separate ACL domains beneath that root.
+
+The public direct STDIO adapter is retired. Service ownership hosts the HTTPS
+gateway while semantic/user work retains the authenticated ordinary owner
+boundary; it does not create a user database or shell under LocalSystem.
+The skills plugin supplies guidance rather than a second connection. See
+[shared MCP setup](CORTEX_SHARED_MCP.md) for selected-owner startup, certificate
+configuration and restart behavior. A saved URL or setting is not proof that
+the listener or an actual client connection is ready.
 
 All owned projects target `net10.0` and build from the `10.0.400` SDK baseline
 pinned by `global.json`; `latestPatch` permits only servicing-patch roll-forward
@@ -168,7 +175,8 @@ exact typed-read recovery of the canonical body.
 
 The installed application binds the portable packs through
 `pegasus.cortex.starter-corpus/1.0`. A fresh empty V2 store receives the whole
-starter corpus atomically on its first `stdio` or `warmup` path. The package is
+starter corpus atomically when the admitted owner semantic composition first
+initializes. The package is
 the portable seed authority; installers do not distribute a copied SQLite
 database, WAL, machine actor, task history, or validation namespace. Automatic
 startup seeding skips every nonempty store. The explicit `seed-defaults`
@@ -182,8 +190,9 @@ knowledge.shared`. It always selects the registered current-user database,
 accepts no database path, and returns a bounded content-free receipt.
 The application ships the bounded versioned
 `guidance/pegasus-cortex-agents.v2.md` and
-`guidance/pegasus-cortex-pao.v1.md` fragments. The unified NSIS installer
-applies them atomically to the installing user's global Codex guidance at
+`guidance/pegasus-cortex-pao.v1.md` fragments. When the user selects the separate
+Codex-guidance feature, the unified NSIS installer applies them atomically to
+the installing user's global Codex guidance at
 `%USERPROFILE%\.codex\AGENTS.md` and replaces a recognized legacy
 standalone-AgentOps section while preserving unrelated guidance. A
 nonstandard Codex home requires an explicit canonical target. The runtime

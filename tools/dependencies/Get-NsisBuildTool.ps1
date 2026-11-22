@@ -4,11 +4,15 @@ param(
     [string] $CacheRoot = (Join-Path $PSScriptRoot '..\..\artifacts\dependencies'),
 
     [Parameter()]
-    [switch] $ForceDownload
+    [switch] $ForceDownload,
+
+    [Parameter()]
+    [string] $DestinationRoot = ''
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'CortexNsisPinnedArchive.psm1') -Force
 
 $contractPath = Join-Path $PSScriptRoot 'nsis-3.12.json'
 $contract = Get-Content -LiteralPath $contractPath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -23,15 +27,15 @@ $cache = [IO.Path]::GetFullPath($CacheRoot)
 if (-not [IO.Path]::IsPathFullyQualified($cache)) {
     throw 'CacheRoot must be fully qualified.'
 }
+Assert-CortexNsisOrdinaryPath -Path $cache
 [IO.Directory]::CreateDirectory($cache) | Out-Null
-if ((Get-Item -LiteralPath $cache -Force).Attributes.HasFlag([IO.FileAttributes]::ReparsePoint)) {
-    throw 'CacheRoot cannot be a reparse point.'
-}
+Assert-CortexNsisOrdinaryPath -Path $cache
 
 $archivePath = Join-Path $cache ([string] $contract.archive.fileName)
 $finalRoot = Join-Path $cache ([string] $contract.distributionRoot)
 $expectedLength = [long] $contract.archive.length
 $expectedSha256 = ([string] $contract.archive.sha256).ToLowerInvariant()
+Assert-CortexNsisOrdinaryPath -Path $archivePath
 
 function Test-ArchiveExact {
     param([Parameter(Mandatory)][string] $Path)
@@ -91,89 +95,43 @@ if ($ForceDownload -or -not (Test-ArchiveExact -Path $archivePath)) {
     }
 }
 
-if (Test-Path -LiteralPath $finalRoot) {
-    $compiler = Join-Path $finalRoot ([string] $contract.compiler.relativePath).Replace('/', [IO.Path]::DirectorySeparatorChar)
-    $validExisting = Test-Path -LiteralPath $compiler -PathType Leaf
-    if ($validExisting) {
-        $compilerItem = Get-Item -LiteralPath $compiler -Force
-        $validExisting = -not $compilerItem.Attributes.HasFlag([IO.FileAttributes]::ReparsePoint) -and
-            $compilerItem.Length -eq [long] $contract.compiler.length -and
-            (Get-FileHash -LiteralPath $compiler -Algorithm SHA256).Hash.ToLowerInvariant() -eq
-                ([string] $contract.compiler.sha256).ToLowerInvariant()
-    }
-    if (-not $validExisting) {
-        throw 'The existing NSIS cache root is not the admitted 3.12 distribution.'
-    }
-} else {
-    $staging = Join-Path $cache ('.nsis-3.12.' + [Guid]::NewGuid().ToString('N') + '.staging')
-    [IO.Directory]::CreateDirectory($staging) | Out-Null
-    try {
-        $archive = [IO.Compression.ZipFile]::OpenRead($archivePath)
-        try {
-            foreach ($entry in $archive.Entries) {
-                $candidate = [IO.Path]::GetFullPath((Join-Path $staging $entry.FullName))
-                $relative = [IO.Path]::GetRelativePath($staging, $candidate)
-                if ([IO.Path]::IsPathRooted($relative) -or $relative -eq '..' -or $relative.StartsWith('..' + [IO.Path]::DirectorySeparatorChar)) {
-                    throw 'The NSIS archive contains an escaping entry.'
-                }
-            }
-        } finally { $archive.Dispose() }
-        [IO.Compression.ZipFile]::ExtractToDirectory($archivePath, $staging, $false)
-        $inner = Join-Path $staging ([string] $contract.distributionRoot)
-        if (-not (Test-Path -LiteralPath $inner -PathType Container)) {
-            throw 'The NSIS archive is missing its canonical distribution root.'
-        }
-        [IO.Directory]::Move($inner, $finalRoot)
-    } finally {
-        if (Test-Path -LiteralPath $staging) {
-            [IO.Directory]::Delete($staging, $true)
-        }
-    }
-}
-
-$compilerPath = Join-Path $finalRoot ([string] $contract.compiler.relativePath).Replace('/', [IO.Path]::DirectorySeparatorChar)
-$compilerHash = (Get-FileHash -LiteralPath $compilerPath -Algorithm SHA256).Hash.ToLowerInvariant()
-if ($compilerHash -ne ([string] $contract.compiler.sha256).ToLowerInvariant()) {
-    throw 'The extracted NSIS compiler digest is invalid.'
-}
-$probeStart = [Diagnostics.ProcessStartInfo]::new()
-$probeStart.FileName = $compilerPath
-$probeStart.UseShellExecute = $false
-$probeStart.CreateNoWindow = $true
-$probeStart.WindowStyle = [Diagnostics.ProcessWindowStyle]::Hidden
-$probeStart.RedirectStandardOutput = $true
-$probeStart.RedirectStandardError = $true
-$probeStart.ArgumentList.Add([string] $contract.compiler.versionArgument)
-$probe = [Diagnostics.Process]::new()
-$probe.StartInfo = $probeStart
+$admitted = Open-CortexNsisPinnedArchive -ArchivePath $archivePath -Contract $contract
 try {
-    if (-not $probe.Start()) { throw 'The extracted NSIS compiler version probe did not start.' }
-    $probeOutputTask = $probe.StandardOutput.ReadToEndAsync()
-    $probeErrorTask = $probe.StandardError.ReadToEndAsync()
-    if (-not $probe.WaitForExit(30000)) {
-        try { $probe.Kill($true) } catch { $probe.Kill() }
-        $probe.WaitForExit()
-        throw 'The extracted NSIS compiler version probe timed out.'
+    Assert-CortexNsisOrdinaryPath -Path $finalRoot
+    if (Test-Path -LiteralPath $finalRoot) {
+        # Every path and byte must match the inventory derived from this exact
+        # still-open archive. A corrupt extracted cache is not silently repaired.
+        Assert-CortexNsisCacheExact -Archive $admitted -Directory $finalRoot
+    } else {
+        [void](Expand-CortexNsisPinnedArchive -Archive $admitted -Destination $finalRoot)
     }
-    $versionOutput = ($probeOutputTask.GetAwaiter().GetResult() + $probeErrorTask.GetAwaiter().GetResult()).Trim()
-    $probeExitCode = $probe.ExitCode
-}
-finally {
-    $probe.Dispose()
-}
-if ($probeExitCode -ne 0 -or $versionOutput -ne [string] $contract.compiler.expectedVersion) {
-    throw 'The extracted NSIS compiler version probe failed.'
-}
-
-[pscustomobject]@{
-    Contract = [string] $contract.contract
-    Name = [string] $contract.name
-    Version = [string] $contract.productVersion
-    Archive = $archivePath
-    ArchiveSha256 = $expectedSha256
-    Root = $finalRoot
-    Compiler = $compilerPath
-    CompilerSha256 = $compilerHash
-    CompilerVersion = $versionOutput
-    License = Join-Path $finalRoot ([string] $contract.license.relativePath)
+    $selectedRoot = $finalRoot
+    if (-not [string]::IsNullOrWhiteSpace($DestinationRoot)) {
+        $selectedRoot = [IO.Path]::GetFullPath($DestinationRoot).TrimEnd('\', '/')
+        if ($selectedRoot -eq $cache -or
+            $selectedRoot.StartsWith($cache + '\', [StringComparison]::OrdinalIgnoreCase) -or
+            $cache.StartsWith($selectedRoot + '\', [StringComparison]::OrdinalIgnoreCase)) {
+            throw 'The product NSIS materialization must be separate from its mutable dependency cache.'
+        }
+        [void](Expand-CortexNsisPinnedArchive -Archive $admitted -Destination $selectedRoot)
+    }
+    # Exact archive and independent compiler pins identify this version without
+    # executing the mutable cache. This is provenance, not an executed probe.
+    [pscustomobject]@{
+        Contract = [string]$contract.contract
+        Name = [string]$contract.name
+        Version = [string]$contract.productVersion
+        Archive = $archivePath
+        ArchiveSha256 = $admitted.ArchiveSha256
+        CacheRoot = $finalRoot
+        Root = $selectedRoot
+        Compiler = Join-Path $selectedRoot $admitted.CompilerRelativePath.Replace('/', '\')
+        CompilerSha256 = [string]$contract.compiler.sha256
+        CompilerVersion = [string]$contract.compiler.expectedVersion
+        VersionSource = 'pinned_archive_contract'
+        VersionProbeExecuted = $false
+        License = Join-Path $selectedRoot ([string]$contract.license.relativePath)
+    }
+} finally {
+    Close-CortexNsisPinnedArchive -Archive $admitted
 }

@@ -176,7 +176,7 @@ internal static class OwnerAdminExecutionTests
         Equal(0, await PaoProgram.RunCliAsync(["--json","admin","run","root="+FixtureCode,"cfg="+scope.Id,"sha="+OwnerAdminExecution.Digest(definition),"rid="+definition.ExpectedRid,"--stdin"],dispatch,outText,errText,default,new StringReader(body)));
         using var cliReceipt = JsonDocument.Parse(outText.ToString());
         var jid = cliReceipt.RootElement.GetProperty("jid").GetString()!;
-        var parameters = JsonSerializer.SerializeToElement(new { op="admin_run", cfg=scope.Id, sha=OwnerAdminExecution.Digest(definition), rid=definition.ExpectedRid, root=FixtureCode, text=body });
+        var parameters = JsonSerializer.SerializeToElement(new { op="admin_run", cfg=scope.Id, sha=OwnerAdminExecution.Digest(definition), rid=definition.ExpectedRid, root=FixtureCode, text=body, output="structured" });
         var mcp = await PaoProgram.CallUnifiedMcpToolAsync(parameters,dispatch,default);
         Equal(jid, mcp["structuredContent"]!["jid"]!.GetValue<string>());
         Equal(1, fixture.Launcher.Created);
@@ -249,7 +249,7 @@ internal static class OwnerAdminExecutionTests
         var definition = fixture.Definition(scope);
         var initialize = JsonSerializer.Serialize(new {jsonrpc="2.0",id=1,method="initialize",@params=new {protocolVersion="2025-06-18",capabilities=new{},clientInfo=new{name="owner-admin-fixture",version="1"}}});
         var initialized = JsonSerializer.Serialize(new {jsonrpc="2.0",method="notifications/initialized"});
-        var validate = JsonSerializer.Serialize(new {jsonrpc="2.0",id=2,method="tools/call",@params=new {name="pao",arguments=new {op="admin_validate",text=fixture.Body(definition)}}});
+        var validate = JsonSerializer.Serialize(new {jsonrpc="2.0",id=2,method="tools/call",@params=new {name="pao",arguments=new {op="admin_validate",text=fixture.Body(definition),output="structured"}}});
         await using var dispatcher = new TestDispatcher(fixture);
         var output = new StringWriter(); var errors = new StringWriter();
         Equal(0,await PaoProgram.RunMcpAsync(dispatcher,new StringReader(string.Join('\n',initialize,initialized,validate)+"\n"),output,errors,default,defaultWs:"unrelated-workspace"));

@@ -8,7 +8,8 @@ setup adapter whenever one is available.
 
 ## Execution boundary
 
-- UI operations execute only through the authenticated signed-in user's tray.
+- UI operations execute through the authenticated ordinary owner Host in the
+  signed-in interactive session. The tray window need not be visible or open.
 - The LocalSystem service does not load the UI provider and cannot automate the
   Session 0 desktop.
 - `ui_find` returns an exact target identity: `hwnd`, positive `pid`, and

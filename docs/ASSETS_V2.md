@@ -172,6 +172,9 @@ prompt/seed alone do not guarantee identical pixels across providers/versions.
 
 ## Evidence and remaining gates
 
+The results in this section record the October 2026 asset qualification, not
+the installed version or a current command to launch a direct MCP adapter.
+
 Installed `2.2026.10.07.15.19.A` verified and imported the frozen 14-file pack:
 11 icons plus catalog, license and notice, totaling 20,752 original bytes.
 Raw JSON-RPC through the installed executable returned all 14 references,
@@ -181,11 +184,17 @@ Identical replay preserved the count and all exact ID/reference pairs. The same
 resident host survived adapter EOF; the final sample was approximately 121 MiB
 working set and 52 MiB private memory. No installation, broad scan, personal-data
 import, network download or configuration change occurred during this import.
-See `artifacts/validation/assets-v2-installed-current.json`. Rerun the bounded
-read-only lane with `tools/Test-PegasusCortexInstalledMcp.ps1 -AssetChecks
--RequireResidentLifetime`; this checks the explicitly imported baseline and does
-not ingest files or render artwork. Consumer integration and sustained-load
-acceptance are not established by this result.
+The historical source-workspace receipt was
+`artifacts/validation/assets-v2-installed-current.json`. Its direct-adapter smoke
+script is retired. For current connection qualification, follow
+[shared MCP verification](CORTEX_SHARED_MCP.md#verification-boundaries) and verify
+the actual selected owner and client connection. Through that admitted shared
+connection, discover the advertised resource contract, select exact existing
+asset coordinates, and compare bounded returned bytes with their declared
+metadata/content digests. Do not import data, start a private adapter or open a
+database merely to check retrieval. Connection, exact asset retrieval, consumer
+rendering and sustained-load acceptance are separate observations; the old
+receipt does not establish them for a newer release.
 
 Warning-strict affected Release builds passed, followed by eight combined checks.
 The fixture exercised 521 generated heads, a 16 MiB original, a 70,000-byte exact

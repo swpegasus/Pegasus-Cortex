@@ -1,9 +1,11 @@
 # UI automation examples
 
 AgentOps exposes a small provider-neutral UI surface for standard Windows
-windows and controls. It runs only in the authenticated signed-in user's tray
-session. The LocalSystem service never loads the UI provider or automates the
-Session 0 desktop.
+windows and controls. It runs in the authenticated ordinary owner Host in the
+signed-in interactive session; the tray window need not be visible or open.
+The LocalSystem service never loads the UI provider or automates the Session 0
+desktop. Connect through the configured shared MCP endpoint or the installed
+`pao` CLI; this example does not start an owner or create another MCP adapter.
 
 Use this flow:
 
@@ -159,7 +161,7 @@ pao ui click 0x0000000000012345 4242 2026-08-27T20:15:30.1234567Z 0x000000000001
 with `ui_control` or another application-specific read-only check. Do not
 assume the click succeeded merely because it was issued.
 
-## 7. Handle stale identity safely
+## 7. Capture the exact window
 
 Capture the exact identity-bound window without returning image bytes through
 MCP:

@@ -178,7 +178,7 @@ internal static class PersonalProfileIntegrationTests
         CallAsync(composition, "cortex_search", new
         {
             namespaces = new[] { "knowledge.shared", "project.fixture", "knowledge.user" },
-            text = "marker", maxUtf8Bytes = 4096
+            text = "marker", maxUtf8Bytes = 4096, format = "detailed"
         });
 
     private static ValueTask<JsonObject> ReadPersonalAsync(CortexMcpLocalComposition composition) =>

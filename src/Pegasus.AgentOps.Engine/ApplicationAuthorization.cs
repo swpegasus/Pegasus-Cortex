@@ -10,6 +10,7 @@ using Pegasus.Cortex.Product;
 namespace Pegasus.AgentOps.Engine;
 
 internal sealed record ApplicationPeerEvidence(string ApplicationId,string ServiceName,string ExecutablePath,string PublisherThumbprint);
+internal sealed record ApplicationSessionLease(string ApplicationId,string CredentialId,long Generation);
 
 internal interface IApplicationPeerVerifier
 {
@@ -185,7 +186,10 @@ internal sealed class ApplicationCredentialRegistry
     private const int Iterations=240_000;
     private sealed record Entry(string ApplicationId,string Label,string CredentialId,long Generation,string State,byte[]? Salt,byte[]? Verifier,DateTimeOffset IssuedAt,DateTimeOffset UpdatedAt);
     private sealed record Store(int Version,List<Entry> Entries);
-    internal sealed record Change(ApplicationAuthorizationResult Result,bool Connected=false);
+    internal sealed record Change(ApplicationAuthorizationResult Result,ApplicationSessionLease? Lease=null)
+    {
+        internal bool Connected=>Lease is not null;
+    }
     private readonly string _path;private readonly object _gate=new();private static readonly JsonSerializerOptions Json=new(JsonSerializerDefaults.Web);
 
     public ApplicationCredentialRegistry(string stateRoot)=>_path=Path.Combine(Path.GetFullPath(stateRoot),"application-authorizations.v1.json");
@@ -216,6 +220,19 @@ internal sealed class ApplicationCredentialRegistry
     }
 
     public ApplicationAuthorizationResult OwnerRevoke(string applicationId)=>Revoke(applicationId).Result;
+
+    internal void RequireActive(ApplicationSessionLease lease)
+    {
+        lock(_gate)
+        {
+            var entry=Read().Entries.SingleOrDefault(value=>value.ApplicationId==lease.ApplicationId);
+            if(lease.ApplicationId!=ApplicationAuthorizationProtocol.CerebralApplicationId||
+                entry is null||entry.State!="active"||entry.CredentialId!=lease.CredentialId||entry.Generation!=lease.Generation)
+                throw new AgentOpsException("application_auth");
+            // This is admission of one operation, serialized with revoke/rotate.
+            // Revocation cannot undo work that passed this check before it completed.
+        }
+    }
 
     private Change Issue(string applicationId,bool rotate)
     {
@@ -273,7 +290,7 @@ internal sealed class ApplicationCredentialRegistry
                 finally{CryptographicOperations.ZeroMemory(verifier);}
             }
             finally{CryptographicOperations.ZeroMemory(supplied);}
-            return new(new(true,"ready",ApplicationId:applicationId,Label:entry.Label,CredentialId:entry.CredentialId,Generation:entry.Generation,SessionId:"cas_"+Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(12))),true);
+            return new(new(true,"ready",ApplicationId:applicationId,Label:entry.Label,CredentialId:entry.CredentialId,Generation:entry.Generation,SessionId:"cas_"+Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(12))),new(applicationId,entry.CredentialId,entry.Generation));
         }
     }
 
@@ -282,7 +299,9 @@ internal sealed class ApplicationCredentialRegistry
         if(!File.Exists(_path))return new(1,[]);
         PathNormalizer.RejectAbsoluteReparseComponents(_path);if((File.GetAttributes(_path)&FileAttributes.ReparsePoint)!=0)throw new AgentOpsException("integrity");
         var store=JsonSerializer.Deserialize<Store>(File.ReadAllBytes(_path),Json)??throw new AgentOpsException("integrity");
-        if(store.Version!=1||store.Entries.Count>8||store.Entries.GroupBy(entry=>entry.ApplicationId,StringComparer.Ordinal).Any(group=>group.Count()!=1)||
+        if(store.Version!=1||store.Entries is null||store.Entries.Count>8||
+            store.Entries.Any(entry=>entry is null||entry.CredentialId is null)||
+            store.Entries.GroupBy(entry=>entry.ApplicationId,StringComparer.Ordinal).Any(group=>group.Count()!=1)||
             store.Entries.Any(entry=>entry.ApplicationId!=ApplicationAuthorizationProtocol.CerebralApplicationId||entry.Label!="Pegasus Cerebral"||
                 entry.Generation<1||entry.CredentialId.Length!=28||!entry.CredentialId.StartsWith("cac_",StringComparison.Ordinal)||
                 entry.CredentialId[4..].Any(character=>character is not(>='0' and <='9') and not(>='a' and <='f'))||
@@ -319,6 +338,34 @@ internal sealed class ApplicationAuthorizationCoordinator
         catch(AgentOpsException){return new(new(false,"failed","application_auth"));}
         catch(Exception ex)when(ex is ArgumentException or IOException or UnauthorizedAccessException or CryptographicException){return new(new(false,"failed","application_auth"));}
     }
+
+    internal ApplicationAuthorizedSession OpenSession(ApplicationCredentialRegistry.Change change,
+        Func<OperationRequest,CancellationToken,Task<OperationReceipt>> dispatch)
+    {
+        if(!change.Result.Ok||change.Lease is not { } lease)throw new AgentOpsException("application_auth");
+        return new(_registry,lease,dispatch);
+    }
+}
+
+// A connection keeps its original authenticated generation. Checking it before
+// every new dispatch never reconnects, renews or replays a submitted operation.
+internal sealed class ApplicationAuthorizedSession(ApplicationCredentialRegistry registry,ApplicationSessionLease lease,
+    Func<OperationRequest,CancellationToken,Task<OperationReceipt>> dispatch)
+{
+    internal Task<OperationReceipt> DispatchAsync(OperationRequest request,CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        try{registry.RequireActive(lease);}
+        catch(Exception ex)when(ex is AgentOpsException or ArgumentException or IOException or UnauthorizedAccessException or
+            CryptographicException or JsonException or System.Security.SecurityException)
+        {
+            return Task.FromResult(new OperationReceipt(false,Guid.NewGuid().ToString("N"),request.Rid??Guid.NewGuid().ToString("N"),
+                "failed",OperationNames.Public(request),"application_auth"));
+        }
+        // Callback failures retain the broker's own evidence; they are not
+        // misreported as an authentication failure and are never retried here.
+        return dispatch(request,cancellationToken);
+    }
 }
 
 [SupportedOSPlatform("windows")]
@@ -349,10 +396,11 @@ internal static class ApplicationAuthorizationPipeHost
                 {
                     var peer=LocalIdentity.Capture(pipe);var request=await BinaryProtocol.ReadAsync<ApplicationAuthorizationRequest>(pipe,cancellationToken);var change=coordinator.Apply(request,peer);
                     await BinaryProtocol.WriteAsync(pipe,change.Result,cancellationToken);if(!change.Connected)return;
+                    var session=coordinator.OpenSession(change,broker.HandleApplicationAsync);
                     while(pipe.IsConnected)
                     {
                         OperationRequest operation;try{operation=await BinaryProtocol.ReadAsync<OperationRequest>(pipe,cancellationToken);}catch(EndOfStreamException){return;}
-                        var receipt=await broker.HandleApplicationAsync(operation,cancellationToken);await BinaryProtocol.WriteAsync(pipe,receipt,cancellationToken);
+                        var receipt=await session.DispatchAsync(operation,cancellationToken);await BinaryProtocol.WriteAsync(pipe,receipt,cancellationToken);
                     }
                 }
                 catch(OperationCanceledException)when(cancellationToken.IsCancellationRequested){}

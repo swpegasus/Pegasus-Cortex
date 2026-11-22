@@ -30,6 +30,13 @@ rather than an OSI open-source license. Bundled third-party code, runtime files,
 tools and artwork retain their own terms in [licenses](licenses/).
 For author information or commercial licensing, visit [Shayne Winter](https://shaynewinter.com/).
 
+Created by Shayne Winter, with development assistance from
+[OpenAI Codex](https://openai.com/codex/) and [Pegasus Cerebral](https://cerebral.shaynewinter.com/).
+These development credits are separate from ownership and license terms.
+Development software and AI-assisted work can contain mistakes: review outputs
+and authorized actions, understand privileged-operation scope, and keep suitable
+backups. The included license supplies the actual terms.
+
 ## Shared foundations
 
 The planned Pegasus Shared repository groups reusable diagnostics, common schemas/compatibility contracts and MCP transport as separate versioned libraries. Each product keeps its own control adapter, tool registry, state, authorization and release.
@@ -110,10 +117,18 @@ and exact lifecycle semantics. Remote terminal providers are deferred.
 
 ## Build and release
 
-See [Build from source](https://github.com/swpegasus/Pegasus-Cortex/blob/main/docs/BUILD_FROM_SOURCE.md) for the declared Windows SDK,
-pinned dependencies and normal build/release route. Signing keys and machine
-certificates remain external to this repository. Generated artifacts, databases,
-private continuity caches and credentials are excluded from source publication.
+There are three separate paths: install the prepared archive, compile ordinary
+source, or construct a signed installable package. The
+[step-by-step guide](https://github.com/swpegasus/Pegasus-Cortex/blob/main/docs/BUILD_FROM_SOURCE.md)
+explains their prerequisites and verification. The normal release entry is
+`tools/Build-PegasusCortexRelease.ps1`; older standalone package scripts are not
+alternate release routes. Signing keys and machine certificates remain external
+to this repository. Generated artifacts, databases, private continuity caches
+and credentials are excluded from source publication.
+
+For contributors, [Start here](https://github.com/swpegasus/Pegasus-Cortex/blob/main/START_HERE.md)
+is the compact current source entry. Its older recovery/qualification history is
+preserved separately; a fresh computer needs no recovery drive or prior machine.
 
 The distribution may include public publisher and root certificates used to
 verify its signed package. Public certificates and signature containers contain

@@ -22,7 +22,7 @@ public static class CortexV2McpContract
     [
         Tool("cortex_status", "Local status, including optional personal-profile availability when managed.", EmptySchema(), readOnly: true),
         Tool("cortex_namespaces", "List namespaces.", NamespacesSchema(), readOnly: true),
-        Tool("cortex_start", "Load one bounded task brief from explicit project and knowledge spaces; compact format is preferred for agents. An unavailable optional personal profile omits knowledge.user and reports the actual effective spaces.", StartSchema(), readOnly: true),
+        Tool("cortex_start", "Load one bounded task brief from explicit project and knowledge spaces; compact format is the default. Request detailed format for the full preview metadata. An unavailable optional personal profile omits knowledge.user and reports the actual effective spaces.", StartSchema(), readOnly: true),
         Tool("cortex_search", "Search compact previews in explicit spaces; selected knowledge spaces compose geometrically before exact reads. An unavailable optional personal profile omits knowledge.user; restart a stale personal-sensitive cursor.", SearchSchema(), readOnly: true),
         Tool("cortex_read", "Read one or up to eight exact full records.", ReadSchema(), readOnly: true),
         Tool("cortex_task", "Manage tasks.", TaskSchema(), readOnly: false),
@@ -65,7 +65,7 @@ public static class CortexV2McpContract
         ["phaseId"] = Identifier(),
         ["knownContextCursor"] = String(CortexV2Limits.MaximumContextCursorCharacters),
         ["maxUtf8Bytes"] = StartBudget(),
-        ["format"] = Enum<CortexResponseFormatV2>()
+        ["format"] = PreviewFormat()
     }, ["namespaces", "intent"]);
 
     private static JsonObject SearchSchema() => ObjectSchema(new JsonObject
@@ -76,7 +76,7 @@ public static class CortexV2McpContract
         ["afterCursor"] = String(CortexV2Limits.MaximumContextCursorCharacters),
         ["limit"] = Integer(1, CortexV2Limits.MaximumPageSize, CortexV2Limits.DefaultPageSize),
         ["maxUtf8Bytes"] = CompactBudget(),
-        ["format"] = Enum<CortexResponseFormatV2>()
+        ["format"] = PreviewFormat()
     }, ["namespaces", "text"]);
 
     private static JsonObject ReadSchema()
@@ -274,6 +274,13 @@ public static class CortexV2McpContract
             CortexV2Limits.MinimumResponseUtf8Bytes,
             CortexV2Limits.MaximumResponseUtf8Bytes,
             CortexV2Limits.MaximumResponseUtf8Bytes);
+
+    private static JsonObject PreviewFormat()
+    {
+        var value = Enum<CortexResponseFormatV2>();
+        value["default"] = "compact";
+        return value;
+    }
 
     private static JsonObject Enum<T>() where T : struct, Enum => new()
     {

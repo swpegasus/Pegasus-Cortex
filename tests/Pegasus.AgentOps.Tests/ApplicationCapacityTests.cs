@@ -135,7 +135,7 @@ internal static partial class ApplicationCapacityTests
                     text.Contains("next=" + next, StringComparison.Ordinal),
                     "Retained-capacity agent guidance still required shutdown or lost exact release preconditions.");
                 var structured = await PaoProgram.CallUnifiedMcpToolAsync(JsonSerializer.SerializeToElement(new
-                    { op = "app_start", cfg = Configuration, name = "private-name" }), dispatcher, CancellationToken.None);
+                    { op = "app_start", cfg = Configuration, name = "private-name", output = "structured" }), dispatcher, CancellationToken.None);
                 Check(structured["structuredContent"]!["failure"]!["next"]!.GetValue<string>() == next,
                     "Structured retained-capacity failure guidance diverged from the terminal-release contract.");
             }

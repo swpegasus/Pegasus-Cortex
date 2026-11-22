@@ -1024,7 +1024,7 @@ $productPayloadPreparation
   DetailPrint "Install root: `$INSTDIR"
 $dataDetails
   DetailPrint "Verifying and installing the signed $displayName product. Bounded stages appear in the setup console."
-  DetailPrint "Persistent setup diagnostics: `$INSTDIR\state\install\logs (when the install root is available)."
+  DetailPrint "Setup diagnostics appear below; the product backend may also retain a log in its configured state directory."
 $installInvocation
   DetailPrint "Setup backend finished with code `$0 (8 also indicates a launch failure)."
   IntCmp `$0 0 product_done

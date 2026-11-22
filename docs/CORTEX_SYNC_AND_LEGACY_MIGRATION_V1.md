@@ -2,11 +2,11 @@
 
 > **HISTORICAL AND SUPERSEDED — DO NOT USE FOR CURRENT BUILD, PACKAGING,
 > INSTALLATION, OR ARCHITECTURE.** This document preserves a pre-V2 design
-> checkpoint. Current authority is `START_HERE.md` and
-> `docs/LOCAL_OPERATIONAL_V2.md`. The framework-dependent DLL/profile x64 route
-> is retired; current packaging and installation use
-> `deploy/x64/New-PegasusCortexV2PackageManifest.ps1` and
-> `deploy/x64/Install-PegasusCortexV2X64.ps1`.
+> checkpoint. The framework-dependent DLL/profile x64 route is retired. Use
+> [the current installation/build guide](BUILD_FROM_SOURCE.md),
+> [shared MCP setup](CORTEX_SHARED_MCP.md), and
+> [local operational V2](LOCAL_OPERATIONAL_V2.md). Historical deployment commands
+> below are not the maintained release route.
 
 Last updated: 2026-07-21
 

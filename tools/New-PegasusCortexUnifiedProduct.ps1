@@ -371,15 +371,20 @@ if($ownerAdminReuse)
     {if((Get-CortexComponentVersion $entrypoint)-cne$releaseVersion){throw 'A freshly affected role does not carry the reviewed fresh candidate version.'}}
 }
 
-$dependency = & (Join-Path $root 'tools\dependencies\Get-NsisBuildTool.ps1') `
-    -CacheRoot (Join-Path $root 'artifacts\dependencies')
-$nsisSource = [IO.Path]::GetFullPath([string]$dependency.Root)
-if ((Get-Sha256 -Path ([string]$dependency.Archive)) -cne
-    '56581f90db321581c5381193d796fffcf2d24b2f8fed2160a6c6a3baa67f2c4f') {
-    throw 'The admitted NSIS archive changed after dependency resolution.'
-}
 $nsisTarget = Join-Path $product 'tools\nsis\3.12'
-Merge-TreeExact -Source $nsisSource -Destination $nsisTarget
+New-Item -ItemType Directory -Path (Split-Path -Parent $nsisTarget) -Force -ErrorAction Stop | Out-Null
+# The resolver holds the pinned archive through full cache admission and writes
+# this create-only target directly from that archive, never from cache files.
+$dependency = & (Join-Path $root 'tools\dependencies\Get-NsisBuildTool.ps1') `
+    -CacheRoot (Join-Path $root 'artifacts\dependencies') -DestinationRoot $nsisTarget
+if ([string]$dependency.ArchiveSha256 -cne
+    '56581f90db321581c5381193d796fffcf2d24b2f8fed2160a6c6a3baa67f2c4f') {
+    throw 'NSIS resolution did not admit the pinned distribution archive.'
+}
+if ([IO.Path]::GetFullPath([string]$dependency.Root) -cne [IO.Path]::GetFullPath($nsisTarget) -or
+    $dependency.VersionProbeExecuted -ne $false -or $dependency.VersionSource -cne 'pinned_archive_contract') {
+    throw 'NSIS resolution did not materialize the selected archive-owned target.'
+}
 
 $licenses = Join-Path $product 'licenses'
 Merge-TreeExact -Source (Join-Path $root 'licenses') -Destination $licenses

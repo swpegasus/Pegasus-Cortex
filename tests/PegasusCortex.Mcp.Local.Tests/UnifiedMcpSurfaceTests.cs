@@ -43,7 +43,7 @@ internal static class UnifiedMcpSurfaceTests
             "The standalone PAO JSON adapter rejected the fixed NSIS route.");
 
         using var nsisDocument = JsonDocument.Parse(
-            """{"op":"nsis_status","rid":"shared-nsis-route"}""");
+            """{"op":"nsis_status","rid":"shared-nsis-route","output":"structured"}""");
         var nsisMcp = await unified.CallToolAsync(
             "pao",
             nsisDocument.RootElement.Clone(),

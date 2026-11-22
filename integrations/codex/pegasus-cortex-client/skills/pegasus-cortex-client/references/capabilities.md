@@ -33,9 +33,12 @@ The skills package supplies no project root, state-root argument, DLL entry
 point, private runtime, listener or second offline MCP registration. The machine registry
 binds `InstallLocation` and `DataLocation`; runtime resolves those admitted
 locations rather than guessing a source checkout or silently falling back.
-Semantic databases/backups use the registered data root's owner-SID directory;
-config, logs, receipts, and execution state remain under the install root's
-owner-SID state directory. Installation never replaces existing databases.
+All mutable state uses the registered DataLocation. Semantic databases/backups,
+configuration, logs, receipts, execution state and tray preferences occupy their
+separate owner-SID directories beneath `<DataRoot>/users/<owner-SID>`; protected
+installation metadata and service state have separate directories under the
+same DataRoot. The InstallLocation contains immutable program files, not the
+mutable execution state. Installation preserves existing databases.
 
 Shared namespace metadata may live in portable `.cortex/project.json`. Offline
 mutable state is additionally bound to an explicit stable task ID and stored in
@@ -52,8 +55,10 @@ product facts.
 
 ## Pegasus AgentOps interoperability
 
-Pegasus AgentOps is an optional local operator layer, not a Cortex runtime
-dependency. When it is available, prefer fixed typed `pao` operations for local
+The installed Cortex product includes the local Pegasus AgentOps execution
+components. The composition may advertise the typed `pao` extension alongside
+the semantic tools; discover the actual catalog rather than assuming it is
+available. When advertised, prefer fixed typed `pao` operations for local
 Windows filesystem, hashing, archive, process, diagnostic, registered
 PowerShell, and installed-Cortex-CLI work. Use direct Cortex MCP tools for
 semantic task and knowledge operations.
@@ -90,8 +95,8 @@ must synchronously use PAO writes or builds, launch the parent directly in the
 ordinary user session and retain PAO for those inner typed operations. Nested
 read-only PAO operations remain supported.
 
-The optional PAO service-lifecycle surface is deliberately not a generic SCM
-client. `service_status`, `service_start`, `service_stop`, and
+The specialized PAO `service` family is deliberately not a generic SCM client.
+`service_status`, `service_start`, `service_stop`, and
 `service_restart` admit only the exact `PegasusCerebral` service through the
 root-authorized LocalSystem broker. Status provides bounded state plus the
 running PID/start identity. Stop and restart require that exact identity;
@@ -99,6 +104,16 @@ start requires `expect=stopped`; mutation timeouts are 1-120 seconds. No caller
 can supply an executable, command line, machine, or different service name,
 and Cortex's own service is outside this route. Root material is stripped
 before durable queueing and never belongs in receipts or Cortex records.
+
+The separate `windows_service_<action>` family supports bounded local service
+inspection and control with exact target/preimage checks. Its explicit Root and
+same-owner UAC routes are independent; neither is an automatic fallback, and
+startup configuration does not start or stop a service. Use current selected
+operation help for the exact body and route. Ordinary owner-Host operations do
+not require the tray window to stay open. Local `terminal_list` and the other
+`terminal_*` operations retain shells only for that owner's lifetime; an MCP
+disconnect can be reattached, while Host restart or reboot does not restore a
+shell. PowerShell 7 is the provisioned terminal prerequisite.
 
 The current fixed PAO catalog has no HTTP/page-request or download operation.
 Its `net_list` selector inspects local listeners; it does not fetch a URL.
@@ -486,9 +501,12 @@ and recommendation telemetry without a corpus scan. The active profile is a
 working-set bound, not a product-lifetime or collective-corpus limit. Do not
 auto-delete, auto-shard, or change the configured maximum.
 
-Long-term immutable cold-history packs, multipart exports, and collective
-retention/publication are separate future lifecycles. They are not implied by
-the local capacity model and are not exposed by the eight local MCP tools.
+The current source also has explicit optional local cold-payload, protection,
+rotation and paged-rehydration controls. Those owner controls are distinct from
+the eight semantic MCP tools and do not imply automatic migration, deletion or
+that a particular installed owner has enabled them. Cross-machine cold-history
+packs, multipart exports and collective publication remain separate lifecycles.
+Use the release's storage guide and actual owner status for the admitted policy.
 
 ## Behavior packs and legacy fallback
 
@@ -515,8 +533,9 @@ WAL, machine actor, project task history, or validation evidence.
 
 The package ships `guidance/pegasus-cortex-agents.v2.md` and
 `guidance/pegasus-cortex-pao.v1.md` as bounded suite-owned managed AGENTS
-fragments. The unified NSIS installer applies them atomically to the installing
-user's global Codex guidance at `%USERPROFILE%\.codex\AGENTS.md`, replaces a
+fragments. When the user selects the separate Codex-guidance feature, the unified
+NSIS installer applies them atomically to the installing user's global Codex
+guidance at `%USERPROFILE%\.codex\AGENTS.md`, replaces a
 recognized legacy standalone-AgentOps section, preserves unrelated guidance,
 and is byte-idempotent on repair. A nonstandard Codex home must be supplied as
 an explicit canonical `AGENTS.md` target. The Cortex runtime never edits global

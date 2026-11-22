@@ -29,7 +29,7 @@ internal static class DeferredSubmissionClientTests
             JsonNode.Parse(Text(running))!["jid"]!.GetValue<string>() == "accepted-jid" &&
             !Text(running).Contains("log_available", StringComparison.Ordinal) &&
             !Text(running).Contains("exit", StringComparison.Ordinal), "Admission manufactured process result facts.");
-        var structured = await CallAsync(new { op = "run", cfg = "fixture", wait = false });
+        var structured = await CallAsync(new { op = "run", cfg = "fixture", wait = false, output = "structured" });
         Check(structured["structuredContent"]!["state"]!.GetValue<string>() == "running" &&
             structured["structuredContent"]!["rid"]!.GetValue<string>() == "accepted-rid", "Legacy receipt lost accepted state or RID.");
 
@@ -101,12 +101,12 @@ internal static class DeferredSubmissionClientTests
         var schema = PaoProgram.UnifiedMcpToolDefinition()["inputSchema"]!["properties"]!["wait"]!;
         Check(schema["type"]!.GetValue<string>() == "boolean" && schema["default"]!.GetValue<bool>(),
             "Public schema does not advertise typed synchronous-default completion.");
-        var help = await CallAsync(new { op = "help", name = "dotnet_build" });
+        var help = await CallAsync(new { op = "help", name = "dotnet_build", output = "structured" });
         var helpData = help["structuredContent"]!["data"]!;
         Check(helpData["allowed"]!.AsArray().Any(value => value!.GetValue<string>() == "wait") &&
             helpData["constraints"]!.GetValue<string>().Contains("not completion", StringComparison.Ordinal),
             "Queueable help omitted the accepted-job contract.");
-        var readHelp = await CallAsync(new { op = "help", name = "stat" });
+        var readHelp = await CallAsync(new { op = "help", name = "stat", output = "structured" });
         Check(!readHelp["structuredContent"]!["data"]!["allowed"]!.AsArray()
             .Any(value => value!.GetValue<string>() == "wait"), "Read-only help advertised deferred submission.");
 

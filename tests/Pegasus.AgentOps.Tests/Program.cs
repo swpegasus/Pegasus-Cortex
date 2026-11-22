@@ -752,7 +752,7 @@ static async Task TextContextEncodingHelpAsync()
 
     static async Task<JsonElement> CallAsync(IOperationDispatcher dispatcher,object arguments)
     {
-        using var reader=new McpLineReader();using var writer=new McpCaptureWriter();using var stderr=new StringWriter();var run=PaoProgram.RunMcpAsync(dispatcher,reader,writer,stderr,CancellationToken.None,defaultCwd:Environment.CurrentDirectory);reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=1,method="initialize",@params=new{protocolVersion="2026-07-28",capabilities=new{},clientInfo=new{name="context-contract",version="1"}}}));reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",method="notifications/initialized",@params=new{}}));reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=2,method="tools/call",@params=new{name="pao",arguments}}));var line=await writer.Response.WaitAsync(TimeSpan.FromSeconds(5));reader.Complete();Equal(0,await run);Equal(string.Empty,stderr.ToString().Trim());using var response=JsonDocument.Parse(line);return response.RootElement.Clone();
+        using var reader=new McpLineReader();using var writer=new McpCaptureWriter();using var stderr=new StringWriter();var run=PaoProgram.RunMcpAsync(dispatcher,reader,writer,stderr,CancellationToken.None,defaultCwd:Environment.CurrentDirectory);reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=1,method="initialize",@params=new{protocolVersion="2026-07-28",capabilities=new{},clientInfo=new{name="context-contract",version="1"}}}));reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",method="notifications/initialized",@params=new{}}));reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=2,method="tools/call",@params=new{name="pao",arguments=StructuredMcpArguments(arguments)}}));var line=await writer.Response.WaitAsync(TimeSpan.FromSeconds(5));reader.Complete();Equal(0,await run);Equal(string.Empty,stderr.ToString().Trim());using var response=JsonDocument.Parse(line);return response.RootElement.Clone();
     }
 }
 
@@ -849,7 +849,7 @@ static async Task UnixServiceEquivalenceAsync()
 {
     using var temp=new TempRoot();var state=temp.Dir("ux service state");var root=temp.Dir("ux service workspace 雪 &");var file=Path.Combine(root,"sample & 雪.txt");File.WriteAllText(file,"alpha\nTODO service\nomega",new UTF8Encoding(false));using var service=await StartServiceAsync(state);
     var cli=await RunPaoAsync(["ux","grep","-R","-n","-F","TODO",root]);Equal(0,cli.ExitCode);Equal(1L,LongField(cli.Stdout,"matched"));
-    var mcp=string.Join('\n',"{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2026-07-28\",\"capabilities\":{},\"clientInfo\":{\"name\":\"ux-test\",\"version\":\"1\"}}}","{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}",$"{{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{{\"name\":\"pao\",\"arguments\":{{\"op\":\"search\",\"src\":{JsonSerializer.Serialize(root)},\"pattern\":\"TODO\",\"recur\":true,\"fmt\":\"literal\",\"rid\":\"ux-mcp-search\"}}}}}}")+"\n";
+    var mcp=string.Join('\n',"{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2026-07-28\",\"capabilities\":{},\"clientInfo\":{\"name\":\"ux-test\",\"version\":\"1\"}}}","{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}",$"{{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{{\"name\":\"pao\",\"arguments\":{{\"op\":\"search\",\"src\":{JsonSerializer.Serialize(root)},\"pattern\":\"TODO\",\"recur\":true,\"fmt\":\"literal\",\"rid\":\"ux-mcp-search\",\"output\":\"structured\"}}}}}}")+"\n";
     var result=await RunPaoAsync(["mcp"],mcp);Equal(0,result.ExitCode);var documents=result.Stdout.Split('\n',StringSplitOptions.RemoveEmptyEntries).Select(line=>JsonDocument.Parse(line)).ToArray();try{var response=documents.Single(x=>x.RootElement.TryGetProperty("id",out var id)&&id.GetInt32()==2);var structured=response.RootElement.GetProperty("result").GetProperty("structuredContent");Equal(true,structured.GetProperty("ok").GetBoolean());Equal(1,structured.GetProperty("data").GetProperty("matched").GetInt32());}finally{foreach(var document in documents)document.Dispose();}
     var unsupported=await RunPaoAsync(["ux","awk","{print $1}",file]);Equal(2,unsupported.ExitCode);Check(unsupported.Stdout.Contains("err=unsupported_command",StringComparison.Ordinal),unsupported.Stdout);
 }
@@ -1411,7 +1411,7 @@ static async Task McpGitCwdDetailAsync()
     }
     static async Task<JsonElement> CallAsync(IOperationDispatcher dispatcher,object arguments)
     {
-        using var reader=new McpLineReader();using var writer=new McpCaptureWriter();using var stderr=new StringWriter();var run=PaoProgram.RunMcpAsync(dispatcher,reader,writer,stderr,CancellationToken.None,defaultCwd:Environment.CurrentDirectory);reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=1,method="initialize",@params=new{protocolVersion="2026-07-28",capabilities=new{},clientInfo=new{name="git-contract",version="1"}}}));reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",method="notifications/initialized",@params=new{}}));reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=2,method="tools/call",@params=new{name="pao",arguments}}));var line=await writer.Response.WaitAsync(TimeSpan.FromSeconds(10));reader.Complete();Equal(0,await run);Equal(string.Empty,stderr.ToString().Trim());using var response=JsonDocument.Parse(line);return response.RootElement.Clone();
+        using var reader=new McpLineReader();using var writer=new McpCaptureWriter();using var stderr=new StringWriter();var run=PaoProgram.RunMcpAsync(dispatcher,reader,writer,stderr,CancellationToken.None,defaultCwd:Environment.CurrentDirectory);reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=1,method="initialize",@params=new{protocolVersion="2026-07-28",capabilities=new{},clientInfo=new{name="git-contract",version="1"}}}));reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",method="notifications/initialized",@params=new{}}));reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=2,method="tools/call",@params=new{name="pao",arguments=StructuredMcpArguments(arguments)}}));var line=await writer.Response.WaitAsync(TimeSpan.FromSeconds(10));reader.Complete();Equal(0,await run);Equal(string.Empty,stderr.ToString().Trim());using var response=JsonDocument.Parse(line);return response.RootElement.Clone();
     }
 }
 
@@ -1445,7 +1445,7 @@ static async Task McpDotnetSolutionAsync()
 
     static async Task<JsonElement> CallAsync(IOperationDispatcher dispatcher,object arguments)
     {
-        using var reader=new McpLineReader();using var writer=new McpCaptureWriter();using var stderr=new StringWriter();var run=PaoProgram.RunMcpAsync(dispatcher,reader,writer,stderr,CancellationToken.None,defaultCwd:Environment.CurrentDirectory);reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=1,method="initialize",@params=new{protocolVersion="2026-07-28",capabilities=new{},clientInfo=new{name="dotnet-contract",version="1"}}}));reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",method="notifications/initialized",@params=new{}}));reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=2,method="tools/call",@params=new{name="pao",arguments}}));var line=await writer.Response.WaitAsync(TimeSpan.FromSeconds(10));reader.Complete();Equal(0,await run);Equal(string.Empty,stderr.ToString().Trim());using var response=JsonDocument.Parse(line);return response.RootElement.Clone();
+        using var reader=new McpLineReader();using var writer=new McpCaptureWriter();using var stderr=new StringWriter();var run=PaoProgram.RunMcpAsync(dispatcher,reader,writer,stderr,CancellationToken.None,defaultCwd:Environment.CurrentDirectory);reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=1,method="initialize",@params=new{protocolVersion="2026-07-28",capabilities=new{},clientInfo=new{name="dotnet-contract",version="1"}}}));reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",method="notifications/initialized",@params=new{}}));reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=2,method="tools/call",@params=new{name="pao",arguments=StructuredMcpArguments(arguments)}}));var line=await writer.Response.WaitAsync(TimeSpan.FromSeconds(10));reader.Complete();Equal(0,await run);Equal(string.Empty,stderr.ToString().Trim());using var response=JsonDocument.Parse(line);return response.RootElement.Clone();
     }
     static async Task<JsonElement> ListToolsAsync(IOperationDispatcher dispatcher)
     {
@@ -1476,7 +1476,7 @@ static async Task McpProcessListFilterAsync()
 
     static async Task<JsonElement> CallAsync(IOperationDispatcher dispatcher,object arguments)
     {
-        using var reader=new McpLineReader();using var writer=new McpCaptureWriter();using var stderr=new StringWriter();var run=PaoProgram.RunMcpAsync(dispatcher,reader,writer,stderr,CancellationToken.None,defaultCwd:Environment.CurrentDirectory);reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=1,method="initialize",@params=new{protocolVersion="2026-07-28",capabilities=new{},clientInfo=new{name="proc-contract",version="1"}}}));reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",method="notifications/initialized",@params=new{}}));reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=2,method="tools/call",@params=new{name="pao",arguments}}));var line=await writer.Response.WaitAsync(TimeSpan.FromSeconds(10));reader.Complete();Equal(0,await run);Equal(string.Empty,stderr.ToString().Trim());using var response=JsonDocument.Parse(line);return response.RootElement.Clone();
+        using var reader=new McpLineReader();using var writer=new McpCaptureWriter();using var stderr=new StringWriter();var run=PaoProgram.RunMcpAsync(dispatcher,reader,writer,stderr,CancellationToken.None,defaultCwd:Environment.CurrentDirectory);reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=1,method="initialize",@params=new{protocolVersion="2026-07-28",capabilities=new{},clientInfo=new{name="proc-contract",version="1"}}}));reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",method="notifications/initialized",@params=new{}}));reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=2,method="tools/call",@params=new{name="pao",arguments=StructuredMcpArguments(arguments)}}));var line=await writer.Response.WaitAsync(TimeSpan.FromSeconds(10));reader.Complete();Equal(0,await run);Equal(string.Empty,stderr.ToString().Trim());using var response=JsonDocument.Parse(line);return response.RootElement.Clone();
     }
 }
 
@@ -1506,7 +1506,7 @@ static async Task UiParserContractAsync()
         using var reader=new McpLineReader();using var writer=new McpCaptureWriter();using var stderr=new StringWriter();var run=PaoProgram.RunMcpAsync(dispatcher,reader,writer,stderr,CancellationToken.None,defaultCwd:Environment.CurrentDirectory);
         reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=1,method="initialize",@params=new{protocolVersion="2026-07-28",capabilities=new{},clientInfo=new{name="ui-contract",version="1"}}}));
         reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",method="notifications/initialized",@params=new{}}));
-        reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=2,method="tools/call",@params=new{name="pao",arguments}}));
+        reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=2,method="tools/call",@params=new{name="pao",arguments=StructuredMcpArguments(arguments)}}));
         var line=await writer.Response.WaitAsync(TimeSpan.FromSeconds(5));reader.Complete();Equal(0,await run);Equal(string.Empty,stderr.ToString().Trim());using var response=JsonDocument.Parse(line);return response.RootElement.Clone();
     }
 }
@@ -1529,7 +1529,7 @@ static async Task NsisAdapterAsync()
 
     static async Task<JsonElement> CallNsisAsync(IOperationDispatcher dispatcher,object arguments)
     {
-        using var reader=new McpLineReader();using var writer=new McpCaptureWriter();using var stderr=new StringWriter();var run=PaoProgram.RunMcpAsync(dispatcher,reader,writer,stderr,CancellationToken.None,defaultCwd:Environment.CurrentDirectory);reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=1,method="initialize",@params=new{protocolVersion="2026-07-28",capabilities=new{},clientInfo=new{name="nsis-contract",version="1"}}}));reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",method="notifications/initialized",@params=new{}}));reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=2,method="tools/call",@params=new{name="pao",arguments}}));var line=await writer.Response.WaitAsync(TimeSpan.FromSeconds(5));reader.Complete();Equal(0,await run);Equal(string.Empty,stderr.ToString().Trim());using var response=JsonDocument.Parse(line);return response.RootElement.Clone();
+        using var reader=new McpLineReader();using var writer=new McpCaptureWriter();using var stderr=new StringWriter();var run=PaoProgram.RunMcpAsync(dispatcher,reader,writer,stderr,CancellationToken.None,defaultCwd:Environment.CurrentDirectory);reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=1,method="initialize",@params=new{protocolVersion="2026-07-28",capabilities=new{},clientInfo=new{name="nsis-contract",version="1"}}}));reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",method="notifications/initialized",@params=new{}}));reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=2,method="tools/call",@params=new{name="pao",arguments=StructuredMcpArguments(arguments)}}));var line=await writer.Response.WaitAsync(TimeSpan.FromSeconds(5));reader.Complete();Equal(0,await run);Equal(string.Empty,stderr.ToString().Trim());using var response=JsonDocument.Parse(line);return response.RootElement.Clone();
     }
 }
 
@@ -1594,7 +1594,7 @@ static async Task FeedbackInboxAsync()
 
     static async Task<JsonElement> CallAsync(IOperationDispatcher dispatcher,object arguments)
     {
-        using var reader=new McpLineReader();using var writer=new McpCaptureWriter();using var stderr=new StringWriter();var run=PaoProgram.RunMcpAsync(dispatcher,reader,writer,stderr,CancellationToken.None,defaultCwd:Environment.CurrentDirectory);reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=1,method="initialize",@params=new{protocolVersion="2026-07-28",capabilities=new{},clientInfo=new{name="feedback-contract",version="1"}}}));reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",method="notifications/initialized",@params=new{}}));reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=2,method="tools/call",@params=new{name="pao",arguments}}));var line=await writer.Response.WaitAsync(TimeSpan.FromSeconds(10));reader.Complete();Equal(0,await run);Equal(string.Empty,stderr.ToString().Trim());using var response=JsonDocument.Parse(line);return response.RootElement.Clone();
+        using var reader=new McpLineReader();using var writer=new McpCaptureWriter();using var stderr=new StringWriter();var run=PaoProgram.RunMcpAsync(dispatcher,reader,writer,stderr,CancellationToken.None,defaultCwd:Environment.CurrentDirectory);reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=1,method="initialize",@params=new{protocolVersion="2026-07-28",capabilities=new{},clientInfo=new{name="feedback-contract",version="1"}}}));reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",method="notifications/initialized",@params=new{}}));reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=2,method="tools/call",@params=new{name="pao",arguments=StructuredMcpArguments(arguments)}}));var line=await writer.Response.WaitAsync(TimeSpan.FromSeconds(10));reader.Complete();Equal(0,await run);Equal(string.Empty,stderr.ToString().Trim());using var response=JsonDocument.Parse(line);return response.RootElement.Clone();
     }
 }
 
@@ -1604,7 +1604,7 @@ static async Task McpPipeDownAsync()
     var down = new RecordingDispatcher(request => new OperationReceipt(false,"down",request.Rid!,"failed",OperationNames.Public(request),"svc_down"));
     var privileged = new RecordingDispatcher(_ => throw new InvalidOperationException("ordinary MCP request entered the privileged service route"));
     await using var dispatcher = new RoutingDispatcher(down,privileged,privileged);
-    var failed = await PaoProgram.CallUnifiedMcpToolAsync(JsonSerializer.SerializeToElement(new{op="diag"}),dispatcher,CancellationToken.None);
+    var failed = await PaoProgram.CallUnifiedMcpToolAsync(JsonSerializer.SerializeToElement(new{op="diag",output="structured"}),dispatcher,CancellationToken.None);
     Equal("user_host_unavailable",failed["structuredContent"]!["err"]!.GetValue<string>());
     using var reader = new StringReader(input);using var output = new StringWriter();using var error = new StringWriter();
     Equal(0,await PaoProgram.RunMcpAsync(dispatcher,reader,output,error,CancellationToken.None));
@@ -1746,6 +1746,15 @@ static async Task<(int ExitCode,string Stdout,string Stderr)> RunTrayToExitAsync
 
 static void Throws(string code, Action action) { try { action(); throw new Exception("expected " + code); } catch (AgentOpsException ex) { Equal(code, ex.Code); } }
 static async Task ThrowsAsync<T>(string message, Func<Task> action) where T:Exception { try { await action(); throw new Exception("expected " + typeof(T).Name); } catch (T ex) { Check(ex.Message.Contains(message, StringComparison.Ordinal), ex.Message); } }
+// These operation-contract fixtures inspect persisted receipts. The projection
+// fixtures separately exercise omitted-output and explicit agent presentation.
+static System.Text.Json.Nodes.JsonObject StructuredMcpArguments(object arguments)
+{
+    var values = JsonSerializer.SerializeToNode(arguments)!.AsObject();
+    if (!values.ContainsKey("output")) values["output"] = "structured";
+    return values;
+}
+
 static void Check(bool value, string message) { if (!value) throw new Exception(message); }
 static void Equal<T>(T expected, T actual) { if (expected is Array ea && actual is Array aa) { if (!ea.Cast<object?>().SequenceEqual(aa.Cast<object?>())) throw new Exception($"expected [{string.Join(',',ea.Cast<object?>())}] actual [{string.Join(',',aa.Cast<object?>())}]"); } else if (!EqualityComparer<T>.Default.Equals(expected, actual)) throw new Exception($"expected {expected} actual {actual}"); }
 static long LongField(string text, string name) => long.Parse(text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Single(x => x.StartsWith(name + "=", StringComparison.Ordinal))[(name.Length + 1)..], System.Globalization.CultureInfo.InvariantCulture);

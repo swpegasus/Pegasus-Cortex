@@ -2,10 +2,11 @@
 
 > **HISTORICAL RELEASE RECORD — DO NOT USE FOR CURRENT BUILD, PACKAGING,
 > INSTALLATION, OR ARCHITECTURE.** The library, target-framework, and release
-> facts below describe only the named July 2026 release. Current authority is
-> `START_HERE.md` and `docs/LOCAL_OPERATIONAL_V2.md`; current x64 packaging and
-> installation use `deploy/x64/New-PegasusCortexV2PackageManifest.ps1` and
-> `deploy/x64/Install-PegasusCortexV2X64.ps1`.
+> facts below describe only the named July 2026 release. Use
+> [the current installation/build guide](BUILD_FROM_SOURCE.md),
+> [shared MCP setup](CORTEX_SHARED_MCP.md), and
+> [local operational V2](LOCAL_OPERATIONAL_V2.md). Old deployment scripts named
+> in this historical record are not the maintained release route.
 
 The Default Library is a curated, portable base of evidence-backed knowledge for
 agents and services that need to understand, diagnose, repair, verify, or improve

@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Globalization;
 using Pegasus.AgentOps.Engine;
 using Pegasus.AgentOps.Protocol;
 
@@ -26,17 +27,17 @@ internal static class McpOutputProjectionTests
         });
 
         var arguments = new { op = "read_lines", src = path, line = 2, count = 3 };
-        var legacy = await EmbeddedAsync(dispatcher, arguments);
+        var normal = await EmbeddedAsync(dispatcher, arguments);
         var structured = await EmbeddedAsync(dispatcher, new { op = "read_lines", src = path, line = 2, count = 3, output = "structured" });
-        Check(legacy.ToJsonString(Json) == structured.ToJsonString(Json), "Explicit structured output changed the legacy wire receipt.");
         var receiptJson = JsonSerializer.Serialize(receipt, Json);
-        Check(Text(legacy) == receiptJson && legacy["structuredContent"]!.ToJsonString(Json) == receiptJson,
-            "Default MCP no longer carries the complete engine receipt twice for legacy consumers.");
-        Check(legacy["structuredContent"]!["data"]!["entries"]![0]!["truncated"]!.GetValue<bool>() == false &&
-            legacy["structuredContent"]!["err"] is null && legacy["structuredContent"]!.AsObject().ContainsKey("err"),
+        Check(Text(structured) == receiptJson && structured["structuredContent"]!.ToJsonString(Json) == receiptJson,
+            "Explicit structured MCP no longer preserves the complete legacy receipt.");
+        Check(structured["structuredContent"]!["data"]!["entries"]![0]!["truncated"]!.GetValue<bool>() == false &&
+            structured["structuredContent"]!["err"] is null && structured["structuredContent"]!.AsObject().ContainsKey("err"),
             "Legacy null/false fields were removed.");
 
         var agent = await EmbeddedAsync(dispatcher, new { op = "read_lines", src = path, line = 2, count = 3, output = "agent" });
+        Check(JsonNode.DeepEquals(normal, agent), "Omitted MCP output did not select the concise agent result.");
         var expected = "next=5 total=5" +
             "\n2:     alpha Ω\n3: \n4: \tvalue = \"雪🦄\";  ";
         Check(Text(agent) == expected, "The agent excerpt changed indentation, empty lines, Unicode, or selected range.");
@@ -56,12 +57,12 @@ internal static class McpOutputProjectionTests
             "Existing CLI compact output changed.");
 
         var standaloneAgent = await StandaloneAsync(dispatcher, new { op = "read_lines", src = path, line = 2, count = 3, output = "agent" });
-        var standaloneLegacy = await StandaloneAsync(dispatcher, arguments);
+        var standaloneNormal = await StandaloneAsync(dispatcher, arguments);
         var standaloneStructured = await StandaloneAsync(dispatcher, new { op = "read_lines", src = path, line = 2, count = 3, output = "structured" });
-        Check(JsonNode.DeepEquals(agent, standaloneAgent["result"]) && JsonNode.DeepEquals(legacy, standaloneLegacy["result"]) &&
-            JsonNode.DeepEquals(legacy, standaloneStructured["result"]), "Embedded and standalone MCP presentation diverged.");
+        Check(JsonNode.DeepEquals(agent, standaloneAgent["result"]) && JsonNode.DeepEquals(normal, standaloneNormal["result"]) &&
+            JsonNode.DeepEquals(structured, standaloneStructured["result"]), "Embedded and standalone MCP presentation diverged.");
 
-        var legacyBytes = Encoding.UTF8.GetByteCount(standaloneLegacy.ToJsonString(Json));
+        var legacyBytes = Encoding.UTF8.GetByteCount(standaloneStructured.ToJsonString(Json));
         var agentBytes = Encoding.UTF8.GetByteCount(standaloneAgent.ToJsonString(Json));
         Check(agentBytes < legacyBytes, "The compact response did not reduce the bounded fixture payload.");
         Console.WriteLine($"EVIDENCE read_lines same non-first-line fixture serialized MCP response UTF8 bytes legacy={legacyBytes} agent={agentBytes}; bytes only, not model tokens");
@@ -82,6 +83,7 @@ internal static class McpOutputProjectionTests
             "Bounded Unicode excerpt hid clipping, split a scalar, or inflated its source budget.");
 
         await ProjectionAndValidationAsync(path);
+        await TransfersAndJobsAsync();
         await ReadableJsonAsync();
     }
 
@@ -125,6 +127,186 @@ internal static class McpOutputProjectionTests
             "CLI JSON is not readable or lost exact content.");
     }
 
+    private static async Task TransfersAndJobsAsync()
+    {
+        var jid = new string('c', 32);
+        var data = new Dictionary<string, object?>
+        {
+            ["src"] = "private-source-canary", ["dst"] = "private-destination-canary", ["pol"] = "fail",
+            ["cp"] = 1L, ["del"] = 0L, ["skipped"] = 0L, ["bytes_transferred"] = 19988L,
+            ["byte_progress_observed"] = true, ["byte_count_saturated"] = false,
+            ["destination_may_have_changed"] = true, ["source_deletion_issued"] = false,
+            ["partial"] = false, ["seq"] = 73L,
+            ["submission"] = new { command = "submitted-command-canary" }
+        };
+        var copied = new OperationReceipt(true, jid, "original-copy-rid", "done", "cp", Data: data);
+        var receipt = copied;
+        var preserved = JsonSerializer.Serialize(copied, Json);
+        await using var dispatcher = new RecordingDispatcher(_ => receipt);
+        var previousCulture = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
+            var normal = await EmbeddedAsync(dispatcher, new { op = "cp", src = "source", dst = "destination" });
+            Check(Text(normal) == "Copied 1 file (19,988 bytes)." && !normal.ContainsKey("structuredContent"),
+                "Default copy output did not match the concise invariant-culture result.");
+            var wire = await StandaloneAsync(dispatcher, new { op = "cp", src = "source", dst = "destination" });
+            Check(Text(wire["result"]!.AsObject()) == Text(normal) && wire["id"]!.GetValue<int>() == 2,
+                "Standalone default copy output or JSON-RPC response ID changed.");
+            var full = await EmbeddedAsync(dispatcher, new { op = "cp", src = "source", dst = "destination", output = "structured" });
+            Check(Text(full) == preserved && full["structuredContent"]!.ToJsonString(Json) == preserved,
+                "Explicit structured copy receipt lost byte-compatible metadata.");
+            var detail = await EmbeddedAsync(dispatcher, new { op = "cp", src = "source", dst = "destination", detail = true });
+            Check(Text(detail) == preserved && !detail.ContainsKey("structuredContent"), "Explicit detail omitted or duplicated its requested receipt.");
+            receipt = copied with { Data = new Dictionary<string, object?>(data) { ["cp"] = 8L, ["skipped"] = 2L } };
+            Check(Text(await EmbeddedAsync(dispatcher, new { op = "cp", src = "source", dst = "destination" })) ==
+                "Copied 8 files; skipped 2 existing entries.", "Copy skip summary changed its actual counts or treated directory skips as files.");
+            receipt = copied with { Data = new Dictionary<string, object?>(data) { ["cp"] = 0L, ["bytes_transferred"] = 0L } };
+            Check(Text(await EmbeddedAsync(dispatcher, new { op = "cp", src = "source", dst = "destination" })) ==
+                "Copied 0 files (0 bytes).", "Zero copy/byte results were suppressed.");
+        }
+        finally { CultureInfo.CurrentCulture = previousCulture; }
+
+        receipt = copied with { Data = new Dictionary<string, object?>(data)
+            { ["byte_progress_observed"] = false, ["bytes_transferred"] = 0L } };
+        var unobserved = SuccessData(await EmbeddedAsync(dispatcher, new { op = "cp", src = "source", dst = "destination" }));
+        Check(unobserved["byte_progress_observed"]!.GetValue<bool>() == false &&
+            unobserved["bytes_transferred"]!.GetValue<long>() == 0 && !unobserved.ContainsKey("src") && !unobserved.ContainsKey("dst"),
+            "Unknown byte progress was hidden or misrepresented as an observed byte total.");
+        receipt = copied with { Data = new Dictionary<string, object?>(data) { ["requested_payload"] = null } };
+        var extended = SuccessData(await EmbeddedAsync(dispatcher, new { op = "cp", src = "source", dst = "destination" }));
+        Check(extended.ContainsKey("requested_payload") && extended["requested_payload"] is null,
+            "Transfer summarization discarded additional requested result data.");
+        receipt = new(true, jid, "move-rid", "done", "mv", Data: new Dictionary<string, object?>
+            { ["src"] = "source", ["dst"] = "destination", ["cp"] = 0L, ["source_removed"] = true,
+                ["verified"] = true, ["cross_volume"] = false, ["recovery_required"] = false, ["replaced"] = false });
+        Check(Text(await EmbeddedAsync(dispatcher, new { op = "mv", src = "source", dst = "destination" })) == "Moved.",
+            "Same-volume rename inferred a false moved-item count from copied=0.");
+        foreach (var command in new (string Operation, object Arguments)[]
+        {
+            ("run", new { op = "run", cfg = "fixture" }),
+            ("pwsh", new { op = "pwsh", src = "fixture.ps1" }),
+            ("do", new { op = "do", rec = "fixture" }),
+            ("git_status", new { op = "git_status", cwd = Environment.CurrentDirectory })
+        })
+        {
+            foreach (var stdout in new string?[] { "", null })
+            {
+                receipt = new(true, jid, "empty-output-rid", "done", command.Operation,
+                    Data: new Dictionary<string, object?> { ["out"] = stdout, ["exit"] = 0 });
+                var output = SuccessData(await EmbeddedAsync(dispatcher, command.Arguments));
+                Check(output.ContainsKey("out") && (stdout is null ? output["out"] is null : output["out"]!.GetValue<string>() == ""),
+                    "Declared empty/null stdout was conflated with absent output: " + command.Operation);
+            }
+            receipt = new(true, jid, "absent-output-rid", "done", command.Operation,
+                Data: new Dictionary<string, object?> { ["exit"] = 0 });
+            Check(!SuccessData(await EmbeddedAsync(dispatcher, command.Arguments)).ContainsKey("out"),
+                "Absent stdout was fabricated: " + command.Operation);
+        }
+        var partial = copied with { Ok = false, State = "attention", Err = "copy_failed", Partial = true,
+            Data = new Dictionary<string, object?>(data) { ["cp"] = 0L, ["bytes_transferred"] = 0L,
+                ["byte_progress_observed"] = false, ["outcome_unknown"] = true } };
+        receipt = partial;
+        var failed = await EmbeddedAsync(dispatcher, new { op = "cp", src = "source", dst = "destination" });
+        Check(failed["isError"]!.GetValue<bool>() && Text(failed).Contains("partial=true", StringComparison.Ordinal) &&
+            Text(failed).Contains("rid=original-copy-rid", StringComparison.Ordinal) &&
+            Text(failed).Contains("\"byte_progress_observed\":false", StringComparison.Ordinal) &&
+            !Text(failed).Contains("private-source-canary", StringComparison.Ordinal),
+            "Copy failure lost progress/recovery evidence or echoed a request path.");
+
+        foreach (var state in new[] { "queued", "running" })
+        {
+            var pending = copied with { State = state };
+            receipt = pending;
+            var admitted = SuccessData(await EmbeddedAsync(dispatcher, new { op = "cp", src = "source", dst = "destination" }));
+            Check(admitted["jid"]!.GetValue<string>() == jid && admitted["state"]!.GetValue<string>() == state && admitted.Count == 2,
+                "New asynchronous work lost its follow-up ID or fabricated results.");
+            receipt = new(true, "observation-id", "observation-rid", "done", "job_stat",
+                Data: new Dictionary<string, object?> { ["rec"] = pending });
+            var observed = SuccessData(await EmbeddedAsync(dispatcher, new { op = "job_stat", jid }));
+            Check(observed.Count == 1 && observed["state"]!.GetValue<string>() == state,
+                "Selected pending job repeated a known ID or fabricated completion.");
+        }
+        var progress = new Dictionary<string, object?>
+        {
+            ["live"] = true, ["cp"] = 0L, ["skipped"] = 0L, ["del"] = 0L, ["bytes_transferred"] = 0L,
+            ["byte_progress_observed"] = false, ["byte_count_saturated"] = false,
+            ["current_file_total_bytes"] = null, ["current_file_bytes_transferred"] = 0L,
+            ["destination_may_have_changed"] = false, ["cancellation_requested"] = false
+        };
+        receipt = new(true, "observation-id", "observation-rid", "done", "job_stat",
+            Data: new Dictionary<string, object?> { ["rec"] = copied with { State = "running" }, ["progress"] = progress });
+        var live = SuccessData(await EmbeddedAsync(dispatcher, new { op = "job_stat", jid }));
+        Check(live["state"]!.GetValue<string>() == "running" && !live.ContainsKey("jid") &&
+            live["progress"]!["cp"]!.GetValue<long>() == 0 && !live["progress"]!["byte_progress_observed"]!.GetValue<bool>() &&
+            live["progress"]!.AsObject().ContainsKey("current_file_total_bytes") && live["progress"]!["current_file_total_bytes"] is null &&
+            !live["progress"]!["cancellation_requested"]!.GetValue<bool>(), "Selected inspection lost the actual advisory RAM progress.");
+        var liveDetail = JsonNode.Parse(Text(await EmbeddedAsync(dispatcher, new { op = "job_stat", jid, detail = true })))!;
+        Check(liveDetail["rec"]!["state"]!.GetValue<string>() == "running" && liveDetail["progress"] is not null,
+            "Requested receipt detail discarded its separate observed progress.");
+        receipt = new(true, "cancel-observation-id", "cancel-observation-rid", "done", "job_cancel",
+            Data: new Dictionary<string, object?> { ["rec"] = copied with { State = "running" }, ["cancel_requested"] = true });
+        var cancellation = Text(await EmbeddedAsync(dispatcher, new { op = "job_cancel", jid }));
+        Check(cancellation.StartsWith("Cancellation requested. ", StringComparison.Ordinal) &&
+            cancellation.Contains("\"state\":\"running\"", StringComparison.Ordinal), "Cancellation request was confused with completed cancellation.");
+        receipt = new(true, "observation-id", "observation-rid", "done", "job_stat",
+            Data: new Dictionary<string, object?> { ["rec"] = copied });
+        var selected = await EmbeddedAsync(dispatcher, new { op = "job_stat", jid });
+        Check(Text(selected) == "Copied 1 file (19,988 bytes)." && !selected.ContainsKey("structuredContent"),
+            "Completed job_stat did not unwrap the original requested result.");
+        var selectedDetail = await EmbeddedAsync(dispatcher, new { op = "job_stat", jid, detail = true });
+        Check(Text(selectedDetail) == preserved && !selectedDetail.ContainsKey("structuredContent"),
+            "Selected detail did not return the exact original receipt once.");
+        var selectedStructured = await EmbeddedAsync(dispatcher, new { op = "job_stat", jid, output = "structured" });
+        Check(selectedStructured["structuredContent"]!["data"]!["rec"]!["data"]!["submission"] is not null,
+            "Explicit structured job inspection lost its legacy nested receipt.");
+        receipt = copied;
+        Check(Text(await EmbeddedAsync(dispatcher, new { op = "job_wait", jid })) == "Copied 1 file (19,988 bytes).",
+            "Completed job_wait did not retain the original result.");
+        foreach (var original in new[] { partial, partial with { State = "recovery_required", Err = "recovery_required" } })
+        {
+            receipt = new(true, "observation-id", "observation-rid", "done", "job_stat",
+                Data: new Dictionary<string, object?> { ["rec"] = original });
+            var observed = await EmbeddedAsync(dispatcher, new { op = "job_stat", jid });
+            Check(!observed["isError"]!.GetValue<bool>() && Text(observed).StartsWith("FAIL " + jid, StringComparison.Ordinal) &&
+                Text(observed).Contains("rid=original-copy-rid", StringComparison.Ordinal) &&
+                Text(observed).Contains("retry=reconcile_first", StringComparison.Ordinal),
+                "Successful job observation hid the original failure/uncertainty or changed observation semantics.");
+        }
+        var pruned = copied with { Data = new Dictionary<string, object?> { ["history_pruned"] = true, ["details_retained"] = false, ["count"] = 0 } };
+        receipt = new(true, "observation-id", "observation-rid", "done", "job_stat",
+            Data: new Dictionary<string, object?> { ["rec"] = pruned });
+        var prunedData = SuccessData(await EmbeddedAsync(dispatcher, new { op = "job_stat", jid }));
+        Check(prunedData["history_pruned"]!.GetValue<bool>() && !prunedData["details_retained"]!.GetValue<bool>() &&
+            prunedData["count"]!.GetValue<int>() == 0 && !prunedData.ContainsKey("cp"), "Pruned details were fabricated or meaningful flags removed.");
+        var legacyPruned = copied with { Ok = false, State = "failed", Err = "external_failed", Failure = null,
+            Data = new Dictionary<string, object?> { ["history_pruned"] = true, ["history_discarded"] = true, ["log_available"] = false } };
+        receipt = new(true, "observation-id", "observation-rid", "done", "job_stat",
+            Data: new Dictionary<string, object?> { ["rec"] = legacyPruned });
+        var prunedFailure = Text(await EmbeddedAsync(dispatcher, new { op = "job_stat", jid }));
+        Check(prunedFailure.Contains("history_pruned=true", StringComparison.Ordinal) &&
+            prunedFailure.Contains("history_discarded=true", StringComparison.Ordinal) &&
+            prunedFailure.Contains("detail=not_retained log=not_retained", StringComparison.Ordinal) &&
+            prunedFailure.Contains("retry=reconcile_first", StringComparison.Ordinal) &&
+            !prunedFailure.Contains("detail=structured", StringComparison.Ordinal), "Legacy pruned failure advertised removed detail or hid discarded history.");
+        var typedPruned = legacyPruned with { Failure = new OperationFailureEvidence(
+            "Historical failure details were pruned; the original outcome is unchanged.",
+            new(OperationExecutionState.Started,"original-evidence"),new(OperationRetryDisposition.ReconcileFirst,"original-evidence"),
+            DiagnosticsOmitted:true,DetailAvailability:"not_retained",LogAvailability:"not_retained") };
+        receipt = new(true, "observation-id", "observation-rid", "done", "job_stat",
+            Data: new Dictionary<string, object?> { ["rec"] = typedPruned });
+        var typedFailure = Text(await EmbeddedAsync(dispatcher, new { op = "job_stat", jid }));
+        Check(!typedFailure.Contains("history_pruned=", StringComparison.Ordinal) &&
+            typedFailure.Contains("history_discarded=true", StringComparison.Ordinal) &&
+            typedFailure.Contains("detail=not_retained log=not_retained", StringComparison.Ordinal),
+            "Typed pruned failure duplicated its existing prune message or lost discarded state.");
+        receipt = new(true, "observation-id", "observation-rid", "done", "job_stat",
+            Data: new Dictionary<string, object?> { ["rec"] = copied with { Jid = new string('d', 32) } });
+        Check((await EmbeddedAsync(dispatcher, new { op = "job_stat", jid }))["isError"]!.GetValue<bool>(),
+            "Mismatched selected-job identity was projected as a confirmed result.");
+        Check(JsonSerializer.Serialize(copied, Json) == preserved, "Presentation mutated a retained original receipt.");
+    }
+
     private static async Task ProjectionAndValidationAsync(string path)
     {
         var receipt = new OperationReceipt(true, "fixture-jid", "fixture-rid", "done", "diag", Data: new Dictionary<string, object?>
@@ -142,22 +324,27 @@ internal static class McpOutputProjectionTests
         var projected = await EmbeddedAsync(dispatcher, new { op = "diag", output = "agent" });
         var data = SuccessData(projected);
         Check(!Text(projected).Contains("fixture-jid", StringComparison.Ordinal) &&
-            !projected.ContainsKey("structuredContent") && !data.ContainsKey("out") && !data.ContainsKey("err_tail") && !data.ContainsKey("notes") && !data.ContainsKey("seq") && !data.ContainsKey("submission"),
+            !projected.ContainsKey("structuredContent") && !data.ContainsKey("seq") && !data.ContainsKey("submission"),
             "Compact optional metadata was not omitted.");
         Check(data["matches"] is JsonArray { Count: 0 } && data["text"]!.GetValue<string>() == "" &&
             data["count"]!.GetValue<int>() == 0 && data["equal"]!.GetValue<bool>() == false &&
-            data["nested"]!["results"] is JsonArray { Count: 0 } && !data["nested"]!.AsObject().ContainsKey("optional"),
-            "Projection dropped meaningful empty results, empty content, false, or zero.");
+            data["nested"]!["results"] is JsonArray { Count: 0 } && data["nested"]!.AsObject().ContainsKey("optional") &&
+            data["nested"]!["optional"] is null && data.ContainsKey("notes") && data["notes"] is null &&
+            data["out"]!.GetValue<string>() == "" && data["err_tail"]!.GetValue<string>() == "",
+            "Projection dropped requested null, empty results/content, false, or zero.");
 
         var detailed = await EmbeddedAsync(dispatcher, new { op = "diag", output = "structured" });
         Check(detailed["structuredContent"]!["data"]!["submission"] is not null,
             "Explicit structured inspection lost retained submission details.");
-        var original = receipt;
+        var original = receipt with { Jid = new string('a', 32) };
         receipt = new OperationReceipt(true, "inspect-jid", "inspect-rid", "done", "job_stat",
             Data: new Dictionary<string, object?> { ["rec"] = original });
         var inspected = await EmbeddedAsync(dispatcher, new { op = "job_stat", jid = new string('a', 32), output = "agent" });
-        Check(SuccessData(inspected)["rec"]!["data"]!["submission"] is not null,
-            "Selected job inspection lost retained submission details.");
+        Check(!SuccessData(inspected).ContainsKey("rec") && !SuccessData(inspected).ContainsKey("submission") &&
+            !Text(inspected).Contains(original.Jid, StringComparison.Ordinal), "Selected job inspection did not unwrap the original result.");
+        var inspectionDetail = await EmbeddedAsync(dispatcher, new { op = "job_stat", jid = original.Jid, detail = true });
+        Check(JsonNode.Parse(Text(inspectionDetail))!["data"]!["submission"] is not null &&
+            !inspectionDetail.ContainsKey("structuredContent"), "Requested selected-job detail omitted its original receipt or duplicated it.");
 
         receipt = new OperationReceipt(false, "failure-jid", "failure-rid", "failed", "read_lines", "invalid",
             Data: new Dictionary<string, object?> { ["count"] = 0, ["timed_out"] = false }, Partial: false,
@@ -233,7 +420,7 @@ internal static class McpOutputProjectionTests
         Check(invalidStandalone["error"]!["code"]!.GetValue<int>() == -32602, "Standalone invalid-params contract changed.");
 
         var schema = PaoProgram.UnifiedMcpToolDefinition()["inputSchema"]!["properties"]!["output"]!;
-        Check(schema["default"]!.GetValue<string>() == "structured" && schema["enum"]!.AsArray().Count == 2,
+        Check(schema["default"]!.GetValue<string>() == "agent" && schema["enum"]!.AsArray().Count == 2,
             "Schema did not expose the compatible closed presentation selector.");
         var help = await EmbeddedAsync(dispatcher, new { op = "help", name = "read_lines", output = "agent" });
         var helpData = SuccessData(help);

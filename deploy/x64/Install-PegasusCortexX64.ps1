@@ -10,4 +10,4 @@ param(
 )
 
 throw [InvalidOperationException]::new(
-    'PEGASUS_CORTEX_LEGACY_X64_ROUTE_RETIRED: The standalone profile installer was removed. Use the normal unified Setup package. The existing Install-PegasusCortexX64.cmd compatibility entry targets Install-PegasusCortexV2X64.ps1; it does not recreate the retired connector. No inputs were inspected or changes made.')
+    'PEGASUS_CORTEX_LEGACY_X64_ROUTE_RETIRED: The standalone profile installer was removed. Use the normal unified Setup package. Source releases are built with tools/Build-PegasusCortexRelease.ps1; clients attach to the existing shared Pegasus Cortex MCP owner. No inputs were inspected or changes made.')

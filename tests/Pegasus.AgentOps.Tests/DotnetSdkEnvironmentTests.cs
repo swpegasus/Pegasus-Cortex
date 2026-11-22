@@ -48,7 +48,7 @@ internal static class DotnetSdkEnvironmentTests
         await using var engine = new AgentOpsEngine(state);
         const string workspaceAlias = "sdkfixture";
         var workspaceResponse = await PaoProgram.CallUnifiedMcpToolAsync(
-            JsonSerializer.SerializeToElement(new { op = "ctx_add", name = workspaceAlias, src = workspace }),
+            JsonSerializer.SerializeToElement(new { op = "ctx_add", name = workspaceAlias, src = workspace, output = "structured" }),
             new EngineDispatcher(engine), cancellationToken);
         var workspaceReceipt = workspaceResponse["structuredContent"]?.Deserialize<OperationReceipt>(Json);
         Check(workspaceReceipt is { Ok: true, ExitCode: 0 } &&
@@ -197,7 +197,9 @@ internal static class DotnetSdkEnvironmentTests
 
     private static async Task ExecuteTypedAsync(AgentOpsEngine engine, object arguments, string phase, CancellationToken cancellationToken)
     {
-        var response = await PaoProgram.CallUnifiedMcpToolAsync(JsonSerializer.SerializeToElement(arguments),
+        var values = JsonSerializer.SerializeToNode(arguments)!.AsObject();
+        values["output"] = "structured";
+        var response = await PaoProgram.CallUnifiedMcpToolAsync(JsonSerializer.SerializeToElement(values),
             new EngineDispatcher(engine), cancellationToken);
         var receipt = response["structuredContent"]?.Deserialize<OperationReceipt>(Json);
         Check(receipt is { Ok: true, ExitCode: 0, Partial: false }, phase + " failed: " + Bounded(response));

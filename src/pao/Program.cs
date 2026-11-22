@@ -21,7 +21,7 @@ public static class PaoProgram
         LegacyProtocolVersion,
         "2026-07-28"
     };
-    private const string Instructions = "Pegasus AgentOps executes one fixed typed local Windows operation. Send only the selected operation's fields. Use output=agent for result-only success, bounded useful command output, numbered source text, and actionable failure evidence. Accepted or running work returns its jid; inspect it instead of replaying. Full receipts remain available with output=structured or CLI --json; omitted output preserves the legacy structured contract. Terminal state stays in owner-host memory and never reruns on read or reconnect. Discover exact fields, bounds and path/collision rules with pao help <operation>. CLI uses separate key=value arguments. Never put secrets in arguments. Root work requires an explicit 4-character code and the optional privileged service.";
+    private const string Instructions = "Pegasus AgentOps executes one fixed typed local Windows operation. Send only the selected operation's fields. Omitted output or output=agent returns requested results, bounded useful command output, numbered source text, and actionable failure evidence without routine receipt headers. Accepted or running work returns its jid; inspect it instead of replaying. Use detail=true for a selected job's original receipt, or output=structured for the complete legacy machine receipt. CLI --json remains unchanged. Terminal state stays in owner-host memory and never reruns on read or reconnect. Discover exact fields, bounds and path/collision rules with pao help <operation>. CLI uses separate key=value arguments. Never put secrets in arguments. Root work requires an explicit 4-character code and the optional privileged service.";
     private const string DeferredCompletionInstructions = " Queueable User operations may use wait=false to return an accepted job, not completed work; omit wait or use true for the synchronous result. Inspect that jid with job_stat, job_wait, or job_log. Explicit same-owner service UAC helpers support wait; Root, app, UI, and other service operations retain their separate completion contracts.";
     private const int MaximumMcpToolCalls = 32;
     private sealed class ActiveMcpCall(CancellationTokenSource cancellation)
@@ -114,7 +114,7 @@ public static class PaoProgram
         string? defaultCwd = null)
     {
         ArgumentNullException.ThrowIfNull(dispatcher);
-        var agentOutput = false;
+        var agentOutput = true;
         if (arguments is null ||
             !UnifiedToolCatalog.TryParseArguments(arguments.Value, out var op, out var arg, out var body, out agentOutput))
         {
@@ -145,10 +145,10 @@ public static class PaoProgram
         var receipt = op == "help"
             ? HelpReceipt(request)
             : op=="admin"&&request.Arg.GetValueOrDefault("op")=="validate"?OwnerAdminContract.Validate(request):await dispatcher.DispatchAsync(request, cancellationToken).ConfigureAwait(false);
-        return McpOutputProjection.FromReceipt(receipt, agentOutput);
+        return McpOutputProjection.FromReceipt(receipt, agentOutput, request);
     }
 
-    private static JsonObject UnifiedToolError(string code, string message, bool agentOutput = false)
+    private static JsonObject UnifiedToolError(string code, string message, bool agentOutput = true)
     {
         var structured = new JsonObject
         {
@@ -376,14 +376,14 @@ public static class PaoProgram
         OperationRequest request;try{var effectiveWs=arg.GetValueOrDefault("ws")??ApplicationWorkspaceDefault(op,arg,defaultWs);request=MakeRequest(op,arg,body) with{Ws=effectiveWs};if(effectiveWs is not null&&!arg.ContainsKey("cwd"))request=request with{Cwd=null};request=NormalizeClientRequest(request,defaultCwd??Environment.CurrentDirectory);}
         catch(Exception ex)when(ex is AgentOpsException or ArgumentException or IOException or NotSupportedException){return Error(id,-32602,InvalidParamsMessage(arguments));}
         var receipt = op=="help"?HelpReceipt(request):op=="admin"&&request.Arg.GetValueOrDefault("op")=="validate"?OwnerAdminContract.Validate(request):await dispatcher.DispatchAsync(request, cancellationToken);
-        return Result(id, McpOutputProjection.FromReceipt(receipt, agentOutput));
+        return Result(id, McpOutputProjection.FromReceipt(receipt, agentOutput, request));
     }
 
     private static string InvalidParamsMessage(JsonElement arguments)
     {
         if(arguments.ValueKind==JsonValueKind.Object&&arguments.TryGetProperty("output",out var output)&&
             (output.ValueKind!=JsonValueKind.String||output.GetString() is not("agent" or "structured")||arguments.EnumerateObject().Count(property=>property.Name=="output")!=1))
-            return "Invalid params: output must be supplied at most once as 'agent' or 'structured'; omit it to retain the legacy structured receipt.";
+            return "Invalid params: output must be supplied at most once as 'agent' or 'structured'; omit it for requested results, or select structured for the full receipt.";
         if(arguments.ValueKind!=JsonValueKind.Object||!arguments.TryGetProperty("op",out var operation)||operation.ValueKind!=JsonValueKind.String)return "Invalid params: field 'op' must select one advertised operation.";
         var action=operation.GetString()??string.Empty;
         if(action.StartsWith("git_",StringComparison.Ordinal))return "Invalid params: for Git use ws=<registered alias> with cwd omitted, or use one absolute cwd; do not put an alias in cwd.";
@@ -695,14 +695,14 @@ internal static class UnifiedToolCatalog
 
     public static bool TryParseArguments(JsonElement arguments, out string operation, out Dictionary<string,string> result, out string? body, out bool agentOutput)
     {
-        operation=string.Empty;result=new Dictionary<string,string>(StringComparer.Ordinal);body=null;agentOutput=false;
+        operation=string.Empty;result=new Dictionary<string,string>(StringComparer.Ordinal);body=null;agentOutput=true;
         if(arguments.ValueKind!=JsonValueKind.Object)return false;
         // Selector ambiguity must be rejected before choosing a route. Otherwise
         // a later duplicate could turn a read-only request into another operation.
         if(arguments.EnumerateObject().Count(property=>property.Name=="op")!=1)return false;
         var outputs=arguments.EnumerateObject().Where(property=>property.Name=="output").ToArray();
         if(outputs.Length>1||outputs.Length==1&&(outputs[0].Value.ValueKind!=JsonValueKind.String||outputs[0].Value.GetString() is not("agent" or "structured")))return false;
-        agentOutput=outputs.Length==1&&outputs[0].Value.GetString()=="agent";
+        agentOutput=outputs.Length==0||outputs[0].Value.GetString()=="agent";
         if(!arguments.TryGetProperty("op",out var selector)||selector.ValueKind!=JsonValueKind.String)return false;
         var action=selector.GetString();if(action is null||!Routes.TryGetValue(action,out var route)||!ToolCatalog.Names.TryGetValue(route.Tool,out var resolvedOperation)||resolvedOperation is null)return false;operation=resolvedOperation;
         if((action=="proc_threads"||action.StartsWith("app_",StringComparison.Ordinal)||action.StartsWith("terminal_",StringComparison.Ordinal)||action.StartsWith("registry_",StringComparison.Ordinal)||action.StartsWith("certificate_",StringComparison.Ordinal)||action.StartsWith("windows_service_",StringComparison.Ordinal)||action.StartsWith("installed_program_",StringComparison.Ordinal)||action.StartsWith("connection_profile_",StringComparison.Ordinal)||action.StartsWith("windows_task_",StringComparison.Ordinal)||action.StartsWith("windows_device_",StringComparison.Ordinal)||action.StartsWith("windows_network_",StringComparison.Ordinal)||action.StartsWith("windows_account_",StringComparison.Ordinal)||action is "job_stat" or "job_wait"||arguments.EnumerateObject().Any(property=>property.Name=="wait"))&&arguments.EnumerateObject().GroupBy(property=>property.Name,StringComparer.Ordinal).Any(group=>group.Count()>1))return false;
@@ -953,7 +953,7 @@ internal static class UnifiedToolCatalog
             "nsis_status"=>"reports whether exact canonical makensis.exe is registered and probe-verified as tool name nsis",
             "nsis_validate"=>"runs fixed /SAFEPPO /V4 /WX /NOCONFIG UTF-8 preprocessing, rejects unsafe directives, and returns compact line/byte/hash metadata; bounded diagnostics remain available through job log using the returned jid",
             "nsis_build"=>"prevalidates then compiles one admitted .nsi to one absent exact .exe; returns compact outcome plus jid while bounded compiler diagnostics remain available through job log; no /X, stdin script, arbitrary defines, launch, or passthrough argv; tmo is 1..3600 seconds",
-            "read_lines"=>"line is one-based; count is 1..512; source text is capped at 256 KiB; output=agent gives exact numbered text, continuation/total only when more exists, and actual truncation without routine headers or duplicated structuredContent; omitted output or output=structured retains the full legacy receipt including sha/encoding/BOM/newline edit metadata",
+            "read_lines"=>"line is one-based; count is 1..512; source text is capped at 256 KiB; omitted output or output=agent gives exact numbered text, continuation/total only when more exists, and actual truncation without routine headers or duplicated structuredContent; output=structured explicitly retains the full legacy receipt including sha/encoding/BOM/newline edit metadata",
             "encoding_inspect"=>"returns no file content; optional enc is only for a known legacy source",
             "encoding_convert"=>"enc is the target encoding; source is auto-recognized; distinct dst must be absent; same src/dst converts atomically; optional sha is the source preimage",
             _=>"send only allowed fields; numeric and boolean values are validated before admission; use tmo in seconds; paths remain workspace-admitted and exact"
@@ -961,7 +961,7 @@ internal static class UnifiedToolCatalog
         if(fields.Contains("wait",StringComparer.Ordinal))
             constraints+="; wait is boolean and defaults to true; wait=false acknowledges durable admission, not completion; inspect jid with job_stat/job_wait/job_log; root+wait=false is rejected";
         var examples=Example(action);
-        data=new Dictionary<string,object?>{{"local",true},{"name",action},{"tool",route.Tool},{"allowed",fields},{"required",required},{"constraints",constraints},{"mcp_output","Use output=agent for result-only compact text. Accepted/running work keeps its jid; failure and partial results keep needed recovery evidence. Small run/pwsh/recipe/Git stdout remains an untrusted string, capped at 4096 UTF-8 bytes with explicit clipping and retained-log availability. Omit output or use output=structured for the complete legacy receipt. CLI output is unchanged."},{"mcp_example",examples.Mcp},{"cli_example",examples.Cli}};
+        data=new Dictionary<string,object?>{{"local",true},{"name",action},{"tool",route.Tool},{"allowed",fields},{"required",required},{"constraints",constraints},{"mcp_output","Omitted output or output=agent returns requested results without routine receipt headers. Accepted/running work keeps its jid; failure and partial results keep needed recovery evidence. Selected job inspection unwraps the original result; detail=true requests its complete original receipt. Small run/pwsh/recipe/Git stdout remains an untrusted string, capped at 4096 UTF-8 bytes with explicit clipping and retained-log availability. Use output=structured explicitly for the complete legacy receipt. CLI output is unchanged."},{"mcp_example",examples.Mcp},{"cli_example",examples.Cli}};
         return true;
     }
 
@@ -1009,7 +1009,7 @@ internal static class UnifiedToolCatalog
         new
         {
             name=Name,
-            description="Perform one fixed typed Pegasus AgentOps operation. Use output=agent for requested results without routine headers; accepted/running work includes its jid, failures keep recovery evidence, and read_lines returns numbered text. Omit output or use output=structured for the legacy machine receipt. Irrelevant fields and generic command strings are rejected; terminal_send/input expressly address an owned local terminal.",
+            description="Perform one fixed typed Pegasus AgentOps operation. Omitted output or output=agent returns requested results without routine headers; accepted/running work includes its jid, failures keep recovery evidence, and read_lines returns numbered text. Select detail=true for an inspected job's original receipt or output=structured for the full legacy machine receipt. Irrelevant fields and generic command strings are rejected; terminal_send/input expressly address an owned local terminal.",
             inputSchema=new
             {
                 type="object",
@@ -1018,7 +1018,7 @@ internal static class UnifiedToolCatalog
                     op=new{type="string",@enum=Routes.Keys.ToArray(),description="fixed operation selector"},
                     epoch=S("exact application inventory host epoch or original exclusive maintenance interval epoch for admin_end"),cursor=new{type=new[]{"string","integer"},description="opaque application inventory cursor (string), or terminal absolute byte cursor"},sid=S("exact owner-host local terminal handle"),cid=S("stored terminal command reference for intentional new-attempt repeat"),iid=S("exact terminal input id; input_status defaults to last input"),original_rid=S("original submitted RID for exact input_status recovery after a lost reply"),
                     aid=new{type="string",pattern="^[a-f0-9]{32}$",description="exact owned application generation; required for app_stop and optional expected terminal generation for explicit app_start restart"},
-                    output=new{type="string",@enum=new[]{"agent","structured"},@default="structured",description="Use agent for normal agent output without duplicate structuredContent. Omitted or structured preserves the complete legacy receipt. MCP presentation only; CLI is unchanged."},
+                    output=new{type="string",@enum=new[]{"agent","structured"},@default="agent",description="Omitted or agent returns requested results without duplicate structuredContent. Structured explicitly requests the complete legacy receipt. MCP presentation only; CLI is unchanged."},
                     src=S("source or input path; for .NET use the solution or project path"),dst=S("exact destination or target path"),pol=new{type="string",@enum=new[]{"fail","replace","skip","clean"}},
                     cfg=S("registered tool or build configuration"),ws=S("registered workspace alias, not an absolute path; use ctx_ls to list aliases; for app_start put the working-directory path in cwd; for Git selects its root and must not be combined with cwd; for .NET selects the build root"),cwd=S("working directory; for Git use one absolute path without ws"),enc=S("text encoding"),tmo=new{type="integer",minimum=1,maximum=3600,description="seconds"},
                     arg=new{type="array",items=new{type="string"},maxItems=256,description="separate argv entries for registered execution"},

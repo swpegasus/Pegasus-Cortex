@@ -3,10 +3,11 @@
 > **HISTORICAL AND SUPERSEDED — DO NOT USE FOR CURRENT BUILD, PACKAGING,
 > INSTALLATION, OR ARCHITECTURE.** This document preserves a pre-V2 planning
 > checkpoint; its framework, host, store, and deployment statements are not the
-> current product contract. Current authority is `START_HERE.md` and
-> `docs/LOCAL_OPERATIONAL_V2.md`. Current x64 packaging and installation use
-> `deploy/x64/New-PegasusCortexV2PackageManifest.ps1` and
-> `deploy/x64/Install-PegasusCortexV2X64.ps1`.
+> current product contract. Use
+> [the current installation/build guide](BUILD_FROM_SOURCE.md),
+> [shared MCP setup](CORTEX_SHARED_MCP.md), and
+> [local operational V2](LOCAL_OPERATIONAL_V2.md). Historical deployment commands
+> below are not the maintained release route.
 
 Last updated: 2026-07-13
 

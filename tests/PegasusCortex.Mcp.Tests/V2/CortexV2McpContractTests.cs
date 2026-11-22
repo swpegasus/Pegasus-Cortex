@@ -16,6 +16,7 @@ public static class CortexV2McpContractTests
         ExactlyEightToolsStayBelowTenKiB();
         SchemasExposeTypedActionsAndExplicitNamespaces();
         await OmittedAdvertisedDefaultsAreAppliedAsync().ConfigureAwait(false);
+        await PreviewDefaultsAreCompactAndDetailedIsExplicitAsync().ConfigureAwait(false);
         await ContentSchemaAndDispatchPreserveJsonTextAsync().ConfigureAwait(false);
         await ReadableUtf8JsonAsync().ConfigureAwait(false);
         await FullReadContentIsNotDuplicatedAsync().ConfigureAwait(false);
@@ -70,6 +71,8 @@ public static class CortexV2McpContractTests
             "Exact read does not advertise mutually exclusive single and batch shapes.");
         var startProperties = tools["cortex_start"]["inputSchema"]!["properties"]!.AsObject();
         True(startProperties.ContainsKey("taskId"), "Startup does not advertise the optional exact task ID.");
+        Equal("compact", startProperties["format"]!["default"]!.GetValue<string>());
+        Equal("compact", tools["cortex_search"]["inputSchema"]!["properties"]!["format"]!["default"]!.GetValue<string>());
         var startBudget = startProperties["maxUtf8Bytes"]!.AsObject();
         Equal(
             (long)CortexV2Limits.DefaultStartResponseUtf8Bytes,
@@ -125,8 +128,10 @@ public static class CortexV2McpContractTests
         Equal(CortexV2Limits.DefaultPageSize, store.LastNamespaces!.Limit);
         Equal(CortexV2Limits.DefaultResponseUtf8Bytes, store.LastNamespaces.MaxUtf8Bytes);
         Equal(CortexV2Limits.DefaultStartResponseUtf8Bytes, store.LastStart!.MaxUtf8Bytes);
+        Equal(CortexResponseFormatV2.Compact, store.LastStart.Format);
         Equal(CortexV2Limits.DefaultPageSize, store.LastSearch!.Limit);
         Equal(CortexV2Limits.DefaultResponseUtf8Bytes, store.LastSearch.MaxUtf8Bytes);
+        Equal(CortexResponseFormatV2.Compact, store.LastSearch.Format);
         Equal(CortexV2Limits.MaximumResponseUtf8Bytes, store.LastRead!.MaxUtf8Bytes);
         Equal(CortexV2Limits.DefaultPageSize, store.LastTask!.Limit);
         Equal(CortexV2Limits.DefaultResponseUtf8Bytes, store.LastTask.MaxUtf8Bytes);
@@ -153,6 +158,37 @@ public static class CortexV2McpContractTests
         True(!taskAware["isError"]!.GetValue<bool>(), "Task-aware startup dispatch was rejected.");
         Equal("019ff269-3c07-7082-87cf-d9325d7e24ba", store.LastStart!.TaskId);
         Equal(CortexV2Limits.MaximumStartResponseUtf8Bytes, store.LastStart.MaxUtf8Bytes);
+    }
+
+    private static async Task PreviewDefaultsAreCompactAndDetailedIsExplicitAsync()
+    {
+        var app = Mcp(new FakeStore());
+        foreach (var name in new[] { "cortex_start", "cortex_search" })
+        {
+            var arguments = new JsonObject
+            {
+                ["namespaces"] = new JsonArray("project-a"),
+                [name == "cortex_start" ? "intent" : "text"] = "parser"
+            };
+            async Task<JsonObject> Call() => await app.CallToolAsync(name,
+                JsonSerializer.SerializeToElement(arguments), CancellationToken.None).ConfigureAwait(false);
+            var omitted = await Call().ConfigureAwait(false);
+            arguments["format"] = "compact";
+            var compact = await Call().ConfigureAwait(false);
+            True(JsonNode.DeepEquals(omitted, compact), $"{name} omitted format differs from compact.");
+            True(omitted["structuredContent"]!["ns"] is JsonArray &&
+                omitted["structuredContent"]!["items"] is JsonArray,
+                $"{name} compact default lost namespaces or empty results.");
+
+            arguments["format"] = "detailed";
+            var detailed = await Call().ConfigureAwait(false);
+            True(!detailed["isError"]!.GetValue<bool>() &&
+                detailed["structuredContent"]!["effectiveNamespaces"] is JsonArray &&
+                detailed["structuredContent"]!["schema"] is null,
+                $"{name} explicit detailed result changed shape.");
+            Equal(detailed["structuredContent"]!["effectiveNamespaces"]!.ToJsonString(),
+                omitted["structuredContent"]!["ns"]!.ToJsonString());
+        }
     }
 
     private static async Task ContentSchemaAndDispatchPreserveJsonTextAsync()

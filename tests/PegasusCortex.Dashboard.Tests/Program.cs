@@ -14,6 +14,7 @@ internal static class DashboardTestProgram
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
         if (args is ["--about-only"]) return CortexAboutDialogTests.Run();
+        if (args is ["--about-only", var aboutImages]) return CortexAboutDialogTests.Run(aboutImages);
         if (args is ["--presentation-only"]) return CortexPresentationTests.Run();
         if (args is ["--presentation-only", var presentationImages]) return CortexPresentationTests.Run(presentationImages);
         if (args is ["--operation-browser-only"]) return CortexOperationBrowserTests.Run();

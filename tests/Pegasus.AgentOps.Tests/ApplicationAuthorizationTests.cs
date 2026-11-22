@@ -8,7 +8,7 @@ using Pegasus.AgentOps.Protocol;
 
 internal static class ApplicationAuthorizationTests
 {
-    public static Task CredentialLifecycleAsync()
+    public static async Task CredentialLifecycleAsync()
     {
         using var temp=new TempRoot();var state=temp.Dir("application-auth");
         var firstPath=Path.Combine(temp.Path,"cerebral-build-one.exe");var secondPath=Path.Combine(temp.Path,"cerebral-build-two.exe");
@@ -38,7 +38,108 @@ internal static class ApplicationAuthorizationTests
         Require(!coordinator.Apply(Request("connect",secondSecret),peerTwo).Connected,"revoked credential connected");
         var wrongPeer=coordinator.Apply(Request("status"),new LocalPeer("S-1-5-21-1",4,firstPath,1001)).Result;
         Require(!wrongPeer.Ok&&wrongPeer.Err=="application_auth","wrong caller admitted");
-        return Task.CompletedTask;
+        await ConnectedSessionRevocationAsync();
+    }
+
+    private static async Task ConnectedSessionRevocationAsync()
+    {
+        using var temp=new TempRoot();var state=temp.Dir("application-session-revocation");
+        var firstPath=Path.Combine(temp.Path,"cerebral-one.exe");var secondPath=Path.Combine(temp.Path,"cerebral-two.exe");
+        var peer=new LocalPeer("S-1-5-19",0,firstPath,1001);
+        var registry=new ApplicationCredentialRegistry(state);
+        var coordinator=new ApplicationAuthorizationCoordinator(registry,new FixturePeerVerifier(firstPath,secondPath));
+        var first=coordinator.Apply(Request("issue"),peer).Result;
+        Require(first.Ok&&first.Credential is not null,"session fixture issue failed");
+        var firstSecret=first.Credential!;
+        var connected=coordinator.Apply(Request("connect",firstSecret),peer);
+        Require(connected.Lease is { } lease&&lease.ApplicationId==ApplicationAuthorizationProtocol.CerebralApplicationId&&
+            lease.CredentialId==first.CredentialId&&lease.Generation==first.Generation,"connection lease did not pin its authenticated tuple");
+        Require(!System.Text.Json.JsonSerializer.Serialize(connected).Contains(firstSecret,StringComparison.Ordinal),"connection retained credential text");
+
+        var executions=0;
+        var pending=new TaskCompletionSource<OperationReceipt>(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task<OperationReceipt> Execute(OperationRequest request,CancellationToken token)
+        {
+            executions++;
+            return request.Rid=="already-admitted"?pending.Task:Task.FromResult(Success(request));
+        }
+        var original=coordinator.OpenSession(connected,Execute);
+        var before=await original.DispatchAsync(Operation("before-rotation"),CancellationToken.None);
+        Require(before.Ok&&executions==1,"current application generation did not dispatch");
+        var admitted=original.DispatchAsync(Operation("already-admitted"),CancellationToken.None);
+        Require(executions==2&&!admitted.IsCompleted,"pending fixture did not enter captured execution");
+
+        var rotated=coordinator.Apply(Request("rotate"),peer).Result;
+        Require(rotated.Ok&&rotated.Credential is not null&&rotated.Generation==2,"session fixture rotate failed");
+        var secondSecret=rotated.Credential!;
+        var denied=await original.DispatchAsync(Operation("old-after-rotation"),CancellationToken.None);
+        Require(!denied.Ok&&denied.Err=="application_auth"&&executions==2,"rotation allowed an old open session to execute");
+        pending.SetResult(Success(Operation("already-admitted")));
+        Require((await admitted).Ok&&executions==2,"rotation rewrote or replayed already-admitted work");
+        var current=coordinator.OpenSession(coordinator.Apply(Request("connect",secondSecret),peer),Execute);
+        Require((await current.DispatchAsync(Operation("new-generation"),CancellationToken.None)).Ok&&executions==3,
+            "current rotated generation did not dispatch");
+
+        Require(coordinator.Apply(Request("revoke"),peer).Result.State=="revoked","session fixture revoke failed");
+        var revoked=await current.DispatchAsync(Operation("old-after-revoke"),CancellationToken.None);
+        Require(!revoked.Ok&&revoked.Err=="application_auth"&&executions==3,"revocation allowed an already-open session to execute");
+        var reissued=coordinator.Apply(Request("issue"),peer).Result;
+        Require(reissued.Ok&&reissued.Credential is not null&&reissued.Generation==3,"explicit reissue failed");
+        Require(!(await current.DispatchAsync(Operation("old-after-reissue"),CancellationToken.None)).Ok&&executions==3,
+            "reissue silently renewed an old connection");
+        var newConnection=coordinator.Apply(Request("connect",reissued.Credential!),peer);
+        var renewed=coordinator.OpenSession(newConnection,Execute);
+        Require((await renewed.DispatchAsync(Operation("explicit-new-connection"),CancellationToken.None)).Ok&&executions==4,
+            "explicitly reconnected current generation failed");
+
+        var currentLease=newConnection.Lease!;
+        var wrongCredentialId=currentLease.CredentialId[..4]+(currentLease.CredentialId[4]=='0'?'1':'0')+currentLease.CredentialId[5..];
+        foreach(var invalid in new[]{currentLease with{ApplicationId="other-application"},currentLease with{CredentialId=wrongCredentialId},
+            currentLease with{Generation=currentLease.Generation+1}})
+        {
+            var invalidSession=new ApplicationAuthorizedSession(registry,invalid,Execute);
+            var result=await invalidSession.DispatchAsync(Operation("invalid-lease"),CancellationToken.None);
+            Require(!result.Ok&&result.Err=="application_auth"&&executions==4,"invalid session tuple reached captured execution");
+            Require(!ReceiptContains(result,firstSecret)&&!ReceiptContains(result,secondSecret)&&!ReceiptContains(result,reissued.Credential!),
+                "session refusal exposed a credential");
+        }
+        var otherApplication=coordinator.Apply(new(ApplicationAuthorizationProtocol.Version,"other-application","connect",reissued.Credential),peer);
+        Require(!otherApplication.Connected&&otherApplication.Lease is null,"other application obtained a connection lease");
+        var rejected=coordinator.Apply(Request("connect",Mutate(reissued.Credential!)),peer);
+        try{_ = coordinator.OpenSession(rejected,Execute);throw new InvalidOperationException("failed connection opened a session");}
+        catch(AgentOpsException error){Require(error.Code=="application_auth"&&executions==4,"failed connection disclosed details or executed");}
+
+        using var canceled=new CancellationTokenSource();canceled.Cancel();
+        try{await renewed.DispatchAsync(Operation("canceled-before-admission"),canceled.Token);throw new InvalidOperationException("canceled dispatch ran");}
+        catch(OperationCanceledException){Require(executions==4,"canceled operation reached captured execution");}
+        Require(!StateContains(state,firstSecret)&&!StateContains(state,secondSecret)&&!StateContains(state,reissued.Credential!),
+            "session lifecycle persisted credential text");
+        Require(!ReceiptContains(denied,firstSecret)&&!ReceiptContains(revoked,secondSecret),"revoked session receipt exposed credential text");
+
+        var registryPath=Path.Combine(state,"application-authorizations.v1.json");
+        var missingCredentialId=System.Text.Json.Nodes.JsonNode.Parse(await File.ReadAllTextAsync(registryPath))!.AsObject();
+        missingCredentialId["entries"]![0]!["credentialId"]=null;
+        var corruptExecutions=0;
+        var corruptSession=coordinator.OpenSession(newConnection,(request,_)=>
+        {
+            corruptExecutions++;
+            return Task.FromResult(Success(request));
+        });
+        foreach(var corruptShape in new[]{"{\"version\":1,\"entries\":null}","{\"version\":1,\"entries\":[null]}",missingCredentialId.ToJsonString()})
+        {
+            await File.WriteAllTextAsync(registryPath,corruptShape);
+            var result=await corruptSession.DispatchAsync(Operation("corrupt-authority-shape"),CancellationToken.None);
+            Require(!result.Ok&&result.State=="failed"&&result.Err=="application_auth"&&result.Data is null&&corruptExecutions==0,
+                "corrupt registry shape escaped bounded authorization refusal or reached captured execution");
+            Require(!ReceiptContains(result,firstSecret)&&!ReceiptContains(result,secondSecret)&&!ReceiptContains(result,reissued.Credential!),
+                "corrupt registry refusal exposed a credential");
+        }
+        await File.WriteAllTextAsync(registryPath,"{not-json");
+        var unreadable=await renewed.DispatchAsync(Operation("unreadable-current-authorization"),CancellationToken.None);
+        Require(!unreadable.Ok&&unreadable.Err=="application_auth"&&executions==4,"unreadable authority allowed cached session execution");
+
+        static OperationRequest Operation(string rid)=>new("diag",new Dictionary<string,string>(),rid);
+        static OperationReceipt Success(OperationRequest request)=>new(true,Guid.NewGuid().ToString("N"),request.Rid!,"done",request.Op);
     }
 
     public static async Task TypedSystemSurfaceAsync()

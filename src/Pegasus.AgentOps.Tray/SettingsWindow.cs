@@ -92,7 +92,8 @@ internal sealed class SettingsWindow : Form
                     ("Administrator service", () => new ServiceNotificationsPage()),
                     ("Processors", () => new CortexProcessorPolicyPage()),
                     ("MCP", () => new CortexMcpSettingsPage(beginSetupOperation:_beginMcpSetupOperation)),
-                    ("Storage", () => new CortexPayloadLifecyclePage()))),
+                    ("Storage", () => new CortexPayloadLifecyclePage()),
+                    ("About", () => new CortexAboutPage()))),
                 _ => throw new ArgumentOutOfRangeException(nameof(destination))
             };
             page.Dock = DockStyle.Fill;

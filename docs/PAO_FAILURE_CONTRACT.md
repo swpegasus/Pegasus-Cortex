@@ -1,12 +1,16 @@
-# PAO compact receipt contract v1
+# PAO MCP result presentation
 
 This is the source contract for PAO presentation. It is not evidence that an
 older installed Cortex exposes the behavior.
 
-`output=structured` and omitted `output` retain the complete machine receipt,
-including `jid`, `rid`, operation data, bounded process output, and typed failure
-evidence when available. `output=agent` is a presentation projection only; it
-does not enter request identity, dispatch, durable jobs, or retry behavior.
+Omitted `output` and `output=agent` return concise requested results. Explicit
+`output=structured` retains the complete legacy machine receipt in both MCP
+text and `structuredContent`, including `jid`, `rid`, operation data, bounded
+process output and typed failure evidence. `detail=true` requests full receipt
+text once; on selected job inspection it returns the original receipt and any
+separate observed progress. This is presentation only: it does not enter request
+identity, dispatch, durable jobs or retry behavior. CLI output and `--json` are
+unchanged. The separate terminal payload contract is unchanged.
 
 MCP and CLI JSON responses use readable UTF-8 (no BOM), not an ANSI code page
 or UTF-16 wire format. Ordinary punctuation and supported Unicode are emitted
@@ -30,6 +34,18 @@ content; HTML views must encode text at rendering, never inject it as markup.
   logs and stderr stay on demand. `log_available=true` means additional retained
   output was omitted from the compact result, accompanied by the `jid` needed
   to retrieve it. Full receipts are unchanged.
+- Completed copies report a result such as `Copied 1 file (19,988 bytes).`
+  Counts use invariant formatting. Skips are reported as entries, for example
+  `Copied 8 files; skipped 2 existing entries.`, because a skipped entry can be
+  a directory subtree. A verified completed move reports `Moved.` rather than
+  treating its copied-file count as a moved-item count. Unobserved/saturated
+  byte progress, partial outcomes and additional result fields retain their
+  explicit evidence instead of manufacturing a complete transfer summary.
+- Routine receipt headers and sequence/submission metadata are omitted;
+  transfer summaries do not echo submitted paths or commands. Requested result values, including explicit null,
+  false, zero, empty strings and nested API/registry values, are preserved;
+  these are not universally treated as receipt defaults. An empty declared
+  process stdout is preserved distinctly from an absent stdout field.
 - `read_lines` returns the selected numbered source lines with no routine
   receipt/path/range header. Continuation and total are included only when more
   exists; partial/truncation markers remain explicit. It remains bounded by the
@@ -91,6 +107,18 @@ An admitted/running job's JID selects exact status, waiting, cancellation, and
 logs. Completed agent results retain it only for omitted logs or partial
 outcomes. Select structured output when a full completed receipt is needed for
 a later audit.
+Selected `job_stat` and `job_wait` unwrap the original result instead of
+returning a second receipt envelope and submission echo. A known selected JID
+is not repeated in ordinary completed results. Running inspection preserves
+its actual separate RAM-only advisory `progress` snapshot, including observed
+zero/false/null values; it is not a durable progress receipt. Cancellation
+acknowledgment does not claim the original operation has already stopped.
+An observation may succeed while describing a failed original job: the original
+failure/partial/uncertainty remains visible. Use `detail=true` or explicit
+structured output when the retained submitted command and receipt are needed.
+Pruned/discarded legacy failures explicitly report that state and truthful
+`detail=not_retained log=not_retained`; they do not advertise missing detail as
+available merely because a metadata receipt remains.
 RID is the request's idempotency/reconciliation identity, not an alias accepted
 by those JID selectors. The public contract currently has no exact read-only
 RID lookup. Keep both when an uncertain outcome may need reconciliation.

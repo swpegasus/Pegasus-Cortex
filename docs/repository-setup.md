@@ -1,10 +1,10 @@
 # Repository setup and product boundary
 
 The maintained products use separate repositories under the GitHub account
-`swpegasus`: `Pegasus-Cerebral` and `Pegasus-Cortex`. Shayne requested both
-repositories start private. The unrelated `mnwinter` account is not a target.
-Remote creation and source upload must be reported from their actual results;
-these names alone do not prove either action completed.
+`swpegasus`: `Pegasus-Cerebral` and `Pegasus-Cortex`. The Cortex public source
+starts with a reviewed clean snapshot; earlier private history remains separate.
+Repository visibility, a source upload and a published release are separate
+actions and must be reported from their actual results.
 
 Cerebral owns the Windows AI workspace, model orchestration, engine interfaces
 and optional capability plugins. Cortex owns durable continuity, deterministic
@@ -24,15 +24,17 @@ is unavailable. That target is distinct from current setup prerequisite checks.
 
 ## Licensing
 
-No product-level license has been selected. Shayne wants broad personal and
-commercial use with protection against cosmetic resale/rebranding; see
-[the licensing intent](licensing-intent.md). Do not label the products Apache,
-MIT or open source, or add a license grant, until Shayne confirms his intent.
-Apache-2.0 permits commercial use without a revenue ceiling or royalty;
-revenue-limited commercial terms would be a different licensing decision.
-Upstream code, assets, models and tools retain their own terms and notices.
-A future product license applies only to material its owner has rights to
-license. Private repository visibility does not settle distribution rights.
+Shayne Winter approved [Pegasus Community License 1.0](../LICENSE) for Cortex
+and confirmed ownership of the identified first-party Pegasus.Shared package
+and SharedMcp snapshot. Personal use and organizational use below US$10 million
+in combined annual group revenue are covered by the community grant; use for
+larger groups requires separate signed permission. The complete license governs
+eligibility and distribution. [The licensing decision](licensing-intent.md)
+records the choice without replacing the grant.
+
+Cortex is source-available community software, not OSI-compliant open source.
+Third-party code, assets, models and tools keep their own terms and notices.
+This Cortex grant does not select a license for unrelated product repositories.
 
 The earlier Cortex record
 `project.pegasus-cerebral / knowledge / cerebral-no-licensing-gate-20260913@1`
@@ -62,10 +64,9 @@ not replace task ownership, approved execution budgets, tests or Cortex.
 Local metadata setup does not authorize installed updates, service changes,
 release signing, public source publication or deployment.
 
-The product page is coordinated with the existing WebAuthority chat at
-[WebAuthority](codex://threads/019fea87-86e0-7762-9c0e-d1673a74d810).
-Its proposed existing destination is `https://cerebral.shaynewinter.com/`.
-Keep private source links and unqualified downloads out of the public page;
+Public project documentation links to the owner-maintained
+[Cortex website](https://cerebral.shaynewinter.com/cortex/).
+Keep private coordination links and unqualified downloads out of public pages;
 label development status and distinguish shipped evidence from planned work.
 
 ## Proportional checks

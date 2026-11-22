@@ -83,8 +83,12 @@ internal static class GeneralOperationalTests
             RequireSuccessAndNamespace(search, "alpha");
             var items = search["structuredContent"]?["items"] as JsonArray;
             LocalAssert.True(
+                search["structuredContent"]?["schema"]?.GetValue<string>() == "cortex.search.compact/1" &&
                 items is { Count: 1 } &&
-                items[0]?["recordId"]?.GetValue<string>() == "knowledge-1",
+                items[0]?["id"]?.GetValue<string>() == "knowledge-1" &&
+                items[0]?["ns"]?.GetValue<string>() == "alpha" &&
+                items[0]?["type"]?.GetValue<string>() == "knowledge" &&
+                items[0]?["rev"]?.GetValue<long>() == 1,
                 "New local knowledge was not immediately searchable through MCP.");
 
             var read = await CallAsync(
@@ -137,7 +141,10 @@ internal static class GeneralOperationalTests
         LocalAssert.True(
             result["isError"]?.GetValue<bool>() == false,
             $"The MCP operation failed: {result.ToJsonString()}.");
-        var namespaces = result["structuredContent"]?["effectiveNamespaces"] as JsonArray;
+        var body = result["structuredContent"]?.AsObject();
+        var schema = body?["schema"]?.GetValue<string>();
+        var namespaces = body?[schema is "cortex.start.compact/1" or "cortex.search.compact/1"
+            ? "ns" : "effectiveNamespaces"] as JsonArray;
         LocalAssert.True(
             namespaces is { Count: 1 } && namespaces[0]?.GetValue<string>() == expected,
             "The MCP result did not echo the effective namespace.");

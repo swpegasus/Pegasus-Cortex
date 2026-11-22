@@ -91,9 +91,12 @@ public sealed class CortexV2McpApplication : ICortexMcpProtocolApplication
                 "cortex_finish" => await _application.FinishAsync(Deserialize<CortexFinishRequestV2>(values), cancellationToken).ConfigureAwait(false),
                 _ => throw new InvalidOperationException("The V2 tool dispatch table is incomplete.")
             };
-            var compact = values.TryGetProperty("format", out var format) &&
-                format.ValueKind == JsonValueKind.String &&
-                string.Equals(format.GetString(), "compact", StringComparison.Ordinal);
+            // Default only the MCP preview presentation. Exact reads and the
+            // underlying Core/CLI contracts keep their full typed result bodies.
+            var compact = values.TryGetProperty("format", out var format)
+                ? format.ValueKind == JsonValueKind.String &&
+                    string.Equals(format.GetString(), "compact", StringComparison.Ordinal)
+                : name is "cortex_start" or "cortex_search";
             return Success(value, compact);
         }
         catch (Exception exception) when (exception is
@@ -147,12 +150,14 @@ public sealed class CortexV2McpApplication : ICortexMcpProtocolApplication
             },
             CortexStartRequestV2 request => request with
             {
-                MaxUtf8Bytes = DefaultWhenOmitted(arguments, "maxUtf8Bytes", request.MaxUtf8Bytes, CortexV2Limits.DefaultStartResponseUtf8Bytes)
+                MaxUtf8Bytes = DefaultWhenOmitted(arguments, "maxUtf8Bytes", request.MaxUtf8Bytes, CortexV2Limits.DefaultStartResponseUtf8Bytes),
+                Format = arguments.TryGetProperty("format", out _) ? request.Format : CortexResponseFormatV2.Compact
             },
             CortexSearchRequestV2 request => request with
             {
                 Limit = DefaultWhenOmitted(arguments, "limit", request.Limit, CortexV2Limits.DefaultPageSize),
-                MaxUtf8Bytes = DefaultWhenOmitted(arguments, "maxUtf8Bytes", request.MaxUtf8Bytes, CortexV2Limits.DefaultResponseUtf8Bytes)
+                MaxUtf8Bytes = DefaultWhenOmitted(arguments, "maxUtf8Bytes", request.MaxUtf8Bytes, CortexV2Limits.DefaultResponseUtf8Bytes),
+                Format = arguments.TryGetProperty("format", out _) ? request.Format : CortexResponseFormatV2.Compact
             },
             CortexReadRequestV2 request => request with
             {

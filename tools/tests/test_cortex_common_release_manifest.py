@@ -120,7 +120,12 @@ class CommonReleaseManifestTests(unittest.TestCase):
                 "releaseVersion": RELEASE,
                 "runtimeIdentifier": "win-x64",
                 "schemaVersion": 1,
-                "sdk": {"actualVersion": common.SDK_VERSION, "version": common.SDK_VERSION},
+                "sdk": {
+                    "actualVersion": common.SDK_VERSION,
+                    "version": common.SDK_VERSION,
+                    "rollForward": common.SDK_ROLL_FORWARD,
+                    "allowPrerelease": False,
+                },
                 "sourceInputs": source_inputs,
                 "sourceSetSha256": source_set,
             },
@@ -179,7 +184,12 @@ class CommonReleaseManifestTests(unittest.TestCase):
                     "sha512": runtime_sha512,
                 },
                 "schemaVersion": 3,
-                "sdk": {"actualVersion": common.SDK_VERSION, "version": common.SDK_VERSION},
+                "sdk": {
+                    "actualVersion": common.SDK_VERSION,
+                    "version": common.SDK_VERSION,
+                    "rollForward": common.SDK_ROLL_FORWARD,
+                    "allowPrerelease": False,
+                },
                 "sourceInputs": source_inputs,
             },
         )

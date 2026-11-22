@@ -32,6 +32,16 @@ application ID `pegasus-cerebral` and one action:
 - `revoke`: removes the active verifier and leaves public revoked metadata;
 - `connect`: authenticates a persistent application session.
 
+In current source, a connected session retains its original application ID,
+public credential ID and generation. Cortex rechecks that exact active tuple
+before admitting each subsequent operation. Revocation or rotation therefore
+denies the old connection's next operation as well as a new connection using
+the old credential. Reissuing access does not silently renew an old session.
+Malformed or unreadable registry state fails closed without returning credential
+material. This does not undo an operation already admitted before revocation,
+and it never automatically renews or replays work. Prepared releases retain the
+behavior of their own compiled version.
+
 Issue and rotate return credential material exactly once over the already
 identity-validated pipe. Cerebral must immediately protect it beneath its
 service boundary and must never expose it through an agent, UI, CLI, MCP,

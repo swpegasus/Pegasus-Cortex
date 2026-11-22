@@ -27,16 +27,18 @@ dominating the normal UI.
 It uses NSIS's DPI-aware dialogs and product branding, not a second UI framework.
 Windows automatically requests administrator elevation for machine setup.
 Recognized upgrade/repair displays a cancel-by-default interruption warning
-before core package admission, trust changes, or backend shutdown. The
+before core package admission or selected trust changes. The
 coordinator reaches the wizard without extracting or executing an inner setup
 probe. Core, trust, Codex registration, Codex guidance, and their removals are
 separate sections. An unselected section has no command and performs no target
 inspection. Silent invocation does not display the warning and constitutes an
 unattended upgrade request.
 Core installation, upgrade, and repair do not require unrelated Codex windows
-to close. After package and path preflight, the adapter stops owned Cortex
-components before replacing program files. Quiesce affected Cortex consumers,
-PAO jobs, and PAO-owned application generations before that interruption.
+to close. Cortex declares `keepRuntimeStopped=true`: its adapter requires the
+owned service and product processes already stopped, and refuses loaded images
+instead of killing them. Finish affected jobs/applications and use the graceful
+Cortex Exit flow before replacement. Setup preserves the stopped state and
+existing startup choices; another product must document its own adapter behavior.
 An explicitly selected Codex registration or guidance install/removal requires
 every `codex` and `chatgpt` process to be closed. The adapter checks this at the
 selected feature's mutation boundary; it does not inspect installer ancestry.
@@ -47,9 +49,14 @@ registry-based upgrade/repair discovery, visible setup progress, explicit trust
 component, Start Menu shortcut, signed uninstaller, Add/Remove Programs fields
 and a reusable maintenance setup. Its program default is
 `%ProgramFiles%\<publisher>\<product>`.
-The successfully installed signed setup is cached as
-`<InstallRoot>\installer\Setup.exe`; Add/Remove Programs uses that exact copy for
-Modify and Repair while `Uninstall.exe` remains the uninstall route. Normal
+The generic wizard caches its signed coordinator as
+`<InstallRoot>\installer\Setup.exe`; Add/Remove Programs Modify/Repair points to
+that coordinator. This is different from Cortex's signed backend declared by
+`setupPath=installer/PegasusCortex.Setup.exe`. In adjacent mode the coordinator
+resolves its companion product first beside itself, then from the registered
+`InstallSource`, then the existing installed root; the selected payload still
+must pass admission. Keep the complete source layout available instead of
+assuming the cached coordinator contains it. `Uninstall.exe` is the uninstall route. Normal
 uninstall never offers database deletion and retains the registered data
 location so a clean reinstall can reconnect to the existing store.
 Build into the same generated output folder every time; do not create automatic
@@ -60,11 +67,11 @@ Each product supplies a signed setup adapter implementing these fixed CLI forms:
 
 - `install-package <package> --install-root <root>`: verify the pinned detached
   signature before admitting content; check product/role/version and all file
-  hashes; enforce path, ACL and disk-space rules; stop only owned processes;
-  replace verified binary files; preserve existing databases; register the
-  product's own service/PATH/startup only if that product needs them. Before
-  starting a service, setup may tighten security metadata beneath its exact
-  owned state root without reading or rewriting retained database content. Persist
+  hashes; enforce path, ACL and disk-space rules; apply the adapter's declared
+  quiescence policy; replace verified binary files and preserve databases.
+  Cortex requires already-stopped components and does not implicitly install,
+  enable or start its optional privileged service. Protected state provisioning
+  may set the declared ACLs without opening a semantic database engine. Persist
    `InstallLocation` and `ReleaseVersion` in the 64-bit
    `HKLM\Software\<publisher>\<product>` key.
 - Optional `--data-root <root>` for a definition with the versioned
@@ -116,9 +123,10 @@ Each product supplies a signed setup adapter implementing these fixed CLI forms:
   host, start it with a matching non-elevated interactive user token, then
   verify bounded host/service readiness. It is an explicit user-context
   diagnostic/configuration operation, not an elevated installation step.
-  Ordinary setup registers automatic service startup and signed-in-user logon
-  startup. PAO/MCP clients may demand-start the host with a bounded readiness
-  wait. A session-host
+  This capability does not itself enable a Windows service or add logon startup.
+  Cortex's normal setup keeps runtime stopped and preserves an existing sign-in
+  startup selection; PAO/MCP clients attach only and do not demand-start the
+  owner. A session-host
   product must register its admitted GUI/WinExe host directly; it must not use
   a console-capable CLI or MCP launcher as the resident Run-key target. The
   elevated wizard never calls this operation and never makes an otherwise
@@ -140,16 +148,19 @@ failure maps to code `8`; actual backend exit codes are preserved. The wait has
 no outer inactivity timeout, so adapters must bound their own waits. The setup
 adapter is hosted without a separate blank child console.
 Cortex's elevated startup and obsolete-file cleanup persist their stage and
-failure details under `<InstallRoot>\state\install\logs`. Cleanup failures
+failure details under `<DataRoot>\install\logs`, selected through the registered
+data location. `<InstallRoot>\state` applies only to a retained legacy data-root
+binding, not the new default. Cleanup failures
 include stage, underlying exception type, native error when available, and
 partial counters. Ordinary non-elevated startup requires no protected log write.
 Development updates build forward; retry the corrected package in the same
 root after partial failure. Never claim success or erase user state to recover.
 Use transaction cleanup for security-sensitive registration/trust changes.
 Database access, initialization, and schema evolution belong to the product
-runtime, not to this GUI. Cortex's normal setup never opens, copies, replaces,
-seeds, or migrates databases; do not infer database-operation authority from a
-location selection. Product-specific service semantics stay in the adapter;
+runtime, not to this GUI. Cortex setup does not open the semantic engine, seed
+records, convert schemas or replace retained database contents. The explicit
+copy-first relocation below may copy quiescent database file families while
+retaining originals; that is distinct from database conversion. Product-specific service semantics stay in the adapter;
 the shared GUI does not assume all products use Cortex's database or service.
 The adapter must implement genuine admission; the JSON definition is not proof.
 
@@ -163,12 +174,14 @@ without this object retain the existing program-only location flow.
 
 For a fresh Cortex install, the GUI offers a separate durable local data root,
 defaulting to `%ProgramData%\Pegasus\Cortex`. Both fresh roots must be empty
-dedicated folders (or absent). Recognized repair/upgrade is program-only: it
-locks the registered location instead of copying or moving database content.
-Without an existing `DataLocation`, retain the exact registered
-`<InstallRoot>\state` legacy root. Reinstall also preserves an existing data
-binding. The runtime rejects an invalid, missing, or unavailable registered
-root rather than switching to a new empty store.
+dedicated folders (or absent). Recognized repair/upgrade preserves a custom
+registered data location. Cortex's `relocateLegacyData=true` allows only the
+exact old install-local `state` root to be copied to the default durable data
+folder: require quiescence and an empty destination, retain the originals, and
+select the new binding only after copy and known path fixups succeed. This does
+not authorize moving arbitrary user directories or converting a database.
+Reinstall preserves the selected data binding. An invalid, missing or unavailable
+registered root is refused rather than remapped to an empty store.
 
 Cortex places all mutable state under `DataRoot`: protected install metadata,
 service state, and SID-private user database, backup, execution, configuration,
@@ -204,14 +217,19 @@ An unsigned development compiler result is not a releasable installer.
 ## Certificates and admission
 
 The existing Pegasus Prod Alpha identity is an RSA-3072/SHA-256 local root and
-code-signing leaf. It is for internal machines that explicitly trust this lab
-root; public distribution needs an appropriate publicly trusted publisher.
+code-signing leaf. A public development distribution can carry its public
+verification certificates, while Windows/client trust and reputation remain
+separate: a local development root is not a publicly trusted commercial publisher.
+No signing private key belongs in a source checkout or distribution.
 
 1. Use `..\signing\New-PegasusProdAlphaSigningIdentity.ps1` only when creating
    an identity is explicitly authorized. It creates non-exportable keys in
    `CurrentUser\My`. Prefer selecting the existing identity with both exact
    `-ExistingRootThumbprint` and `-ExistingPublisherThumbprint`; never select
-   solely by a friendly name. No machine trust installation occurs here.
+   solely by a friendly name. Its root and publisher subjects are fixed; it has
+   no subject customization arguments. Optional `PublicOutputDirectory` is
+   create-only and exports public certificates only. No machine trust
+   installation occurs here or is required just to sign.
 2. Publish the product into its reusable package folder. Export only public
    trust with `Export-PegasusProdAlphaTrustBundle.ps1`. Never copy a PFX, private
    key, PIN, password, token or signing secret into a package or log.
