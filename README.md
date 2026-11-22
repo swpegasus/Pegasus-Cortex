@@ -51,6 +51,26 @@ AutoIt installation or a separate NSIS installation just to run the product.
 Git, a developer SDK and other external tools are needed only for the operations
 that use them; Cortex's tool catalog reports what is configured locally.
 
+### Prerequisites and official references
+
+| Component | What a user needs | Official reference |
+| --- | --- | --- |
+| Windows x64 | Use a current supported Windows installation. Cortex's checks on this machine do not qualify every OS in .NET's wider support list. | [Microsoft Windows/.NET requirements](https://learn.microsoft.com/dotnet/core/install/windows) |
+| .NET 10, Windows Forms and ASP.NET Core runtime | Included in the prepared Cortex application roles; no separate global runtime installation is needed for Cortex. | [.NET 10 information and downloads](https://dotnet.microsoft.com/en-us/download/dotnet/10.0) |
+| SQLite | Included through the pinned SQLitePCLRaw libraries; no database-server installation is required. | [SQLite](https://www.sqlite.org/) |
+| AutoItX 3.3.18.0 | Included for the Windows UI tools; no global AutoIt installation is required. | [AutoIt / AutoItX](https://www.autoitscript.com/site/autoit/) |
+| NSIS 3.12 | Included product-local tools; the maintained builder acquires the pinned version. Users need no separate NSIS installation. | [NSIS documentation](https://nsis.sourceforge.io/Docs/) |
+| PowerShell 7 x64 MSI | Install separately for persistent terminals and registered PowerShell tools, then restart the Cortex Host. | [Microsoft installation guide](https://learn.microsoft.com/powershell/scripting/install/install-powershell-on-windows) |
+| Git for Windows | Needed only for Git operations or cloning source. | [Official Git for Windows download](https://git-scm.com/downloads/win) |
+| .NET SDK | Needed for source builds and SDK operations, not for running the prepared product. Match [global.json](https://github.com/swpegasus/Pegasus-Cortex/blob/main/global.json), currently SDK 10.0.400 with its declared roll-forward policy. | [.NET 10 SDK downloads](https://dotnet.microsoft.com/en-us/download/dotnet/10.0) |
+| Visual C++ / Windows system prerequisites | Conditional on the Windows version or additional native tools; this is not a blanket extra Cortex installer requirement. Follow Microsoft's OS-specific dependency guidance. | [Microsoft Visual C++ redistributable reference](https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist) |
+
+The bundled components retain their own [licenses and provenance](licenses/).
+Additional project tools may have their own prerequisites; check their registered
+availability before using the corresponding operation. Bundled versions are
+part of the checked product inventory, rather than instructions to replace them
+with unrelated downloads.
+
 Normal Windows approval is required for installation and selected machine-wide
 settings, service or trust changes. Configure a compatible Streamable HTTP MCP
 client when you want to connect an AI assistant. Internet access is needed to

@@ -29,6 +29,14 @@ certificate-store references or user data to make a new installation work.
 - A normal source checkout including the admitted dependencies described below.
   No signing key or trust-store change is needed for an ordinary source build.
 
+Official references: [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0),
+[PowerShell 7 MSI](https://learn.microsoft.com/powershell/scripting/install/install-powershell-on-windows),
+[Git for Windows](https://git-scm.com/downloads/win), and
+[Windows/.NET OS dependencies](https://learn.microsoft.com/dotnet/core/install/windows).
+Use the repository's declared SDK and pinned dependency versions. The normal
+prepared installer already includes its application runtimes and admitted tools;
+these developer prerequisites do not turn into extra end-user requirements.
+
 Keep the canonical checkout and generated paths within the product's 240-character
 path budget. `VERSION.json` and `Directory.Version.props` must describe the same
 source release. They do not identify the installed runtime or establish that an
