@@ -1,0 +1,16 @@
+Package metadata covered by this notice:
+
+- Microsoft.Data.Sqlite 10.0.10
+- Microsoft.Data.Sqlite.Core 10.0.10
+
+Authors: Microsoft
+Copyright: © Microsoft Corporation. All rights reserved.
+License expression: MIT
+License URL: https://licenses.nuget.org/MIT
+Project URL: https://docs.microsoft.com/dotnet/standard/data/sqlite/
+Repository: https://github.com/dotnet/dotnet
+Repository commit: f7d90799ce4ef09a0bb257852a57248d2a8fb8dd
+
+The staged package archives declare the MIT SPDX expression but do not embed a
+license or third-party-notice file. The adjacent LICENSE file is a local copy
+of the MIT license retained for dependency compliance.

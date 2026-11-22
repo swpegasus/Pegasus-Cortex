@@ -48,6 +48,9 @@
 *.sqlite3-*
 # The source provider directory ends in .Sqlite; it is code, not a database.
 !/src/PegasusCortex.Persistence.Sqlite/
+# These exact legal notices are text, despite the package name matching *.sqlite-*.
+!/licenses/Microsoft.Data.Sqlite-10.0.10-LICENSE.txt
+!/licenses/Microsoft.Data.Sqlite-10.0.10-NOTICE.txt
 *.gguf
 *.safetensors
 *.onnx
