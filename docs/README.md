@@ -26,6 +26,8 @@ offers the same starting points as an interactive site.
   payloads, protection, rotation, rehydration and their source/verification limits.
 - [Statistics](CORTEX_UTILIZATION.md): recorded operations, byte/time units and
   the limits of aggregate observations.
+- [Branding artwork and kit](BRANDING_ARTWORK.md): source artwork, GUI watermark,
+  icon families and the maintained kit exporter.
 - [Repository and licensing](repository-setup.md) and the [operative license](../LICENSE).
 
 The installed MCP catalog and operation-specific help describe the available

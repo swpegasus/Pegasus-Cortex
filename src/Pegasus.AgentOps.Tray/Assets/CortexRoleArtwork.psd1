@@ -1,6 +1,6 @@
 @{
     SchemaVersion = 1
-    # All badges overlay the unchanged CortexAppMark base. Coordinates use its 64-unit viewbox.
+    # Badges overlay the current Cortex.Graphic raster master. Coordinates use a 64-unit viewbox.
     Roles = @{
         Command = @{
             Label = 'Command host'

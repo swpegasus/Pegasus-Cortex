@@ -22,7 +22,7 @@ internal static class CortexAboutDialogTests
         }
         catch (Exception error) { Console.Error.WriteLine("FAIL Cortex About: " + error); return 1; }
         finally { CortexTheme.SetAppearance(previousAppearance); }
-        Console.WriteLine($"PASS Cortex About: {_checks} injected unshown-control checks; shared branded tab/dialog, real product icon, creator/assistance/license/disclaimer, local build metadata, exact links, lazy footer and five-destination navigation; no browser, network, product calls or runtime probe");
+        Console.WriteLine($"PASS Cortex About: {_checks} injected unshown-control checks; shared branded tab/dialog, embedded product artwork, creator/assistance/license/disclaimer, local build metadata, exact links, lazy footer and five-destination navigation; no browser, network, product calls or runtime probe");
         return 0;
     }
 
@@ -87,13 +87,16 @@ internal static class CortexAboutDialogTests
         page.Size = new Size(820, 680);
         page.PerformLayout();
         var logo = Descendants(page).OfType<PictureBox>().Single();
+        using var expectedLogo = CortexBranding.LoadLogo();
         var namedControls = Descendants(page).Where(control => !string.IsNullOrWhiteSpace(control.AccessibleName)).ToArray();
         Check(namedControls.GroupBy(control => control.AccessibleName ?? string.Empty, StringComparer.Ordinal).All(group => group.Count() == 1) &&
             page.Links.All(link => namedControls.Single(control => control.AccessibleName == "About link " + link.Key) is LinkLabel),
             "link accessibility identities are unique and distinct from their descriptive paragraphs");
         Check(page.FindForm() is null && actions.Count == 0 && logo.Image is { Width: >= 64, Height: >= 64 } &&
-            logo.AccessibleName == "Pegasus Cortex product logo" && !logo.TabStop,
-            "the unshown local page uses the existing embedded product icon without an eager browser action");
+            logo.Image.Size == expectedLogo.Size && !ReferenceEquals(logo.Image, expectedLogo) &&
+            logo.AccessibleName == "Pegasus Cortex product logo" && !logo.TabStop &&
+            logo.AccessibleDescription?.Contains("refreshed", StringComparison.Ordinal) == true,
+            "the unshown local page uses its own decoded refreshed product artwork without an eager browser action");
         Check(Descendants(page).OfType<Panel>().Any(control => control.AutoScroll) &&
             Descendants(page).OfType<Label>().All(control => control.AutoSize && control.MaximumSize.Width > 0),
             "About detail and link text wrap within a scrollable page rather than a fixed clipped canvas");
@@ -124,7 +127,7 @@ internal static class CortexAboutDialogTests
         page.Dispose();
         page.Dispose();
         page.OpenLink("project");
-        Check(logo.Image is null && page.IsDisposed && actions.Count == 1,
+        Check(logo.Image is null && page.IsDisposed && actions.Count == 1 && expectedLogo.Width >= 64,
             "owned branding is released once and a disposed page cannot open a browser");
     }
 

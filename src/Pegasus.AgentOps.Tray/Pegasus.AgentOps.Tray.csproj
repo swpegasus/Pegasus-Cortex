@@ -28,6 +28,10 @@
   <ItemGroup>
     <EmbeddedResource Include="Assets\Pegasus.AgentOps.ico"
                       LogicalName="Pegasus.AgentOps.Tray.Icon" />
+    <EmbeddedResource Include="Assets\Cortex.Graphic.png"
+                      LogicalName="Pegasus.AgentOps.Tray.BrandLogo" />
+    <EmbeddedResource Include="Assets\Cortex.Watermark.png"
+                      LogicalName="Pegasus.AgentOps.Tray.Watermark" />
   </ItemGroup>
 
 </Project>

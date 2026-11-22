@@ -12,6 +12,7 @@ internal sealed class SettingsWindow : Form
     private readonly Label _title = new() { AutoSize = true, Font = CortexTheme.TitleFont, Text = "Overview", UseMnemonic = false };
     private readonly Dictionary<string, Control> _pages = new(StringComparer.Ordinal);
     private readonly Dictionary<string, RadioButton> _navigation = new(StringComparer.Ordinal);
+    private readonly List<IDisposable> _branding = [];
     private readonly Func<CortexUserPresentationState>? _presentation;
     private readonly Action? _openQueue;
     private readonly Func<IDisposable>? _beginCertificatePasswordOperation;
@@ -53,6 +54,12 @@ internal sealed class SettingsWindow : Form
             _navigation.Add(name, button);
             navigation.Controls.Add(button);
         }
+        navigation.Controls.Add(new Label
+        {
+            AutoSize = true, MaximumSize = new Size(180, 0), MinimumSize = new Size(180, 40),
+            Text = "Build\n" + CortexBranding.BuildVersion, UseMnemonic = false,
+            AccessibleName = "Cortex build version", Margin = new Padding(8, 12, 0, 0)
+        });
         var main = new Panel { Dock = DockStyle.Fill, Padding = new Padding(12, 0, 20, 16) };
         var heading = new Panel { Dock = DockStyle.Top, Height = 86, Padding = new Padding(16, 20, 0, 8) };
         heading.Controls.Add(_title);
@@ -66,6 +73,19 @@ internal sealed class SettingsWindow : Form
         {
             if (_selected == "Overview" && _pages["Overview"] is CortexOverviewPage overview) overview.RefreshPresentation();
         };
+        try
+        {
+            // Paint only chrome backgrounds. Opaque views retain their own readable surfaces,
+            // just as opaque Cerebral plugin content can cover its decorative base layer.
+            _branding.Add(CortexBranding.AttachWatermark(navigation));
+            _branding.Add(CortexBranding.AttachWatermark(heading));
+        }
+        catch
+        {
+            foreach (var decoration in _branding) decoration.Dispose();
+            _branding.Clear();
+            throw;
+        }
     }
 
     internal string SelectedDestination => _selected;
@@ -182,6 +202,16 @@ internal sealed class SettingsWindow : Form
     {
         if (keyData == Keys.Escape) { Close(); return true; }
         return base.ProcessCmdKey(ref msg, keyData);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            foreach (var decoration in _branding) decoration.Dispose();
+            _branding.Clear();
+        }
+        base.Dispose(disposing);
     }
 }
 

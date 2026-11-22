@@ -1,11 +1,30 @@
 [CmdletBinding()]
 param([switch]$RoleIconsOnly)
 
-# Source-only asset generation. Coordinates mirror CortexAppMark.svg; no product or machine state is accessed.
+# Source-only native asset resizing. Role coordinates use the existing 64-unit
+# viewbox; the full-contrast raster master supplies the current Cortex artwork.
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 $artwork = Import-PowerShellDataFile (Join-Path $PSScriptRoot 'CortexRoleArtwork.psd1')
 if ($artwork.SchemaVersion -ne 1) { throw 'Unsupported Cortex role artwork schema.' }
+$masterPath = Join-Path $PSScriptRoot 'Cortex.Graphic.png'
+$master = [System.Drawing.Image]::FromFile($masterPath)
+if ($master.Width -ne $master.Height -or $master.Width -lt 256 -or $master.Width -gt 8192) {
+    $master.Dispose()
+    throw 'The Cortex graphic master must be square, between 256 and 8192 pixels.'
+}
+
+function Get-AppMarkSvg([hashtable]$Badge = $null) {
+    $label = if ($null -eq $Badge) { 'Pegasus Cortex' } else { 'Pegasus Cortex — ' + $Badge.Label }
+    $parts = [System.Collections.Generic.List[string]]::new()
+    $parts.Add(('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="{0}">' -f [Security.SecurityElement]::Escape($label)))
+    $parts.Add('  <title>' + [Security.SecurityElement]::Escape($label) + '</title>')
+    $parts.Add('  <defs><clipPath id="cortex-tile"><rect x="1" y="1" width="62" height="62" rx="14"/></clipPath></defs>')
+    $parts.Add('  <image href="Cortex.Graphic.png" width="64" height="64" preserveAspectRatio="xMidYMid meet" clip-path="url(#cortex-tile)"/>')
+    if ($null -ne $Badge) { $parts.Add((Get-BadgeSvg $Badge)) }
+    $parts.Add('</svg>')
+    return $parts -join "`n"
+}
 
 function Get-BadgeSvg([hashtable]$Definition) {
     $pieces = [System.Collections.Generic.List[string]]::new()
@@ -69,13 +88,11 @@ function New-AppMarkBitmap([int]$Pixels, [hashtable]$Badge = $null) {
     $canvas = [System.Drawing.Bitmap]::new($Pixels * 4, $Pixels * 4)
     $graphics = [System.Drawing.Graphics]::FromImage($canvas)
     $shape = [System.Drawing.Drawing2D.GraphicsPath]::new()
-    $curve = [System.Drawing.Drawing2D.GraphicsPath]::new()
-    $blue = [System.Drawing.SolidBrush]::new([System.Drawing.ColorTranslator]::FromHtml('#245BCE'))
-    $cyan = [System.Drawing.SolidBrush]::new([System.Drawing.ColorTranslator]::FromHtml('#A6E5FF'))
-    $outline = [System.Drawing.Pen]::new([System.Drawing.Color]::White, 5.5)
-    $branches = [System.Drawing.Pen]::new([System.Drawing.Color]::White, 3.5)
     try {
+        $graphics.Clear([System.Drawing.Color]::Transparent)
         $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+        $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+        $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
         $scale = $Pixels * 4 / 64.0
         $graphics.ScaleTransform($scale, $scale)
         $shape.AddArc(1, 1, 28, 28, 180, 90)
@@ -83,20 +100,9 @@ function New-AppMarkBitmap([int]$Pixels, [hashtable]$Badge = $null) {
         $shape.AddArc(35, 35, 28, 28, 0, 90)
         $shape.AddArc(1, 35, 28, 28, 90, 90)
         $shape.CloseFigure()
-        $graphics.FillPath($blue, $shape)
-        $outline.StartCap = $outline.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
-        $branches.StartCap = $branches.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
-        $branches.LineJoin = [System.Drawing.Drawing2D.LineJoin]::Round
-        $curve.AddBezier(44, 16, 33, 9, 18, 16, 17, 29)
-        $curve.AddBezier(17, 29, 15, 43, 28, 53, 41, 48)
-        $graphics.DrawPath($outline, $curve)
-        $graphics.DrawLine($branches, 26, 32, 34, 32)
-        $graphics.DrawLine($branches, 34, 32, 44, 22)
-        $graphics.DrawLine($branches, 34, 32, 48, 32)
-        $graphics.DrawLine($branches, 34, 32, 44, 42)
-        foreach ($point in @(@(46, 20), @(50, 32), @(46, 44))) {
-            $graphics.FillEllipse($cyan, [single]($point[0] - 3.2), [single]($point[1] - 3.2), [single]6.4, [single]6.4)
-        }
+        $graphics.SetClip($shape)
+        $graphics.DrawImage($master, [System.Drawing.RectangleF]::new(0, 0, 64, 64))
+        $graphics.ResetClip()
         if ($null -ne $Badge) { Draw-RoleBadge $graphics $Badge $Pixels }
         $result = [System.Drawing.Bitmap]::new($Pixels, $Pixels)
         $downsample = [System.Drawing.Graphics]::FromImage($result)
@@ -106,8 +112,7 @@ function New-AppMarkBitmap([int]$Pixels, [hashtable]$Badge = $null) {
         } finally { $downsample.Dispose() }
         return ,$result
     } finally {
-        $branches.Dispose(); $outline.Dispose(); $cyan.Dispose(); $blue.Dispose()
-        $curve.Dispose(); $shape.Dispose(); $graphics.Dispose(); $canvas.Dispose()
+        $shape.Dispose(); $graphics.Dispose(); $canvas.Dispose()
     }
 }
 
@@ -141,15 +146,17 @@ try {
 } finally { $writer.Dispose(); $output.Dispose() }
 }
 
-if (-not $RoleIconsOnly) { Write-AppMarkFiles 'Pegasus.AgentOps' }
-$baseSvg = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'CortexAppMark.svg') -Raw
+try {
+if (-not $RoleIconsOnly) {
+    Write-AppMarkFiles 'Pegasus.AgentOps'
+    [IO.File]::WriteAllText((Join-Path $PSScriptRoot 'CortexAppMark.svg'), (Get-AppMarkSvg), [Text.UTF8Encoding]::new($false))
+}
 foreach ($role in @($artwork.Roles.Keys | Sort-Object)) {
     if ($role -cnotmatch '^[A-Z][A-Za-z]+$') { throw 'Invalid role artwork name.' }
     $definition = $artwork.Roles[$role]
     $name = 'Cortex.' + $role
     Write-AppMarkFiles $name $definition
-    $svg = $baseSvg.Replace('</svg>', (Get-BadgeSvg $definition) + "`n</svg>")
-    $svg = $svg.Replace('aria-label="Pegasus Cortex"', ('aria-label="Pegasus Cortex — ' + $definition.Label + '"'))
+    $svg = Get-AppMarkSvg $definition
     [IO.File]::WriteAllText((Join-Path $PSScriptRoot ($name + '.svg')), $svg, [Text.UTF8Encoding]::new($false))
 }
 
@@ -173,7 +180,7 @@ try {
         $normal = New-AppMarkBitmap 32 $badge
         $top = 44 + 72 * $row
         try {
-            $label = if ($role -eq 'Main') { 'Main (unchanged)' } else { $badge.Label }
+            $label = if ($role -eq 'Main') { 'Main application' } else { $badge.Label }
             $review.DrawString($label, $font, $lightInk, 12, $top + 20)
             foreach ($left in @(204, 504)) {
                 $review.DrawImageUnscaled($small, $left, $top + 24)
@@ -187,3 +194,4 @@ try {
     }
     $sheet.Save((Join-Path $PSScriptRoot 'Cortex.IconFamily.preview.png'), [System.Drawing.Imaging.ImageFormat]::Png)
 } finally { $dark.Dispose(); $lightInk.Dispose(); $font.Dispose(); $review.Dispose(); $sheet.Dispose() }
+} finally { $master.Dispose() }

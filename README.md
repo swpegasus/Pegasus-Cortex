@@ -1,6 +1,6 @@
 # Pegasus Cortex
 
-Local continuity, knowledge retrieval and bounded Windows tools for Pegasus and compatible AI clients. Published by Shayne Winter under the [Pegasus Community License 1.0](LICENSE).
+Local continuity, knowledge retrieval and bounded Windows tools for Pegasus and compatible AI clients. A modular foundation for a **Windows R&D environment for AI**: keep useful context close, connect the tools you need, and build workflows on systems you control. Published by Shayne Winter under the [Pegasus Community License 1.0](LICENSE).
 
 [**Download the prepared Windows x64 development release**](https://github.com/swpegasus/Pegasus-Cortex/releases)
 
@@ -9,12 +9,14 @@ Local continuity, knowledge retrieval and bounded Windows tools for Pegasus and 
 The Cortex section of the Cerebral website introduces the product for people who
 are new to AI. It explains its evolution, practical workflows and how to get
 started. Installation and source-build instructions are also provided below.
+For more depth, open [the Cortex handbook](docs/handbook/README.md) or explore
+[Cerebral and Cortex together](https://cerebral.shaynewinter.com/together/).
 
 ## Companion application
 
-[Pegasus Cerebral](https://github.com/swpegasus/Pegasus-Cerebral) is the Windows AI workspace, model orchestrator and extensible plugin host.
+[Pegasus Cerebral](https://cerebral.shaynewinter.com/) brings conversations, a selected model and plugin tools into a Windows workspace. Cortex supplies project continuity and local operations. The modular design lets the workspace grow through selected components and workflows while keeping model execution, retained context and privileged work in their own roles.
 
-The [Cerebral repository catalog](https://github.com/swpegasus/Pegasus-Cerebral#plugin-repositories) links the plugin repositories and records the current shared-library layout.
+The [Cerebral feature guide](https://cerebral.shaynewinter.com/#features) introduces its workspace components and extension model.
 
 ## License and use
 
@@ -32,10 +34,7 @@ For author information or commercial licensing, visit [Shayne Winter](https://sh
 
 Created by Shayne Winter, with development assistance from
 [OpenAI Codex](https://openai.com/codex/) and [Pegasus Cerebral](https://cerebral.shaynewinter.com/).
-These development credits are separate from ownership and license terms.
-Development software and AI-assisted work can contain mistakes: review outputs
-and authorized actions, understand privileged-operation scope, and keep suitable
-backups. The included license supplies the actual terms.
+See the included license for use and distribution terms.
 
 ## Shared foundations
 

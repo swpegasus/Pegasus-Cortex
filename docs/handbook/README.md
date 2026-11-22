@@ -14,6 +14,11 @@ This handbook explains the ideas before the implementation details. Start with
 the case study if you want to see the pieces working together. Open the reference
 guides when you are ready to install, connect or automate something.
 
+Together, the products form a modular Windows research and development
+environment for AI. You can experiment with a selected local model, add useful
+plugins and tools, and build workflows around retained project context. Keeping
+those responsibilities separate gives the workshop room to grow as your ideas do.
+
 ## Choose a starting point
 
 | What you want to understand | Start here |

@@ -42,7 +42,7 @@ internal sealed class CortexAboutPage : UserControl
         _brand.SizeMode = PictureBoxSizeMode.Zoom;
         _brand.Margin = new Padding(0, 0, 20, 0);
         _brand.AccessibleName = "Pegasus Cortex product logo";
-        _brand.AccessibleDescription = "The existing Cortex product icon, also used by its windows.";
+        _brand.AccessibleDescription = "The refreshed blue-and-silver Cortex product artwork.";
         _brand.TabStop = false;
         hero.Controls.Add(_brand, 0, 0);
         hero.Controls.Add(heading, 1, 0);
@@ -170,13 +170,7 @@ internal sealed class CortexAboutPage : UserControl
         base.Dispose(disposing);
     }
 
-    private static Image LoadProductLogo()
-    {
-        using var stream = typeof(CortexWindowIcon).Assembly.GetManifestResourceStream("Pegasus.AgentOps.Tray.Icon")
-            ?? throw new InvalidOperationException("The Cortex product icon resource is unavailable.");
-        using var icon = new Icon(stream, new Size(128, 128));
-        return icon.ToBitmap();
-    }
+    private static Image LoadProductLogo() => CortexBranding.LoadLogo();
 
     private static IReadOnlyList<CortexAboutLink> CreateLinks(Uri? portfolio)
     {
