@@ -163,8 +163,8 @@ internal static class CortexLocalStoreBackupCommand
                     cancellationToken).ConfigureAwait(false);
             }
 
-            var registryBytes = await File.ReadAllBytesAsync(
-                options.StatePaths.RegistryPath,
+            var registryBytes = await CortexLocalBoundedMetadataReader.ReadAsync(
+                options.StatePaths.RegistryPath, CortexLocalProjectRegistryPolicy.MaximumRegistryBytes,
                 cancellationToken).ConfigureAwait(false);
             await CortexLocalRecoveryExportPathPolicy.WriteNewProtectedAsync(
                 stagingRoot,
@@ -254,7 +254,7 @@ internal static class CortexLocalStoreBackupCommand
             !Sha256(manifest.RunIdHash) ||
             !Sha256(manifest.RegistryHash) ||
             !Sha256(manifest.RegistrySha256) ||
-            manifest.RegistryBytes < 2 ||
+            manifest.RegistryBytes is < 2 or > CortexLocalProjectRegistryPolicy.MaximumRegistryBytes ||
             !Sha256(manifest.DatabaseSha256) ||
             manifest.DatabaseBytes < 1 ||
             !Sha256(manifest.SourceDatabasePathHash) ||
@@ -486,11 +486,8 @@ internal static class CortexLocalStoreRestoreCommand
         }
 
         var manifestPath = Path.Combine(backupRoot, "manifest.json");
-        var manifestBytes = await File.ReadAllBytesAsync(
-            manifestPath,
-            cancellationToken).ConfigureAwait(false);
-        if (manifestBytes.Length is < 2 or > 64 * 1024)
-            throw new InvalidDataException("The local backup manifest is outside its byte limit.");
+        var manifestBytes = await CortexLocalBoundedMetadataReader.ReadAsync(
+            manifestPath, 64 * 1024, cancellationToken).ConfigureAwait(false);
         CortexLocalStoreBackupManifest manifest;
         try
         {
@@ -512,28 +509,24 @@ internal static class CortexLocalStoreRestoreCommand
         var databasePath = Path.Combine(backupRoot, "cortex.db");
         var registryPath = Path.Combine(backupRoot, "projects.json");
         var databaseInfo = new FileInfo(databasePath);
-        var registryInfo = new FileInfo(registryPath);
         if (databaseInfo.Length != manifest.DatabaseBytes ||
-            registryInfo.Length != manifest.RegistryBytes ||
             !string.Equals(
                 await CortexLocalStoreBackupCommand.HashFileAsync(
                     databasePath,
                     cancellationToken).ConfigureAwait(false),
                 manifest.DatabaseSha256,
-                StringComparison.Ordinal) ||
-            !string.Equals(
-                await CortexLocalStoreBackupCommand.HashFileAsync(
-                    registryPath,
-                    cancellationToken).ConfigureAwait(false),
-                manifest.RegistrySha256,
                 StringComparison.Ordinal))
         {
             throw new InvalidDataException("The local backup file hashes do not match its manifest.");
         }
 
-        var registryBytes = await File.ReadAllBytesAsync(
-            registryPath,
+        var registryBytes = await CortexLocalBoundedMetadataReader.ReadAsync(
+            registryPath, CortexLocalProjectRegistryPolicy.MaximumRegistryBytes,
             cancellationToken).ConfigureAwait(false);
+        if (registryBytes.LongLength != manifest.RegistryBytes ||
+            !string.Equals(Convert.ToHexStringLower(SHA256.HashData(registryBytes)),
+                manifest.RegistrySha256, StringComparison.Ordinal))
+            throw new InvalidDataException("The local backup registry bytes do not match its manifest.");
         var registryDocument = CortexCanonicalJson.Deserialize<
             CortexLocalProjectRegistryDocument>(registryBytes);
         var validatedRegistry = CortexLocalProjectRegistryPolicy.Validate(

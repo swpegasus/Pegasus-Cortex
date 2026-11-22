@@ -451,8 +451,9 @@ internal static class CortexLocalCurrentProjectionRefresher
         byte[]? currentBytes = null;
         if (File.Exists(candidate.OutputPath))
         {
-            currentBytes = await File.ReadAllBytesAsync(
+            currentBytes = await CortexLocalBoundedMetadataReader.ReadAsync(
                 candidate.OutputPath,
+                CortexCurrentProjectionReader.MaximumProjectionBytes,
                 CancellationToken.None).ConfigureAwait(false);
         }
         if (currentBytes is not null &&

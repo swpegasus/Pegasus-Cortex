@@ -10,7 +10,8 @@ internal static class CortexSharedMcpRelay
 
     internal static void RequireRequest(OperationRequest request)
     {
-        if (request.Op != Operation || request.Root is not null || request.Ws is not null || request.Cwd is not null ||
+        if (request.Op != Operation || request.Root is not null || request.System || request.ConnectionAuthority is not null ||
+            request.Ws is not null || request.Cwd is not null ||
             request.PathRoots is { Count: > 0 } || request.Quiet || request.Detail ||
             request.Arg.Count != 1 || request.Arg.GetValueOrDefault("kind") is not ("initialize" or "invoke") ||
             request.Rid is not { Length: 32 } rid || !rid.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f') ||

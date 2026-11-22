@@ -223,6 +223,14 @@ public sealed class ZipOperations
         // Admit and stream-test the entire archive before inspecting destination
         // contents for mutation or creating the destination root.
         using var admitted = Admit(src, limits, token);
+        // Validate every final and exact temporary naming shape before clean or
+        // destination creation can change anything, including entries later skipped.
+        foreach (var entry in admitted.Entries)
+        {
+            token.ThrowIfCancellationRequested();
+            var target = CombineAdmittedTarget(dst, entry.Name);
+            if (!entry.Directory) _ = UniqueSiblingPath(target);
+        }
         if (File.Exists(dst)) throw new AgentOpsException("collision");
         if (Directory.Exists(dst) && pol == "fail") throw new AgentOpsException("collision");
 
@@ -596,6 +604,7 @@ public sealed class ZipOperations
             {
                 throw new AgentOpsException(part is ".." ? "archive_traversal" : "archive_name");
             }
+            ArchivePathBudget.RequireSegment(part);
         }
     }
 
@@ -817,7 +826,7 @@ public sealed class ZipOperations
         var relative = archiveName.TrimEnd('/').Replace('/', Path.DirectorySeparatorChar);
         var target = Path.GetFullPath(Path.Combine(root, relative));
         if (!Contains(root, target)) throw new AgentOpsException("archive_traversal");
-        return target;
+        return ArchivePathBudget.RequireAbsolute(target);
     }
 
     private static void EnsureNoReparseComponents(string path)
@@ -875,7 +884,7 @@ public sealed class ZipOperations
     {
         var directory = Path.GetDirectoryName(destination) ?? throw new AgentOpsException("invalid");
         var name = Path.GetFileName(destination);
-        return Path.Combine(directory, $".{name}.{Guid.NewGuid():N}.pao.tmp");
+        return ArchivePathBudget.RequireAbsolute(Path.Combine(directory, $".{name}.{Guid.NewGuid():N}.pao.tmp"));
     }
 
     private static string RequiredFullPath(string path)
@@ -889,7 +898,7 @@ public sealed class ZipOperations
         }
         var root = Path.GetPathRoot(full) ?? throw new AgentOpsException("invalid");
         if (full.AsSpan(root.Length).Contains(':')) throw new AgentOpsException("precondition");
-        return full;
+        return ArchivePathBudget.RequireAbsolute(full);
     }
 
     private (long Count, string Hash, uint Crc32) CopyAndHash(

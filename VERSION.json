@@ -1,9 +1,9 @@
 {
     "schemaVersion":  1,
-    "releaseVersion":  "2.2026.11.21.22.34.A",
-    "nuGetVersion":  "2.20261121.2234-a",
+    "releaseVersion":  "2.2026.11.22.03.54.A",
+    "nuGetVersion":  "2.20261122.0354-a",
     "assemblyVersion":  "2.0.0.0",
-    "fileVersion":  "2.2026.1121.2234",
+    "fileVersion":  "2.2026.1122.354",
     "releaseChannel":  "Prod Alpha",
     "timestampBasis":  "America/Los_Angeles",
     "sameMinuteRevisionRange":  "A-A",

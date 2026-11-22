@@ -6,6 +6,12 @@ using System.Text;
 using System.Security.AccessControl;
 using System.Text.Json;
 
+if(args is ["--metadata-read-bounds-only"])
+{
+    await SignedMetadataReadBoundsTests.RunAsync();
+    Console.WriteLine("PASS signed package metadata opened-handle bounds.");
+    return 0;
+}
 if (args is ["--lifecycle-fixture"])
 {
     Console.WriteLine("ready");
@@ -1203,6 +1209,11 @@ static async Task VerifyOptionalCodexIntegrationAsync(string testRoot)
     Require(!dottedRemoved.Contains("mcp_servers.Cortex", StringComparison.Ordinal) &&
         dottedRemoved.Contains("unrelated = \"keep between settings\"", StringComparison.Ordinal), "Dotted removal removed intervening TOML.");
     var noFinalNewline = "[plugins.\"pegasus-cortex-client@pegasus-suite\"]";
+    var approvedShared = CortexCodexMcpRegistration.Compose("", isolated.InstallRoot).Text +
+        "http_headers_helper = " + JsonSerializer.Serialize("\"" + Path.Combine(isolated.InstallRoot, "PegasusCortex.exe") +
+            "\" mcp headers --connection " + new string('1',32)) + "\n";
+    Require(CortexCodexMcpRegistration.Compose(approvedShared, isolated.InstallRoot).Text == approvedShared,
+        "A remembered public-ID helper was removed or executed during registration.");
     var inserted = CortexCodexMcpRegistration.Compose(noFinalNewline, isolated.InstallRoot);
     Require(inserted.Text.StartsWith(noFinalNewline + "\nenabled = false\n", StringComparison.Ordinal),
         "Omitted legacy-plugin enabled value at EOF was not safely disabled.");

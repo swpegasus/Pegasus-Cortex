@@ -11,6 +11,11 @@ var visualChecks = new (string Name, Func<Task> Run)[]
     ("visual library rejects pins paths licenses and foreign heads before writes", VisualLibraryV2Tests.AdmissionFailsBeforeWritesAsync),
     ("visual library bounds manifest ambiguity and cancellation", VisualLibraryV2Tests.BoundedManifestAndCancellationAsync)
 };
+var confinementChecks = new (string Name, Func<Task> Run)[]
+{
+    ("file V2 holds directory identities across manifest HOT and exact-read swaps", CortexFileV2ConfinementTests.ParentSwapsAsync),
+    ("file V2 publication cleanup replay and cancellation retain original ownership", CortexFileV2ConfinementTests.PublicationAndCancellationAsync)
+};
 var tests = new (string Name, Func<Task> Run)[]
 {
     ("file and SQLite providers retain byte-identical canonical briefs", FileProjectBriefTests.CrossProviderCanonicalBytesAsync),
@@ -30,7 +35,8 @@ var tests = new (string Name, Func<Task> Run)[]
     ("offline file Cortex rejects legacy ambiguity and task binding mismatch without writes", CortexOfflineFileStoreTests.LegacyAmbiguityAndBindingMismatchFailClosedAsync),
     ("offline file Cortex fails closed on task identity path and manifest admission", CortexOfflineFileStoreTests.ScopeIdentityPathAndManifestAdmissionFailClosedAsync)
 };
-tests = args is ["--visual-library"] ? visualChecks : tests.Concat(visualChecks).ToArray();
+tests = args is ["--directory-confinement-only"] ? confinementChecks
+    : args is ["--visual-library"] ? visualChecks : tests.Concat(confinementChecks).Concat(visualChecks).ToArray();
 
 var failures = new List<string>();
 foreach (var test in tests)

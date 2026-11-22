@@ -148,8 +148,17 @@ internal static class CortexMcpHostingTests
                 wrong.State.Endpoint is null,"wrong owner claimed another listener");
         }
         Check(factories==0&&resolver.Calls==0,"inactive owner constructed a dispatcher or resolved private certificates");
-        await using(var unavailable=await CortexMcpHostController.StartAsync(CortexMcpSettingsStore.Default with
+        await using(var noAuthenticator=await CortexMcpHostController.StartAsync(CortexMcpSettingsStore.Default with
             { Enabled=true },CortexMcpOwner.Application,Factory,CancellationToken.None,resolver))
+        {
+            Check(noAuthenticator.State.Status==CortexMcpHostStatus.Unavailable&&noAuthenticator.State.EffectiveOwner is null&&
+                noAuthenticator.State.Endpoint is null&&noAuthenticator.State.Issue=="connection_authenticator_required",
+                "enabled owner without a product authenticator did not fail closed");
+        }
+        Check(factories==0&&resolver.Calls==0,"missing authenticator reached certificates or dispatcher construction");
+        var authenticator=new CortexMcpRequestAuthenticator(()=>null);
+        await using(var unavailable=await CortexMcpHostController.StartAsync(CortexMcpSettingsStore.Default with
+            { Enabled=true },CortexMcpOwner.Application,Factory,CancellationToken.None,resolver,authenticator))
         {
             Check(unavailable.State.Status==CortexMcpHostStatus.Unavailable&&!unavailable.State.PendingRestart&&
                 unavailable.State.Issue=="fixture_missing_certificate","missing TLS reference did not remain explicitly unavailable");
@@ -158,7 +167,7 @@ internal static class CortexMcpHostingTests
         using var cancelled=new CancellationTokenSource();
         cancelled.Cancel();
         await ThrowsAsync<OperationCanceledException>(()=>CortexMcpHostController.StartAsync(CortexMcpSettingsStore.Default with
-            { Enabled=true },CortexMcpOwner.Application,Factory,cancelled.Token,resolver));
+            { Enabled=true },CortexMcpOwner.Application,Factory,cancelled.Token,resolver,authenticator));
         Check(factories==0&&resolver.Calls==1,"already-cancelled startup reached certificate or dispatcher construction");
     }
 

@@ -6,14 +6,14 @@ using Pegasus.AgentOps.Protocol;
 // Catalog/input admission only. No COM connection, task control or elevation.
 internal static class WindowsTaskToolCatalog
 {
-    internal static readonly string[] Fields = ["op", "text", "root", "rid", "wait", "detail", "elevate"];
+    internal static readonly string[] Fields = ["op", "text", "system", "rid", "wait", "detail", "elevate"];
     internal static string[] FieldsFor(string action) => Fields.Where(field =>
         (field != "wait" || !WindowsTaskOperationContract.IsReadOnly(action) || WindowsTaskOperationContract.IsOwnerElevationAction(action)) &&
         (field != "elevate" || WindowsTaskOperationContract.IsOwnerElevationAction(action)) &&
-        (field != "root" || WindowsTaskOperationContract.IsSystemAction(action))).ToArray();
+        (field != "system" || WindowsTaskOperationContract.IsSystemAction(action))).ToArray();
 
     internal static bool Parse(JsonElement arguments, out Dictionary<string, string> values, out string? body) =>
-        ClosedPaoToolArguments.TryParse(arguments, Fields, ["detail", "wait"], out values, out body) && Valid(values, body, true);
+        ClosedPaoToolArguments.TryParse(arguments, Fields, ["detail", "wait", "system"], out values, out body) && Valid(values, body, true);
 
     internal static bool Valid(IReadOnlyDictionary<string, string> values, string? body, bool requireBody)
     {
@@ -21,13 +21,13 @@ internal static class WindowsTaskToolCatalog
         if (!WindowsTaskOperationContract.IsKnownAction(action) ||
             values.Keys.Any(key => !FieldsFor(action!).Contains(key, StringComparer.Ordinal) || key == "text") ||
             values.TryGetValue("detail", out var detail) && detail is not ("true" or "false" or "True" or "False" or "0" or "1") ||
-            values.TryGetValue("root", out var root) && (root.Length != 4 || !root.All(c => c is >= 'A' and <= 'Z' or >= '0' and <= '9')) ||
+            values.TryGetValue("system", out var system) && system is not("true" or "false") ||
             body is null && requireBody) return false;
         try
         {
             _ = WindowsTaskOperationContract.Parse(new("windows_task",
-                values.Where(pair => pair.Key is not ("detail" or "root")).ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal),
-                values.GetValueOrDefault("rid"), Root: values.GetValueOrDefault("root"), Body: body ?? Example(action!).ToJsonString()));
+                values.Where(pair => pair.Key is not ("detail" or "system")).ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal),
+                values.GetValueOrDefault("rid"), Body: body ?? Example(action!).ToJsonString(),System:values.GetValueOrDefault("system")=="true"));
             return true;
         }
         catch (WindowsTaskContractException) { return false; }
@@ -36,7 +36,7 @@ internal static class WindowsTaskToolCatalog
     internal static object Definition() => new
     {
         name = "pao_windows_task",
-        description = "Inspect local Windows scheduled tasks and control an exact pinned existing task. Ordinary-owner authoring uses one admitted registered User tool, InteractiveToken/least privilege, initially disabled. Explicit root selects System; elevate:uac separately selects same-owner one-shot UAC for exact existing-task reads/controls. No remote Scheduler, supplied principal/password/XML, arbitrary COM or privilege fallback.",
+        description = "Inspect local Windows scheduled tasks and control an exact pinned existing task. Ordinary-owner authoring uses one admitted registered User tool, InteractiveToken/least privilege, initially disabled. system:true with the connection's active Full control approval selects System; elevate:uac separately selects same-owner one-shot UAC for exact existing-task reads/controls. No remote Scheduler, supplied principal/password/XML, arbitrary COM or privilege fallback.",
         inputSchema = new
         {
             type = "object",
@@ -44,8 +44,8 @@ internal static class WindowsTaskToolCatalog
             {
                 op = new { type = "string", @enum = WindowsTaskOperationContract.Actions },
                 text = new { type = "string", maxLength = WindowsTaskOperationContract.MaximumBodyBytes, description = "Closed version1 task JSON. Task paths are Scheduler namespace names, not filesystem roots. argv must be nonsecret." },
-                root = new { type = "string", pattern = "^[A-Z0-9]{4}$", description = "Optional explicit authorized System route for existing tasks only; refused for prepare/create/update." },
-                elevate = new { type = "string", @enum = new[] { "uac" }, description = "Explicit same-owner one-shot UAC for exact existing-task read/instances/control. RID required, incompatible with root; no alternate account or fallback." },
+                system = new { type = "boolean", description = "Explicit System execution with the connection's active Full control approval; existing tasks only, refused for prepare/create/update." },
+                elevate = new { type = "string", @enum = new[] { "uac" }, description = "Explicit same-owner one-shot UAC for exact existing-task read/instances/control. RID required, incompatible with system:true; no alternate account or fallback." },
                 rid = new { type = "string", maxLength = 128, description = "Required stable mutation identity. Preserve after uncertain response; never automatically repeat a task effect." },
                 wait = new { type = "boolean", description = "Mutations or explicit UAC helpers only: false returns the same admitted JID while the original owner continues." },
                 detail = new { type = "boolean" }
@@ -79,8 +79,8 @@ internal static class WindowsTaskToolCatalog
             ["executionRoute"] = action is "prepare" or "create" or "update"
                 ? "Ordinary signed-in owner host only. No System or same-owner administrator task-authoring route."
                 : WindowsTaskOperationContract.IsOwnerElevationAction(action)
-                    ? "Ordinary owner by default; explicit root uses System; explicit elevate:uac uses the same owner's one-shot UAC helper. Root and elevate cannot be combined. No identity or privilege fallback."
-                    : "Ordinary owner by default; explicit root uses the authenticated System service for existing-task listing. No automatic elevation or identity fallback.",
+                    ? "Ordinary owner by default; system:true with active connection Full control approval uses System; explicit elevate:uac uses the same owner's one-shot UAC helper. system:true and elevate cannot be combined. No identity or privilege fallback."
+                    : "Ordinary owner by default; system:true with active connection Full control approval uses the authenticated System service for existing-task listing. No automatic elevation or identity fallback.",
             ["constraints"] = new[]
             {
                 "Strict version1 JSON, <=16384 UTF8 bytes, depth5, no unknown/duplicate fields. Literal Scheduler path <=240 UTF16 characters/depth32; no traversal.",
@@ -92,7 +92,7 @@ internal static class WindowsTaskToolCatalog
                 "One original fixed Task Scheduler COM worker is owned through native return and cleanup. Native HRESULTs remain HRESULTs; cancellation after issue/lost acknowledgement stays observed or unknown, with no compensation/replay.",
                 "Explicit elevate:uac requires RID, including read/instances, and owns one durable helper job until the original same-owner High child exits. wait may select deferred observation. No UAC for list/prepare/create/update, no alternate credentials, System service or persistent administrator cache.",
                 "taskSha is a cooperative definition/security/principal precondition, not an atomic OS compare-and-swap. Local Scheduler timestamps retain local/DST ambiguity rather than inventing UTC.",
-                "job_stat/job_wait with the same explicit root can observe only System service/task-control mutation JIDs. Observer cancellation never cancels or reissues the original effect."
+                "job_stat/job_wait with the same active Full control connection and system:true can observe only System service/task-control mutation JIDs. Observer cancellation never cancels or reissues the original effect."
             },
             ["mcp_example"] = example,
             ["cli_example"] = "pao windows_task " + action + " --stdin" + (read ? "" : " rid=deliberate-task-change")

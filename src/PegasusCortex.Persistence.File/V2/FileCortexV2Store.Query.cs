@@ -501,7 +501,7 @@ public sealed partial class FileCortexV2Store
         value.Source,
         value.Actor,
         value.SourceId,
-        value.CapturedAtUtc);
+        value.CapturedAtUtc, value.VerifiedSource);
 
     private static int DecodeCursor(string? cursor, string contextCursor, int maximum)
     {

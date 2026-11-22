@@ -432,7 +432,7 @@ internal static class CortexLocalRecoveryExportReader
             entry.CapturedAt,
             entry.ExpiresAt);
 
-    private static async ValueTask<byte[]> ReadExactAsync(
+    internal static async ValueTask<byte[]> ReadExactAsync(
         string root,
         string relativePath,
         int maximumBytes,
@@ -465,9 +465,8 @@ internal static class CortexLocalRecoveryExportReader
             FileShare.Read,
             bufferSize: 8192,
             FileOptions.Asynchronous | FileOptions.SequentialScan);
-        var bytes = new byte[checked((int)input.Length)];
-        await input.ReadExactlyAsync(bytes, cancellationToken).ConfigureAwait(false);
-        return bytes;
+        return await CortexLocalBoundedMetadataReader.ReadStreamAsync(
+            input, maximumBytes, cancellationToken).ConfigureAwait(false);
     }
 
     private static T Exact<T>(byte[] bytes)

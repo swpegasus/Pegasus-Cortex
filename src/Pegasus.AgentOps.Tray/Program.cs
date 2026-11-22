@@ -33,6 +33,11 @@ internal static class Program
             return WindowsCortexServiceControl.RunElevated(action);
         if (args is ["--processor-policy", var selection])
             return CortexProcessorPolicyControl.RunElevated(selection);
+        if(args.FirstOrDefault()=="--mcp-connection-control")
+            return args is ["--mcp-connection-control",var connectionAction,var connectionTarget,var connectionSha,
+                var connectionId,var connectionRevision,var connectionMode,var connectionOwnerSid]
+                ?CortexMcpConnectionsControl.RunElevated(connectionAction,connectionTarget,connectionSha,connectionId,
+                    connectionRevision,connectionMode,connectionOwnerSid):2;
         if (args.FirstOrDefault() == CortexMcpSetupControl.HelperFlag)
             return args is [CortexMcpSetupControl.HelperFlag,var setupOwner,var setupEnabled,var setupServer,
                 var setupAuthority,var setupSid,var setupFingerprint]
@@ -276,6 +281,11 @@ internal static class Program
     {
         if (!peer.SameIdentity(owner))
             return Task.FromResult(Fail(request, "auth"));
+        // Only this same Host process can forward an HTTP-admitted connection.
+        // Other owner-local processes may not forge public connection coordinates.
+        if (request.ConnectionAuthority is not null &&
+            (peer.ProcessId != owner.ProcessId || !StringComparer.OrdinalIgnoreCase.Equals(peer.ApplicationPath,owner.ApplicationPath)))
+            return Task.FromResult(Fail(request, "auth"));
         // This completes an already admitted owner job while the public gate is
         // closing. The coordinator independently checks the exact High child.
         if (CertificateStoreElevationContract.IsControlRequest(request) || MachineServerCertificateElevationContract.IsControlRequest(request))
@@ -290,7 +300,7 @@ internal static class Program
             return exitControl.HandleAsync(request, peer, cancellationToken);
         if (request.Op == CortexPayloadTieringControl.Operation)
             return payloadTiering.HandleAsync(request, peer, cancellationToken);
-        if (request.Root is not null || request.Op is "root" or "queue")
+        if (request.Root is not null || request.System || request.Op is "root" or "queue")
             return Task.FromResult(Fail(request, "service_unavailable"));
         return engine.ExecuteAsync(request, cancellationToken);
     }

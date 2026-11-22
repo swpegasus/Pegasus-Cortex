@@ -14,6 +14,7 @@ internal static class Program
         var tests = new (string Name, Action Run)[]
         {
             ("traversal admission preserves clean destination", TraversalAdmissionPreservesDestination),
+            ("UTF8 and final plus staging budgets precede destination mutation", ExtractionPathBudgets),
             ("case-insensitive collision rejected", CaseInsensitiveCollisionRejected),
             ("symlink external attributes rejected", SymlinkAttributesRejected),
             ("expansion ratio bounded", ExpansionRatioBounded),
@@ -62,6 +63,38 @@ internal static class Program
 
         Console.WriteLine($"RESULT total={tests.Length} passed={tests.Length - failed} failed={failed}");
         return failed == 0 ? 0 : 1;
+    }
+
+    private static void ExtractionPathBudgets()
+    {
+        using var scope = new TestScope();
+        var destination = scope.CreateDirectory("budget-output");
+        var marker = Path.Combine(destination, "keep.txt");
+        File.WriteAllText(marker, "keep", Encoding.UTF8);
+        var temporaryOnlyName = new string('t', 230 - destination.Length - 1);
+        var names = new[]
+        {
+            new string('雪', 86) + "/x.txt", // 258 UTF8 bytes despite only 86 UTF16 characters
+            new string('a', 100) + "/" + new string('b', 100) + "/x.txt",
+            temporaryOnlyName // final target fits; its actual sibling temp naming shape does not
+        };
+        for (var index = 0; index < names.Length; index++)
+        {
+            var archive = scope.PathOf("budget-" + index + ".zip");
+            WriteRawArchive(archive, new RawEntry(names[index], Bytes("x")));
+            ExpectCode("archive_name", () => new ZipOperations().Extract(archive, destination, "clean"));
+            Require(File.ReadAllText(marker) == "keep", "path rejection changed the clean destination");
+            Require(Directory.GetFileSystemEntries(destination).Length == 1,
+                "path rejection created an entry or staging file");
+        }
+
+        var valid = scope.PathOf("utf8-valid.zip");
+        var folder = new string('雪', 85); // exactly 255 UTF8 bytes
+        WriteRawArchive(valid, new RawEntry(folder + "/x.txt", Bytes("ok")));
+        var output = scope.PathOf("utf8-valid");
+        new ZipOperations().Extract(valid, output);
+        Require(File.ReadAllText(Path.Combine(output, folder, "x.txt")) == "ok",
+            "valid UTF8 boundary did not round-trip");
     }
 
     private static void TraversalAdmissionPreservesDestination()

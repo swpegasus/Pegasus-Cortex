@@ -111,6 +111,9 @@ public sealed class RoutingDispatcher:IOperationDispatcher
         OperationRequest request,
         CancellationToken cancellationToken = default)
     {
+        if(request.Root is not null)
+            return new(false,Guid.NewGuid().ToString("N"),request.Rid??Guid.NewGuid().ToString("N"),
+                "failed",OperationNames.Public(request),"root_codes_removed");
         // A PAO-owned external process already occupies the one mutation worker.
         // Reject a descendant mutation before pipe submission instead of letting
         // parent and child wait on one another until an unrelated timeout.
@@ -123,20 +126,24 @@ public sealed class RoutingDispatcher:IOperationDispatcher
                 OperationNames.Public(request),
                 "reentrant_mutation");
 
-        // Root-authorized work always belongs to the LocalSystem broker. Root-code
-        // administration and the legacy broker queue also remain service-owned.
+        // Protected work belongs to the LocalSystem broker, which independently
+        // checks the current connection grant and the actual registered Host peer.
         // None of these paths depends on the tray UI.
         // Application lifetime belongs exclusively to this authenticated signed-in host.
         // An absent/older host is not permission to enqueue a deferred launch in the service.
         if(request.Op is "app" or "terminal" or "registry")
         {
-            if(request.Root is not null)return new(false,Guid.NewGuid().ToString("N"),request.Rid??Guid.NewGuid().ToString("N"),"failed",OperationNames.Public(request),"auth");
+            if(request.System)return new(false,Guid.NewGuid().ToString("N"),request.Rid??Guid.NewGuid().ToString("N"),"failed",OperationNames.Public(request),"user_dispatch_required");
             return await DispatchToUserHostAsync(request,cancellationToken);
         }
-        if (request.Op == "admin" && request.Root is null) return new(false,Guid.NewGuid().ToString("N"),request.Rid??Guid.NewGuid().ToString("N"),"failed",OperationNames.Public(request),"auth");
-        if (request.Root is not null)
+        if (request.Op == "admin" && !request.System) return new(false,Guid.NewGuid().ToString("N"),request.Rid??Guid.NewGuid().ToString("N"),"failed",OperationNames.Public(request),"full_control_required");
+        if (request.System)
+        {
+            if(request.ConnectionAuthority is null)return new(false,Guid.NewGuid().ToString("N"),request.Rid??Guid.NewGuid().ToString("N"),"failed",OperationNames.Public(request),"full_control_required");
             return await _system.DispatchAsync(request, cancellationToken);
-        if (request.Op is "root" or "queue" or "application_access")
+        }
+        if(request.Op=="root")return new(false,Guid.NewGuid().ToString("N"),request.Rid??Guid.NewGuid().ToString("N"),"failed","root","root_codes_removed");
+        if (request.Op is "queue" or "application_access")
             return await _serviceUser.DispatchAsync(request, cancellationToken);
 
         // Ordinary owner-context work runs only in the durable signed-in user

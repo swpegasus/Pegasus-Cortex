@@ -60,17 +60,17 @@
         "type": "Project",
         "dependencies": {
           "Microsoft.Data.Sqlite": "[10.0.10, )",
-          "Pegasus.AgentOps.Certificates": "[2.20261121.2234-a, )",
-          "Pegasus.AgentOps.Protocol": "[2.20261121.2234-a, )",
-          "Pegasus.AgentOps.Windows.Registry": "[2.20261121.2234-a, )",
-          "Pegasus.Cortex.Product": "[2.20261121.2234-a, )",
+          "Pegasus.AgentOps.Certificates": "[2.20261122.354-a, )",
+          "Pegasus.AgentOps.Protocol": "[2.20261122.354-a, )",
+          "Pegasus.AgentOps.Windows.Registry": "[2.20261122.354-a, )",
+          "Pegasus.Cortex.Product": "[2.20261122.354-a, )",
           "SQLitePCLRaw.lib.e_sqlite3": "[2.1.12, )"
         }
       },
       "pegasus.agentops.protocol": {
         "type": "Project",
         "dependencies": {
-          "Pegasus.Cortex.Product": "[2.20261121.2234-a, )"
+          "Pegasus.Cortex.Product": "[2.20261122.354-a, )"
         }
       },
       "pegasus.agentops.windows.registry": {

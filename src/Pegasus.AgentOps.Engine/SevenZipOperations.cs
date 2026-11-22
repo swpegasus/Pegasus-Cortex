@@ -325,6 +325,13 @@ public sealed class SevenZipOperations
             throw new AgentOpsException("precondition");
 
         var manifest = await ReadManifestAsync(executable, archive, limits, cancellationToken).ConfigureAwait(false);
+        foreach (var entry in manifest.Entries)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var target = ExactPath.CombineAdmitted(destination,
+                entry.Directory ? entry.Path.TrimEnd(Path.DirectorySeparatorChar) : entry.Path);
+            if (!entry.Directory) _ = TemporaryPath(target);
+        }
         var integrityError = await TestIntegrityAsync(executable, archive, limits, cancellationToken).ConfigureAwait(false);
         executable.Revalidate();
         archive.Revalidate();
@@ -452,7 +459,7 @@ public sealed class SevenZipOperations
             if (policy == "fail") throw new AgentOpsException("collision");
         }
 
-        var temporary = Path.Combine(Path.GetDirectoryName(target)!, $".pao-7z-{Guid.NewGuid():N}.tmp");
+        var temporary = TemporaryPath(target);
         try
         {
             await using (var output = new FileStream(
@@ -633,6 +640,10 @@ public sealed class SevenZipOperations
         catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
         { attributes = default; return false; }
     }
+
+    private static string TemporaryPath(string target) =>
+        ArchivePathBudget.RequireAbsolute(Path.Combine(Path.GetDirectoryName(target)!,
+            $".pao-7z-{Guid.NewGuid():N}.tmp"));
 
     private static bool TryDeleteTemporary(string path)
     {
@@ -855,6 +866,7 @@ public sealed class SevenZipOperations
                     piece.Any(static value => value < 32) || piece.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 ||
                     IsReservedDevice(piece))
                     throw new AgentOpsException("archive_name");
+                ArchivePathBudget.RequireSegment(piece);
             }
             var canonical = string.Join(Path.DirectorySeparatorChar, pieces);
             return directoryMarker ? canonical + Path.DirectorySeparatorChar : canonical;
@@ -1155,6 +1167,7 @@ public sealed class SevenZipOperations
             { throw new AgentOpsException("invalid", inner: ex); }
             var root = Path.GetPathRoot(full) ?? throw new AgentOpsException("invalid");
             if (full.AsSpan(root.Length).Contains(':')) throw new AgentOpsException("precondition");
+            ArchivePathBudget.RequireAbsolute(full);
             if (requireExisting && !File.Exists(full) && !Directory.Exists(full)) throw new AgentOpsException("not_found");
             return Path.TrimEndingDirectorySeparator(full);
         }
@@ -1170,7 +1183,7 @@ public sealed class SevenZipOperations
             if (Path.IsPathFullyQualified(relative)) throw new AgentOpsException("archive_traversal");
             var combined = Path.GetFullPath(relative, root);
             if (!Contains(root, combined)) throw new AgentOpsException("archive_traversal");
-            return combined;
+            return ArchivePathBudget.RequireAbsolute(combined);
         }
 
         public static bool Contains(string root, string candidate)

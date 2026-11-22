@@ -29,8 +29,22 @@ internal static class ProtectedLocalFile
                 throw new InvalidOperationException("The protected local file has unsafe Unix permissions.");
         }
 
-        var bytes = File.ReadAllBytes(fullPath);
-        if (bytes.Length is < 1 || bytes.Length > maximumBytes)
+        using var input = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        return ReadBounded(input, maximumBytes);
+    }
+
+    internal static byte[] ReadBounded(Stream input, int maximumBytes)
+    {
+        ArgumentNullException.ThrowIfNull(input);
+        if (maximumBytes < 1) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        // The opened object supplies the allocation bound; a prior path stat is
+        // only path admission and must never authorize a later unbounded read.
+        var length = input.Length;
+        if (length is < 1 || length > maximumBytes)
+            throw new InvalidOperationException("The protected local file failed its opened-handle size check.");
+        var bytes = new byte[checked((int)length)];
+        input.ReadExactly(bytes);
+        if (input.ReadByte() != -1 || input.Length != length)
             throw new InvalidOperationException("The protected local file changed during its bounded read.");
         return bytes;
     }

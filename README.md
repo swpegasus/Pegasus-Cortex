@@ -98,11 +98,31 @@ deliberately restart the selected owner before connecting, even when the owner
 choice did not change; enabling MCP also takes effect at startup. Loopback is the
 default, and private-network access requires explicit configuration.
 
-Configure a compatible Streamable HTTP client with the readable connection name
-**Cortex** and the default URL `https://localhost:47831/mcp/cortex`. Verify status
-through that connection. A valid server certificate, machine trust and an
-available ordinary user Host are distinct requirements. Details and evidence
-limits are in [the shared MCP guide](docs/CORTEX_SHARED_MCP.md).
+### Connect Codex or another MCP client
+
+**Starting with 03.54, the endpoint URL alone is not enough.** Each client needs
+its own remembered connection identity and approval. Existing 22.34 connections
+must complete this setup after upgrading; the former root codes are retired.
+
+1. Open **Connections & access → Connections & Full control** in Cortex.
+2. Enter a readable connection and application name, then choose **Create local
+   connection**. This creates a unique public connection ID and keeps its private
+   credential in your Windows user vault.
+3. Select the request and choose **Approve ordinary access**, accepting the normal
+   Windows approval prompt.
+4. Choose **Copy Codex settings** and replace the existing `[mcp_servers.Cortex]`
+   table in your Codex configuration. Keep the generated local helper and **your
+   own connection ID**; never copy an ID from another user's configuration.
+5. Save, reconnect Cortex in Codex, and ask the assistant to check Cortex status.
+
+Approval survives reconnects until you revoke it. Full control is a separate,
+optional approval; all chats using the same connection share its permissions.
+Use separate connections when access should differ.
+
+Follow [MCP connection setup and upgrade instructions](docs/MCP_CONNECTION_SETUP.md)
+for the configuration example, reconnect troubleshooting and other clients.
+The [full shared MCP guide](docs/CORTEX_SHARED_MCP.md) covers endpoint ownership,
+TLS and trusted-network setup.
 
 ## Persistent local terminals
 

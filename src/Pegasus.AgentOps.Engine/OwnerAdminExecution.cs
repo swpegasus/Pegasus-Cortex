@@ -125,13 +125,23 @@ internal sealed partial class OwnerAdminExecution : IDisposable
     }
 
     internal async Task<OperationReceipt> HandleAsync(OperationRequest request, LocalPeer peer,
-        RootCodeDefinition authorization, CancellationToken observationCancellation)
+        ProtectedExecutionGrant authorization, CancellationToken observationCancellation,
+        Func<bool>? currentConnectionApproval=null)
     {
+        void RequireConnection()
+        {
+            if(currentConnectionApproval is null)return;
+            bool active;
+            try{active=currentConnectionApproval();}
+            catch(Exception error)when(error is IOException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException or JsonException){active=false;}
+            if(!active)throw new AgentOpsException("connection_revoked");
+        }
         OwnerAdminJob? original = null;
         OwnerAdminDefinition? originalDefinition = null;
         try
         {
             if (_disposed) throw new AgentOpsException("service_unavailable");
+            RequireConnection();
             if (peer.Session <= 0 || !StringComparer.Ordinal.Equals(peer.Sid, _ownerSid))
                 throw new AgentOpsException("auth");
             if (request.Rid is null) request = request with { Rid = Guid.NewGuid().ToString("N") };
@@ -140,18 +150,22 @@ internal sealed partial class OwnerAdminExecution : IDisposable
             if(operation is "begin" or "end" or "interval" or "ack")return await HandleMaintenanceAsync(request,peer,authorization,observationCancellation);
             if (operation == "admit")
             {
-                if (!_launcher.IsElevatedOwner(peer)) throw new AgentOpsException("admin_review_required");
+                // The broker supplies this callback only after authenticating the
+                // registered Host and its standing UAC-approved Full-control grant.
+                // Direct manager callers still need actual elevated-owner review.
+                if (!_launcher.IsElevatedOwner(peer)&&currentConnectionApproval is null) throw new AgentOpsException("admin_review_required");
                 var admittedScope = ParseAuthorization(request.Body!);
                 if (admittedScope.OwnerSid != _ownerSid || admittedScope.OwnerSid != peer.Sid || admittedScope.OwnerSession != peer.Session)
                     throw new AgentOpsException("admin_admission_mismatch");
                 // An elevated CLI can review a distinct managed-MCP executable;
                 // the root application policy must independently permit both.
-                if (!RootCodeVerifier.AllowsApplication(authorization, admittedScope.ClientApplicationPath))
+                if (!ProtectedAccessRules.AllowsApplication(authorization, admittedScope.ClientApplicationPath))
                     throw new AgentOpsException("root_app_denied");
                 ValidatePolicy(admittedScope.ReadRoots.Concat(admittedScope.WriteRoots), authorization);
                 if (admittedScope.ExpiresAtUtc <= _clock.GetUtcNow() || admittedScope.ExpiresAtUtc > _clock.GetUtcNow().AddDays(7))
                     throw new AgentOpsException("admin_admission_expired");
                 var digest = Hash(JsonSerializer.Serialize(admittedScope, Json));
+                RequireConnection();
                 lock (_gate)
                 {
                     var existing = FindAdmission(admittedScope.Id);
@@ -276,6 +290,7 @@ internal sealed partial class OwnerAdminExecution : IDisposable
                                 // Check while owning the final claim gate, immediately
                                 // before new durable admission; original jobs skip this branch.
                                 if(admitted.ExpiresAtUtc<=_clock.GetUtcNow())throw new AgentOpsException("admin_admission_expired");
+                                RequireConnection();
                                 insert.ExecuteNonQuery();
                                 using var intervalClaim=_db.CreateCommand();intervalClaim.Transaction=tx;
                                 intervalClaim.CommandText="INSERT INTO maintenance_native_jobs(epoch,jid,rid,definition_sha) VALUES($epoch,$jid,$rid,$sha)";
@@ -285,6 +300,7 @@ internal sealed partial class OwnerAdminExecution : IDisposable
                                 IOwnerAdminProcess? process = null;
                                 try
                                 {
+                                    RequireConnection();
                                     process = _launcher.CreateSuspended(admitted);
                                     job = job with { Pid = process.Pid, Start = process.Start, Phase = "created_suspended" };
                                     _liveJobs[job.Jid]=job;
@@ -374,17 +390,17 @@ internal sealed partial class OwnerAdminExecution : IDisposable
             !StringComparer.OrdinalIgnoreCase.Equals(peer.ApplicationPath, application)) throw new AgentOpsException("admin_admission_mismatch");
     }
 
-    private static void ValidatePolicy(OwnerAdminDefinition definition, RootCodeDefinition authorization)
+    private static void ValidatePolicy(OwnerAdminDefinition definition, ProtectedExecutionGrant authorization)
     {
         // Existing folder policy applies to EVERY declared effect root, not just
         // request src/dst. It is conjunctive with the separately reviewed program.
         ValidatePolicy(definition.ReadRoots.Concat(definition.WriteRoots), authorization);
     }
 
-    private static void ValidatePolicy(IEnumerable<string> roots, RootCodeDefinition authorization)
+    private static void ValidatePolicy(IEnumerable<string> roots, ProtectedExecutionGrant authorization)
     {
         foreach (var root in roots)
-            if (!RootCodeVerifier.AllowsFolders(authorization,
+            if (!ProtectedAccessRules.AllowsFolders(authorization,
                 new OperationRequest("stat", new Dictionary<string, string> { ["src"] = root })))
                 throw new AgentOpsException("root_path_denied");
     }

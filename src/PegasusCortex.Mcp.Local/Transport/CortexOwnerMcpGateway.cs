@@ -102,9 +102,18 @@ public sealed class CortexOwnerMcpGateway
     {
         context = null; request = null;
         if (input.ValueKind != JsonValueKind.Object ||
-            input.EnumerateObject().Count() != 5 ||
-            input.EnumerateObject().Select(p => p.Name).Distinct(StringComparer.Ordinal).Count() != 5 ||
-            input.EnumerateObject().Any(p => p.Name is not ("sessionId" or "streamId" or "taskId" or "requestId" or "request")) ||
+            input.EnumerateObject().Count() != 6 ||
+            input.EnumerateObject().Select(p => p.Name).Distinct(StringComparer.Ordinal).Count() != 6 ||
+            input.EnumerateObject().Any(p => p.Name is not ("sessionId" or "streamId" or "taskId" or "requestId" or "identity" or "request")) ||
+            !input.TryGetProperty("identity",out var identity)||identity.ValueKind!=JsonValueKind.Object||
+            identity.EnumerateObject().Count()!=3||identity.EnumerateObject().Select(p=>p.Name).Distinct(StringComparer.Ordinal).Count()!=3||
+            identity.EnumerateObject().Any(p=>p.Name is not("authority" or "subject" or "generation"))||
+            !identity.TryGetProperty("authority",out var authority)||authority.ValueKind!=JsonValueKind.String||
+            !Pegasus.Cortex.Product.CortexMcpConnections.IsId(authority.GetString())||
+            !identity.TryGetProperty("subject",out var subject)||subject.ValueKind!=JsonValueKind.String||
+            !Pegasus.Cortex.Product.CortexMcpConnections.IsId(subject.GetString())||
+            !identity.TryGetProperty("generation",out var generation)||generation.ValueKind!=JsonValueKind.String||
+            !Pegasus.Cortex.Product.CortexMcpConnections.IsId(generation.GetString())||
             !input.TryGetProperty("sessionId", out var session) || session.ValueKind != JsonValueKind.String ||
             session.GetString() is not { Length: 32 } sessionId || !sessionId.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f') ||
             !input.TryGetProperty("streamId", out var stream) || stream.ValueKind != JsonValueKind.Number ||
@@ -119,7 +128,8 @@ public sealed class CortexOwnerMcpGateway
         // The neutral transport's typed-ID correlation must survive this private
         // hop, but it never selects an owner, execution context or credential.
         if (request["id"]?.ToJsonString() != requestId) return false;
-        context = new("cortex", sessionId, streamId, task.ValueKind == JsonValueKind.String ? task.GetString() : null, requestId);
+        context = new("cortex", sessionId, streamId, task.ValueKind == JsonValueKind.String ? task.GetString() : null, requestId)
+            { Identity=new McpAuthenticatedIdentity(authority.GetString()!,subject.GetString()!,generation.GetString()!) };
         return true;
     }
 

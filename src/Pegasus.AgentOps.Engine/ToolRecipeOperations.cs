@@ -1,12 +1,15 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Security.Principal;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Pegasus.AgentOps.Protocol;
+using Microsoft.Win32.SafeHandles;
 
 namespace Pegasus.AgentOps.Engine;
 
@@ -267,14 +270,40 @@ public interface IToolInvocationRunner
 /// </summary>
 public sealed class AgentOpsInvocationRunner : IToolInvocationRunner
 {
+    private readonly Func<LocalPeer> _processIdentity;
+    private readonly Func<ToolInvocation, CancellationToken, Task<ProcessResult>> _runProcess;
+
+    public AgentOpsInvocationRunner() : this(ReadProcessIdentity, RunProcessAsync) { }
+
+    internal AgentOpsInvocationRunner(Func<LocalPeer> processIdentity,
+        Func<ToolInvocation, CancellationToken, Task<ProcessResult>> runProcess)
+    {
+        _processIdentity = processIdentity ?? throw new ArgumentNullException(nameof(processIdentity));
+        _runProcess = runProcess ?? throw new ArgumentNullException(nameof(runProcess));
+    }
+
     public async Task<ProcessResult> RunAsync(ToolInvocation invocation, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (invocation.Mode == ToolExecutionMode.System) throw new AgentOpsException("service_unavailable");
         if (invocation.Window == ToolWindowMode.Visible) throw new AgentOpsException("user_dispatch_required");
         if (invocation.StdinEncoding != "none" || invocation.StdoutEncoding != "utf8" || invocation.StderrEncoding != "utf8")
             throw new AgentOpsException("precondition");
+        CapturedCredentialOutputFence.RequireAllowed(invocation);
+        LocalPeer identity;
+        try { identity = _processIdentity(); }
+        catch (Exception error) when (error is AgentOpsException or ArgumentException or InvalidOperationException or
+            UnauthorizedAccessException or System.Security.SecurityException or System.ComponentModel.Win32Exception)
+        { throw new AgentOpsException("user_dispatch_required"); }
+        if (identity is null || string.IsNullOrWhiteSpace(identity.Sid) || identity.Session <= 0 || identity.Elevated ||
+            identity.Sid is "S-1-5-18" or "S-1-5-19" or "S-1-5-20")
+            throw new AgentOpsException("user_dispatch_required");
         using var admissionLease = ToolRecipeValidation.AcquireInvocationLease(invocation);
-        return await ProcessRunner.RunAsync(
+        return await _runProcess(CapturedCredentialOutputFence.MarkCaptured(invocation), cancellationToken);
+    }
+
+    private static Task<ProcessResult> RunProcessAsync(ToolInvocation invocation, CancellationToken cancellationToken) =>
+        ProcessRunner.RunAsync(
             invocation.ExecutablePath,
             invocation.Arguments,
             invocation.Timeout,
@@ -282,7 +311,35 @@ public sealed class AgentOpsInvocationRunner : IToolInvocationRunner
             invocation.Environment,
             invocation.MaxOutputBytes,
             cancellationToken);
+
+    private static LocalPeer ReadProcessIdentity()
+    {
+        if (!OperatingSystem.IsWindows()) throw new AgentOpsException("user_dispatch_required");
+        using var process = Process.GetCurrentProcess();
+        if (!OpenProcessToken(process.SafeHandle, 0x0008, out var token)) // TOKEN_QUERY
+        {
+            token?.Dispose();
+            throw new AgentOpsException("user_dispatch_required");
+        }
+        using (token)
+        {
+            // ProcessRunner creates children with the process primary token.
+            // WindowsIdentity.GetCurrent() could instead describe an impersonated
+            // pipe caller and let a SYSTEM process mislabel its child as User.
+            if (!GetTokenInformation(token, 12, out var session, sizeof(int), out var returned) || returned != sizeof(int) ||
+                !GetTokenInformation(token, 20, out var elevated, sizeof(int), out returned) || returned != sizeof(int) ||
+                session != process.SessionId || elevated is not (0 or 1))
+                throw new AgentOpsException("user_dispatch_required");
+            using var identity = new WindowsIdentity(token.DangerousGetHandle());
+            return new(identity.User?.Value ?? throw new AgentOpsException("user_dispatch_required"), session,
+                Elevated: elevated != 0);
+        }
     }
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern bool OpenProcessToken(SafeProcessHandle process, uint access, out SafeAccessTokenHandle token);
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern bool GetTokenInformation(SafeAccessTokenHandle token, int kind, out int value, int size, out int returned);
 }
 
 public sealed class RegisteredToolRegistry

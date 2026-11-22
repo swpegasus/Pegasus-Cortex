@@ -1,447 +1,261 @@
 using System.Buffers;
-using System.ComponentModel;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Pegasus.Cortex.ArchiveTool.Archive;
+using Pegasus.Cortex.RootedIo;
 
 namespace Pegasus.Cortex.ArchiveTool.Security;
 
-internal static class SafeFileSystem
+/// <summary>Owns admitted parents and exact created identities until publication or cleanup completes.</summary>
+internal sealed class SafeFileSystem : IDisposable
 {
-    private const UnixFileMode DefaultImplicitDirectoryMode =
-        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-        UnixFileMode.GroupRead | UnixFileMode.GroupExecute |
-        UnixFileMode.OtherRead | UnixFileMode.OtherExecute;
+    internal static UnixFileMode ImplicitDirectoryMode => (UnixFileMode)0x1ed;
+    private readonly ValidatedRequest _request;
+    private readonly RootedDirectory _destination;
+    private readonly RootedDirectory _inventoryParent;
+    private readonly Dictionary<string, RootedDirectory.FileIdentity> _owned = new(StringComparer.Ordinal);
+    private RootedDirectory? _tree;
+    private RootedDirectory.RootedFile? _inventory;
+    private string? _inventoryTemporaryPath;
+    private bool _inventoryCommitted, _inventoryDeleted, _treeDeleted, _released;
 
-    internal static string CreatePrivateStagingDirectory(ValidatedRequest request)
+    internal SafeFileSystem(ValidatedRequest request)
+    {
+        _request = request;
+        try { _destination = RootedDirectory.OpenRoot(request.DestinationRoot); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        { throw Failure("destination_unsafe", "The destination root could not be pinned safely.", error); }
+        try { _inventoryParent = RootedDirectory.OpenRoot(Path.GetDirectoryName(request.InventoryPath)!); }
+        catch (Exception error)
+        { _destination.Dispose(); throw Failure("inventory_path_invalid", "The inventory parent could not be pinned safely.", error); }
+    }
+
+    internal string CreatePrivateStagingDirectory()
     {
         for (var attempt = 0; attempt < 16; attempt++)
         {
-            var name = $".pct-{Convert.ToHexString(RandomNumberGenerator.GetBytes(8)).ToLowerInvariant()}";
-            var path = Path.Combine(request.DestinationRoot, name);
-            if (path.Length > request.Limits.MaximumCanonicalPathUtf16)
+            var name = ".pct-" + Convert.ToHexString(RandomNumberGenerator.GetBytes(8)).ToLowerInvariant();
+            var path = Path.Combine(_request.DestinationRoot, name);
+            if (path.Length > _request.Limits.MaximumCanonicalPathUtf16)
                 throw Failure("destination_unsafe", "The destination root leaves insufficient path budget for safe staging.");
-            try
-            {
-                CreateDirectoryNew(path);
-                ArchivePathPolicy.EnsurePathIsNotReparsePoint(path, "destination_unsafe");
-                ArchivePathPolicy.EnsureExistingAncestorsAreNotReparsePoints(path, "destination_unsafe");
-                return path;
-            }
-            catch (ArchiveBoundaryException exception) when (
-                exception.Code == "path_already_exists")
-            {
-                // A random-name collision is retried without adopting the colliding object.
-            }
+            try { _tree = _destination.OpenDirectory(name, createMissing: true, exclusive: true, mode: (UnixFileMode)0x1c0); return path; }
+            catch (IOException error) when (RootedDirectory.IsCollision(error)) { }
         }
-
         throw Failure("destination_unsafe", "A private staging directory could not be allocated.");
     }
 
-    internal static void CreateMaterializedDirectories(
-        string stagingRoot,
-        IReadOnlyList<MaterializedEntryRecord> entries)
-    {
-        foreach (var entry in entries
-                     .Where(candidate => candidate.Kind == MaterializedEntryKind.Directory)
-                     .OrderBy(candidate => SegmentCount(candidate.RelativePath))
-                     .ThenBy(candidate => candidate.RelativePath, StringComparer.Ordinal))
-        {
-            var path = ArchivePathPolicy.ResolveEntryPath(stagingRoot, entry.RelativePath);
-            if (ArchivePathPolicy.PathExistsNoFollow(path))
-                throw Failure("preflight_mismatch", "A materialized archive directory is not unique.");
-
-            var parent = Path.GetDirectoryName(path) ?? stagingRoot;
-            ArchivePathPolicy.EnsureExistingAncestorsAreNotReparsePoints(parent, "destination_unsafe");
-            CreateDirectoryNew(path);
-            ArchivePathPolicy.EnsurePathIsNotReparsePoint(path, "destination_unsafe");
-        }
-    }
-
-    internal static void EnsureMaterializedPathsWithinBudget(
-        string stagingRoot,
-        IReadOnlyList<MaterializedEntryRecord> entries,
-        int maximumCanonicalPathUtf16)
+    internal void EnsureMaterializedPathsWithinBudget(string stagingRoot, IReadOnlyList<MaterializedEntryRecord> entries, int maximum)
     {
         foreach (var entry in entries)
-        {
-            var path = ArchivePathPolicy.ResolveEntryPath(stagingRoot, entry.RelativePath);
-            if (path.Length > maximumCanonicalPathUtf16)
+            if (ArchivePathPolicy.ResolveEntryPath(stagingRoot, entry.RelativePath).Length > maximum)
                 throw Failure("entry_path_over_budget", "An archive entry exceeds the staging path budget.");
+    }
+
+    internal void CreateMaterializedDirectories(IReadOnlyList<MaterializedEntryRecord> entries)
+    {
+        foreach (var entry in entries.Where(entry => entry.Kind == MaterializedEntryKind.Directory)
+                     .OrderBy(entry => entry.RelativePath.Count(character => character == '/')).ThenBy(entry => entry.RelativePath, StringComparer.Ordinal))
+        {
+            using var parent = OpenParent(entry.RelativePath);
+            using var directory = parent.OpenDirectory(Leaf(entry.RelativePath), createMissing: true, exclusive: true, mode: (UnixFileMode)0x1c0);
+            _owned.Add(entry.RelativePath, directory.Identity);
         }
     }
 
-    internal static string WriteFileCreateNew(
-        string path,
-        Stream source,
-        long expectedLength,
-        int entryIndex)
+    private RootedDirectory OpenParent(string relative)
     {
-        var parent = Path.GetDirectoryName(path) ?? throw Failure(
-            "extraction_io",
-            "An extracted file has no destination parent.");
-        ArchivePathPolicy.EnsureExistingAncestorsAreNotReparsePoints(parent, "destination_unsafe");
-
-        byte[]? buffer = null;
+        var parts = relative.Split('/');
+        var tree = _tree ?? throw new InvalidOperationException("No staged tree is owned.");
+        var current = tree.Retain();
+        var prefix = string.Empty;
         try
         {
-            var options = new FileStreamOptions
+            for (var index = 0; index < parts.Length - 1; index++)
             {
-                Mode = FileMode.CreateNew,
-                Access = FileAccess.Write,
-                Share = FileShare.None,
-                BufferSize = 64 * 1024,
-                Options = FileOptions.SequentialScan
-            };
-            if (!OperatingSystem.IsWindows())
-                options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
-            using var destination = new FileStream(path, options);
-            using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-            buffer = ArrayPool<byte>.Shared.Rent(64 * 1024);
-            long written = 0;
-            while (true)
-            {
-                var read = source.Read(buffer, 0, buffer.Length);
-                if (read == 0)
-                    break;
-                written = checked(written + read);
-                if (written > expectedLength)
-                    throw EntryFailure("preflight_mismatch", "An archive file exceeded its preflighted length.", entryIndex);
-                destination.Write(buffer, 0, read);
-                hash.AppendData(buffer, 0, read);
+                prefix = prefix.Length == 0 ? parts[index] : prefix + "/" + parts[index];
+                var next = current.OpenDirectory(parts[index]);
+                if (!_owned.TryGetValue(prefix, out var identity) || next.Identity != identity)
+                { next.Dispose(); throw Failure("destination_unsafe", "A staged directory identity changed."); }
+                current.Dispose(); current = next;
             }
-
-            if (written != expectedLength)
-                throw EntryFailure("preflight_mismatch", "An archive file did not match its preflighted length.", entryIndex);
-            destination.Flush(flushToDisk: true);
-            ArchivePathPolicy.EnsurePathIsNotReparsePoint(path, "destination_unsafe");
-            return Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
+            var result = current; current = null!; return result;
         }
-        catch (ArchiveBoundaryException)
-        {
-            throw;
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or NotSupportedException)
-        {
-            throw EntryFailure("extraction_io", "An archive file could not be materialized safely.", entryIndex, exception);
-        }
-        finally
-        {
-            if (buffer is not null)
-                ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
-        }
+        finally { current?.Dispose(); }
     }
 
-    internal static void ApplyModes(
-        string stagingRoot,
-        IReadOnlyList<MaterializedEntryRecord> entries)
+    internal string WriteFileCreateNew(string relative, Stream source, long expectedLength, int index)
     {
-        if (OperatingSystem.IsWindows())
-            return;
-
-        // Files are set before directories so a restrictive directory cannot block its children.
-        foreach (var entry in entries
-                     .OrderBy(candidate => candidate.Kind == MaterializedEntryKind.Directory ? 1 : 0)
-                     .ThenByDescending(candidate => SegmentCount(candidate.RelativePath)))
+        try
         {
-            var path = ArchivePathPolicy.ResolveEntryPath(stagingRoot, entry.RelativePath);
+            using var parent = OpenParent(relative);
+            using var file = parent.CreateNew(Leaf(relative), (UnixFileMode)0x180);
+            _owned.Add(relative, file.Identity);
+            using var destination = file.OpenStream();
+            using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+            var buffer = ArrayPool<byte>.Shared.Rent(64 * 1024);
             try
             {
-                File.SetUnixFileMode(path, entry.Mode);
+                long written = 0;
+                while (true)
+                {
+                    var read = source.Read(buffer, 0, buffer.Length);
+                    if (read == 0) break;
+                    written = checked(written + read);
+                    if (written > expectedLength) throw EntryFailure("preflight_mismatch", "An archive file exceeded its preflighted length.", index);
+                    destination.Write(buffer, 0, read); hash.AppendData(buffer, 0, read);
+                }
+                if (written != expectedLength) throw EntryFailure("preflight_mismatch", "An archive file did not match its preflighted length.", index);
+                destination.Flush(flushToDisk: true);
+                return Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
             }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or PlatformNotSupportedException)
+            finally { ArrayPool<byte>.Shared.Return(buffer, clearArray: true); }
+        }
+        catch (ArchiveBoundaryException) { throw; }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or NotSupportedException)
+        { throw EntryFailure("extraction_io", "An archive file could not be materialized safely.", index, error); }
+    }
+
+    internal void ApplyModes(IReadOnlyList<MaterializedEntryRecord> entries)
+    {
+        if (OperatingSystem.IsWindows()) return;
+        foreach (var entry in entries.OrderBy(entry => entry.Kind == MaterializedEntryKind.Directory ? 1 : 0)
+                     .ThenByDescending(entry => entry.RelativePath.Count(character => character == '/')))
+        {
+            try
             {
-                throw Failure("mode_apply_failed", "An extracted entry mode could not be applied.", exception);
+                using var parent = OpenParent(entry.RelativePath);
+                if (entry.Kind == MaterializedEntryKind.Directory)
+                {
+                    using var directory = parent.OpenDirectory(Leaf(entry.RelativePath));
+                    RequireOwned(entry.RelativePath, directory.Identity); directory.SetMode(entry.Mode);
+                }
+                else
+                {
+                    using var file = parent.OpenRead(Leaf(entry.RelativePath));
+                    RequireOwned(entry.RelativePath, file.Identity); file.SetMode(entry.Mode);
+                }
             }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException or PlatformNotSupportedException)
+            { throw Failure("mode_apply_failed", "An extracted entry mode could not be applied.", error); }
         }
     }
 
-    internal static IReadOnlyList<MaterializedEntryRecord> InventoryAndVerify(
-        string root,
-        IReadOnlyList<MaterializedEntryRecord> expected)
+    private void RequireOwned(string relative, RootedDirectory.FileIdentity identity)
+    { if (!_owned.TryGetValue(relative, out var original) || original != identity) throw Failure("post_inventory_mismatch", "A staged entry identity changed."); }
+
+    internal IReadOnlyList<MaterializedEntryRecord> InventoryAndVerify(IReadOnlyList<MaterializedEntryRecord> expected)
     {
-        ArchivePathPolicy.EnsurePathIsNotReparsePoint(root, "post_inventory_mismatch");
-        ArchivePathPolicy.EnsureExistingAncestorsAreNotReparsePoints(root, "post_inventory_mismatch");
+        var byPath = expected.ToDictionary(entry => entry.RelativePath, StringComparer.Ordinal);
+        var actual = new Dictionary<string, MaterializedEntryRecord>(StringComparer.Ordinal);
+        Walk(_tree ?? throw new InvalidOperationException("No owned tree."), string.Empty);
+        if (actual.Count != expected.Count) throw Failure("post_inventory_mismatch", "The extracted filesystem inventory differs from preflight.");
+        return actual.Values.OrderBy(entry => entry.RelativePath, StringComparer.Ordinal).ToArray();
 
-        var expectedByPath = expected.ToDictionary(entry => entry.RelativePath, StringComparer.Ordinal);
-        var actualByPath = new Dictionary<string, MaterializedEntryRecord>(StringComparer.Ordinal);
-        Walk(root, root, expectedByPath, actualByPath);
-
-        if (actualByPath.Count != expectedByPath.Count)
-            throw Failure("post_inventory_mismatch", "The extracted filesystem inventory differs from preflight.");
-        foreach (var expectedEntry in expectedByPath.Values)
+        void Walk(RootedDirectory directory, string prefix)
         {
-            if (!actualByPath.TryGetValue(expectedEntry.RelativePath, out var actualEntry) ||
-                actualEntry.Kind != expectedEntry.Kind ||
-                actualEntry.Length != expectedEntry.Length ||
-                !string.Equals(actualEntry.Sha256, expectedEntry.Sha256, StringComparison.Ordinal) ||
-                actualEntry.Mode != expectedEntry.Mode)
+            foreach (var entry in directory.Enumerate())
             {
-                throw Failure("post_inventory_mismatch", "The extracted filesystem inventory differs from preflight.");
+                var relative = prefix.Length == 0 ? entry.Name : prefix + "/" + entry.Name;
+                if (entry.Reparse || !byPath.TryGetValue(relative, out var original))
+                    throw Failure("post_inventory_mismatch", "The extracted filesystem inventory contains an unexpected entry.");
+                RequireOwned(relative, entry.Identity);
+                if (entry.Directory)
+                {
+                    if (original.Kind != MaterializedEntryKind.Directory) throw Failure("post_inventory_mismatch", "An extracted entry type changed.");
+                    using var child = directory.OpenDirectory(entry.Name);
+                    RequireOwned(relative, child.Identity);
+                    var mode = OperatingSystem.IsWindows() ? original.Mode : child.GetMode();
+                    if (mode != original.Mode) throw Failure("post_inventory_mismatch", "An extracted entry mode changed.");
+                    actual.Add(relative, original); Walk(child, relative);
+                }
+                else
+                {
+                    if (original.Kind != MaterializedEntryKind.File) throw Failure("post_inventory_mismatch", "An extracted entry type changed.");
+                    using var file = directory.OpenRead(entry.Name);
+                    RequireOwned(relative, file.Identity);
+                    using var stream = file.OpenStream();
+                    var mode = OperatingSystem.IsWindows() ? original.Mode : file.GetMode();
+                    if (stream.Length != original.Length || mode != original.Mode) throw Failure("post_inventory_mismatch", "An extracted file size or mode changed.");
+                    using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                    var buffer = ArrayPool<byte>.Shared.Rent(64 * 1024);
+                    try
+                    {
+                        var remaining = original.Length;
+                        while (remaining > 0)
+                        {
+                            var read = stream.Read(buffer, 0, (int)Math.Min(buffer.Length, remaining));
+                            if (read == 0) throw Failure("post_inventory_mismatch", "An extracted file was truncated.");
+                            hash.AppendData(buffer, 0, read); remaining -= read;
+                        }
+                        if (stream.ReadByte() != -1 || !string.Equals(Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant(), original.Sha256, StringComparison.Ordinal))
+                            throw Failure("post_inventory_mismatch", "An extracted file hash changed.");
+                    }
+                    finally { ArrayPool<byte>.Shared.Return(buffer, clearArray: true); }
+                    actual.Add(relative, original);
+                }
             }
         }
-
-        return actualByPath.Values.OrderBy(entry => entry.RelativePath, StringComparer.Ordinal).ToArray();
     }
 
-    internal static void CommitDirectoryNoReplace(string stagingPath, string destinationPath)
+    internal void CommitDirectoryNoReplace()
     {
-        if (ArchivePathPolicy.PathExistsNoFollow(destinationPath))
-            throw Failure("destination_exists", "The destination already exists.");
-        try
-        {
-            Directory.Move(stagingPath, destinationPath);
-        }
-        catch (ArchiveBoundaryException)
-        {
-            throw;
-        }
-        catch (IOException exception) when (ArchivePathPolicy.PathExistsNoFollow(destinationPath))
-        {
-            throw Failure("destination_exists", "The destination was created before the no-replace commit.", exception);
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or NotSupportedException)
-        {
-            throw Failure("destination_commit_failed", "The staged destination could not be committed safely.", exception);
-        }
+        try { _tree!.MoveNoReplace(_request.DestinationName); }
+        catch (IOException error) when (RootedDirectory.IsCollision(error))
+        { throw Failure("destination_exists", "The destination was created before the no-replace commit.", error); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or NotSupportedException)
+        { throw Failure("destination_commit_failed", "The staged destination could not be committed safely.", error); }
     }
 
-    internal static string CreateInventoryTemporaryPath(string inventoryPath, int maximumCanonicalPathUtf16)
+    internal FileStream CreateInventoryStream()
     {
-        var parent = Path.GetDirectoryName(inventoryPath) ?? throw Failure(
-            "inventory_path_invalid",
-            "The inventory output has no parent directory.");
         for (var attempt = 0; attempt < 16; attempt++)
         {
-            var candidate = Path.Combine(
-                parent,
-                $".pcti-{Convert.ToHexString(RandomNumberGenerator.GetBytes(6)).ToLowerInvariant()}");
-            if (candidate.Length > maximumCanonicalPathUtf16)
+            var name = ".pcti-" + Convert.ToHexString(RandomNumberGenerator.GetBytes(6)).ToLowerInvariant();
+            _inventoryTemporaryPath = Path.Combine(Path.GetDirectoryName(_request.InventoryPath)!, name);
+            if (_inventoryTemporaryPath.Length > _request.Limits.MaximumCanonicalPathUtf16)
                 throw Failure("inventory_path_invalid", "The inventory parent leaves insufficient path budget for safe staging.");
-            if (!ArchivePathPolicy.PathExistsNoFollow(candidate))
-                return candidate;
+            try { _inventory = _inventoryParent.CreateNew(name, (UnixFileMode)0x180); return _inventory.OpenStream(); }
+            catch (IOException error) when (RootedDirectory.IsCollision(error)) { }
         }
         throw Failure("inventory_path_invalid", "A private inventory staging path could not be allocated.");
     }
 
-    internal static void CommitFileNoReplace(string temporaryPath, string destinationPath)
+    internal void CommitInventoryNoReplace()
     {
-        if (ArchivePathPolicy.PathExistsNoFollow(destinationPath))
-            throw Failure("inventory_exists", "The inventory output already exists.");
-        try
-        {
-            File.Move(temporaryPath, destinationPath, overwrite: false);
-        }
-        catch (IOException exception) when (ArchivePathPolicy.PathExistsNoFollow(destinationPath))
-        {
-            throw Failure("inventory_exists", "The inventory output was created before the no-replace commit.", exception);
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or NotSupportedException)
-        {
-            throw Failure("inventory_write_failed", "The inventory output could not be committed safely.", exception);
-        }
+        try { _inventory!.Publish(Path.GetFileName(_request.InventoryPath), replace: false); _inventoryCommitted = true; }
+        catch (IOException error) when (RootedDirectory.IsCollision(error))
+        { throw Failure("inventory_exists", "The inventory output was created before the no-replace commit.", error); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or NotSupportedException)
+        { throw Failure("inventory_write_failed", "The inventory output could not be committed safely.", error); }
+        finally { if (_inventory?.WasPublished == true) _inventoryCommitted = true; }
     }
 
-    internal static IReadOnlyList<Exception> DeleteTreeNoFollow(
-        string? path,
-        ArchiveExtractionHooks hooks)
-    {
-        if (string.IsNullOrEmpty(path))
-            return [];
+    internal void ReleaseOwnership() => _released = true;
 
+    internal IReadOnlyList<Exception> Cleanup(ArchiveExtractionHooks hooks)
+    {
         var failures = new List<Exception>();
-        DeleteOwnedPath(path, hooks, failures);
+        if (_released) return failures;
+        if (_inventory is not null && !_inventoryDeleted)
+            try
+            {
+                hooks.BeforeCleanupDelete?.Invoke(_inventoryCommitted ? _request.InventoryPath : _inventoryTemporaryPath!);
+                _inventory.DeleteIfOwned(); _inventoryDeleted = true;
+            }
+            catch (Exception error) { failures.Add(error); }
+        if (_tree is not null && !_treeDeleted)
+            try { _tree.DeleteOwnedTree(_owned, hooks.BeforeCleanupDelete); _treeDeleted = true; }
+            catch (Exception error) { failures.Add(error); }
         return failures;
     }
 
-    internal static UnixFileMode ImplicitDirectoryMode => DefaultImplicitDirectoryMode;
-
-    private static void CreateDirectoryNew(string path)
+    public void Dispose()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            if (NativeMethods.CreateDirectoryWindows(path, IntPtr.Zero))
-                return;
-            var error = Marshal.GetLastPInvokeError();
-            if (error == 183)
-                throw Failure("path_already_exists", "A no-replace directory path already exists.");
-            throw Failure("directory_create_failed", "A no-replace directory could not be created.", new Win32Exception(error));
-        }
-
-        const uint ownerOnly = 0x1c0; // POSIX 0700; final validated modes are applied after extraction.
-        if (NativeMethods.CreateDirectoryUnix(path, ownerOnly) == 0)
-            return;
-        var errno = Marshal.GetLastPInvokeError();
-        if (errno == 17)
-            throw Failure("path_already_exists", "A no-replace directory path already exists.");
-        throw Failure("directory_create_failed", "A no-replace directory could not be created.", new Win32Exception(errno));
+        _inventory?.Dispose(); _inventory = null;
+        _tree?.Dispose(); _tree = null;
+        _inventoryParent.Dispose(); _destination.Dispose();
     }
 
-    private static void Walk(
-        string root,
-        string directory,
-        IReadOnlyDictionary<string, MaterializedEntryRecord> expected,
-        IDictionary<string, MaterializedEntryRecord> actual)
-    {
-        IEnumerable<string> children;
-        try
-        {
-            children = Directory.EnumerateFileSystemEntries(
-                directory,
-                "*",
-                new EnumerationOptions
-                {
-                    RecurseSubdirectories = false,
-                    IgnoreInaccessible = false,
-                    AttributesToSkip = 0,
-                    ReturnSpecialDirectories = false
-                }).ToArray();
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            throw Failure("post_inventory_mismatch", "The extracted filesystem inventory could not be enumerated.", exception);
-        }
-
-        foreach (var child in children)
-        {
-            FileAttributes attributes;
-            try
-            {
-                attributes = File.GetAttributes(child);
-            }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-            {
-                throw Failure("post_inventory_mismatch", "An extracted filesystem entry could not be inspected.", exception);
-            }
-            if ((attributes & FileAttributes.ReparsePoint) != 0 || (attributes & FileAttributes.Device) != 0)
-                throw Failure("post_inventory_mismatch", "The extracted filesystem contains a reparse or special entry.");
-
-            var relative = Path.GetRelativePath(root, child).Replace(Path.DirectorySeparatorChar, '/');
-            if (!expected.TryGetValue(relative, out var expectedEntry) || actual.ContainsKey(relative))
-                throw Failure("post_inventory_mismatch", "The extracted filesystem inventory differs from preflight.");
-
-            if ((attributes & FileAttributes.Directory) != 0)
-            {
-                if (expectedEntry.Kind != MaterializedEntryKind.Directory)
-                    throw Failure("post_inventory_mismatch", "The extracted filesystem entry type differs from preflight.");
-                var mode = OperatingSystem.IsWindows() ? expectedEntry.Mode : File.GetUnixFileMode(child);
-                actual.Add(relative, new MaterializedEntryRecord(
-                    relative,
-                    MaterializedEntryKind.Directory,
-                    0,
-                    mode,
-                    null));
-                Walk(root, child, expected, actual);
-            }
-            else
-            {
-                if (expectedEntry.Kind != MaterializedEntryKind.File)
-                    throw Failure("post_inventory_mismatch", "The extracted filesystem entry type differs from preflight.");
-                var file = new FileInfo(child);
-                if (file.LinkTarget is not null)
-                    throw Failure("post_inventory_mismatch", "The extracted filesystem contains a link.");
-                var mode = OperatingSystem.IsWindows() ? expectedEntry.Mode : File.GetUnixFileMode(child);
-                var hash = ComputeFileSha256(child);
-                actual.Add(relative, new MaterializedEntryRecord(
-                    relative,
-                    MaterializedEntryKind.File,
-                    file.Length,
-                    mode,
-                    hash));
-            }
-        }
-    }
-
-    private static string ComputeFileSha256(string path)
-    {
-        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 64 * 1024, FileOptions.SequentialScan);
-        return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
-    }
-
-    private static void DeleteOwnedPath(
-        string path,
-        ArchiveExtractionHooks hooks,
-        ICollection<Exception> failures)
-    {
-        FileAttributes attributes;
-        try
-        {
-            attributes = File.GetAttributes(path);
-        }
-        catch (FileNotFoundException)
-        {
-            return;
-        }
-        catch (DirectoryNotFoundException)
-        {
-            return;
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            failures.Add(exception);
-            return;
-        }
-
-        var isDirectory = (attributes & FileAttributes.Directory) != 0;
-        var isReparse = (attributes & FileAttributes.ReparsePoint) != 0;
-        if (isDirectory && !isReparse)
-        {
-            try
-            {
-                var children = Directory.EnumerateFileSystemEntries(
-                    path,
-                    "*",
-                    new EnumerationOptions
-                    {
-                        RecurseSubdirectories = false,
-                        IgnoreInaccessible = false,
-                        AttributesToSkip = 0,
-                        ReturnSpecialDirectories = false
-                    }).ToArray();
-                foreach (var child in children)
-                    DeleteOwnedPath(child, hooks, failures);
-            }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-            {
-                failures.Add(exception);
-            }
-        }
-
-        try
-        {
-            hooks.BeforeCleanupDelete?.Invoke(path);
-            if (isDirectory)
-                Directory.Delete(path, recursive: false);
-            else
-                File.Delete(path);
-        }
-        catch (Exception exception)
-        {
-            failures.Add(exception);
-        }
-    }
-
-    private static int SegmentCount(string relativePath) =>
-        relativePath.Count(character => character == '/') + 1;
-
-    private static ArchiveBoundaryException Failure(
-        string code,
-        string message,
-        Exception? innerException = null) => new(code, message, innerException);
-
-    private static ArchiveBoundaryException EntryFailure(
-        string code,
-        string message,
-        int entryIndex,
-        Exception? innerException = null) => new(code, message, innerException, entryIndex);
-
-    private static class NativeMethods
-    {
-        [DllImport("kernel32.dll", EntryPoint = "CreateDirectoryW", CharSet = CharSet.Unicode, SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        internal static extern bool CreateDirectoryWindows(string path, IntPtr securityAttributes);
-
-        [DllImport("libc", EntryPoint = "mkdir", CharSet = CharSet.Ansi, SetLastError = true)]
-        internal static extern int CreateDirectoryUnix(string path, uint mode);
-    }
+    private static string Leaf(string relative) => relative[(relative.LastIndexOf('/') + 1)..];
+    private static ArchiveBoundaryException Failure(string code, string message, Exception? inner = null) => new(code, message, inner);
+    private static ArchiveBoundaryException EntryFailure(string code, string message, int index, Exception? inner = null) => new(code, message, inner, index);
 }

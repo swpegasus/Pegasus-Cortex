@@ -400,36 +400,14 @@ if (-not (Test-Path -LiteralPath $nsisLicense -PathType Leaf)) {
 }
 New-Item -ItemType Directory -Path (Join-Path $licenses 'nsis-3.12') -ErrorAction Stop | Out-Null
 Copy-Item -LiteralPath $nsisLicense -Destination (Join-Path $licenses 'nsis-3.12\COPYING') -ErrorAction Stop
-$docs = Join-Path $product 'docs\execution'
-New-Item -ItemType Directory -Path $docs -ErrorAction Stop | Out-Null
-Copy-Item -LiteralPath (Join-Path $root 'docs\execution\NSIS.md') -Destination (Join-Path $docs 'NSIS.md') -ErrorAction Stop
-Copy-Item -LiteralPath (Join-Path $root 'docs\CEREBRAL_APPLICATION_AUTHORIZATION.md') `
-    -Destination (Join-Path $product 'docs\CEREBRAL_APPLICATION_AUTHORIZATION.md') -ErrorAction Stop
-Copy-Item -LiteralPath (Join-Path $root 'docs\NATIVE_RESIDENT_V2.md') `
-    -Destination (Join-Path $product 'docs\NATIVE_RESIDENT_V2.md') -ErrorAction Stop
-# Include the operational references linked by the shipped guidance snapshot.
-foreach ($document in @(
-    'PAO_OWNER_ADMIN_EXECUTION.md',
-    'PAO_WINDOWS_REGISTRY.md', 'PAO_PROCESS_THREADS.md', 'PAO_CERTIFICATES.md',
-    'PAO_BOUNDED_SCHEDULING.md', 'PAO_APPLICATION_LIFECYCLE.md',
-    'PAO_FAILURE_CONTRACT.md', 'NATIVE-MULTIPLEXING.md',
-    'CORTEX_CEREBRAL_GUIDANCE_CURRENT.md', 'CORTEX_UTILIZATION.md',
-    'CORTEX_SHARED_MCP.md', 'CORTEX_PAYLOAD_STORAGE.md',
-    'PAO_WINDOWS_INVENTORY.md', 'PAO_WINDOWS_TASKS.md', 'PAO_WINDOWS_SERVICES.md',
-    'PAO_INSTALLED_PROGRAMS.md', 'PAO_WINDOWS_ACCOUNTS.md',
-    'PAO_CONNECTION_PROFILES.md', 'PAO_LOCAL_TERMINALS.md',
-    'PAO_HTTP_GET_EVALUATION.md', 'NATIVE_INTEROP_HARNESS.md',
-    'VISUAL_LIBRARIES.md')) {
-    Copy-Item -LiteralPath (Join-Path $root ('docs\' + $document)) `
-        -Destination (Join-Path $product ('docs\' + $document)) -ErrorAction Stop
-}
+# Preserve the maintained documentation tree and its relative handbook/setup
+# links. A flat allowlist left the shipped README pointing at absent guides.
+Merge-TreeExact -Source (Join-Path $root 'docs') -Destination (Join-Path $product 'docs')
 # Keep the linked client reference usable in source and in the signed product.
 $clientReference = 'integrations\codex\pegasus-cortex-client\skills\pegasus-cortex-client\references\capabilities.md'
 $referenceTarget = Join-Path $product $clientReference
 New-Item -ItemType Directory -Path ([IO.Path]::GetDirectoryName($referenceTarget)) -Force -ErrorAction Stop | Out-Null
 Copy-Item -LiteralPath (Join-Path $root $clientReference) -Destination $referenceTarget -ErrorAction Stop
-Copy-Item -LiteralPath (Join-Path $root 'docs\STARTER_PROGRAMMING_TENETS.txt') `
-    -Destination (Join-Path $product 'docs\STARTER_PROGRAMMING_TENETS.txt') -ErrorAction Stop
 
 # Ship the same shared source tools used by Cortex, with public identity only.
 New-Item -ItemType Directory -Path (Join-Path $product 'branding') -ErrorAction Stop | Out-Null

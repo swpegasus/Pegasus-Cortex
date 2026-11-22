@@ -204,5 +204,5 @@ public sealed partial class FileCortexV2Store
             value.Provenance.Source,
             value.Provenance.Actor,
             value.Provenance.SourceId,
-            value.Provenance.CapturedAtUtc));
+            value.Provenance.CapturedAtUtc, value.Provenance.VerifiedSource));
 }

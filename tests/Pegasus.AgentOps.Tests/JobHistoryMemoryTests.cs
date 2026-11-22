@@ -126,7 +126,7 @@ internal static class JobHistoryMemoryTests
         }
         var brokerRoot = fixture.Dir("broker-health");
         var owner = LocalIdentity.Current();
-        await using (var broker = new AuthenticatedServiceBroker(brokerRoot, owner.Sid, new RootCodeVerifier(Path.Combine(brokerRoot, "root.verifier"))))
+        await using (var broker = new AuthenticatedServiceBroker(brokerRoot, owner.Sid, null))
         {
             using var connection = new SqliteConnection($"Data Source={Path.Combine(brokerRoot, "agentops-router.db")};Pooling=False");
             connection.Open();

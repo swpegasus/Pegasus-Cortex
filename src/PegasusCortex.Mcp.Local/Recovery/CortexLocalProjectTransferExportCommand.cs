@@ -242,7 +242,7 @@ internal static class CortexLocalProjectTransferExportCommand
         }
         var length = info.Length;
         var lastWrite = info.LastWriteTimeUtc;
-        var bytes = await File.ReadAllBytesAsync(metaPath, cancellationToken)
+        var bytes = await CortexLocalBoundedMetadataReader.ReadAsync(metaPath, 64 * 1024, cancellationToken)
             .ConfigureAwait(false);
         info.Refresh();
         if (!info.Exists || info.Length != length || info.LastWriteTimeUtc != lastWrite)

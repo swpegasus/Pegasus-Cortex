@@ -9,6 +9,23 @@ using Pegasus.AgentOps.Engine;
 using Pegasus.AgentOps.Protocol;
 using Microsoft.Data.Sqlite;
 
+if(args is ["--shared-mcp-identity-only"])return await IdentityChecks.RunAsync();
+if(args is ["--system-intent-only"])
+{
+    await SystemIntentContractTests.RunAsync();
+    return 0;
+}
+if(args is ["--mcp-connection-http-only"])
+{
+    await CortexMcpConnectionHttpTests.RunAsync();
+    return 0;
+}
+if(args is ["--tool-invocation-context-only"])
+{
+    await ToolInvocationContextTests.RunAsync();
+    return 0;
+}
+
 if(Environment.GetEnvironmentVariable("DOTNET_ROOT") is not{Length:>0}&&Environment.GetEnvironmentVariable("PAO_TEST_DOTNET") is{Length:>0} testDotnet&&File.Exists(testDotnet))
     Environment.SetEnvironmentVariable("DOTNET_ROOT",Path.GetDirectoryName(Path.GetFullPath(testDotnet)));
 if(Environment.GetEnvironmentVariable("DOTNET_ROOT_X64") is not{Length:>0}&&Environment.GetEnvironmentVariable("PAO_TEST_DOTNET") is{Length:>0} testDotnetX64&&File.Exists(testDotnetX64))
@@ -504,7 +521,7 @@ static async Task NetworkShareRootCopyAdmissionAsync()
     await using (var broker = new AuthenticatedServiceBroker(
         temp.Dir("network-service-state"),
         owner,
-        new RootCodeVerifier(Path.Combine(temp.Path, "network-root.verifier")),
+        null,
         false,
         (_, _, request, _) =>
         {
@@ -690,11 +707,11 @@ static async Task ServiceJobControlAsync()
 static async Task TrayPauseResumeAsync()
 {
     using var temp=new TempRoot();var state=temp.Dir("pause-state");var owner=LocalIdentity.Current().Sid;var peer=new LocalPeer(owner,3);var calls=0;var dst=Path.Combine(temp.Path,"after-resume");
-    await using(var first=new AuthenticatedServiceBroker(state,owner,new RootCodeVerifier(Path.Combine(state,"root.verifier")),false,(_,_,request,_)=>{Interlocked.Increment(ref calls);Directory.CreateDirectory(request.Arg["dst"]);return Task.FromResult(new OperationReceipt(true,"inner",request.Rid!,"done",request.Op));}))
+    await using(var first=new AuthenticatedServiceBroker(state,owner,null,false,(_,_,request,_)=>{Interlocked.Increment(ref calls);Directory.CreateDirectory(request.Arg["dst"]);return Task.FromResult(new OperationReceipt(true,"inner",request.Rid!,"done",request.Op));}))
     {
         Check((await first.RegisterTrayAsync(new TrayRegistration(owner,3,"pause-tray"),peer)).Ok,"tray registration failed");Check(first.SetTrayPaused(true,peer).Ok,"tray pause rejected");var queued=await first.HandleUserAsync(new OperationRequest("mkdir",new Dictionary<string,string>{{"dst",dst}},"paused-job"),peer,CancellationToken.None);Equal("waiting_user",queued.State);Equal(true,Convert.ToBoolean(queued.Data!["approval_required"]));Equal("tray",queued.Data["approval_via"]?.ToString());await Task.Delay(150);Equal(0,calls);
     }
-    await using(var restarted=new AuthenticatedServiceBroker(state,owner,new RootCodeVerifier(Path.Combine(state,"root.verifier")),false,(_,_,request,_)=>{Interlocked.Increment(ref calls);Directory.CreateDirectory(request.Arg["dst"]);return Task.FromResult(new OperationReceipt(true,"inner",request.Rid!,"done",request.Op));}))
+    await using(var restarted=new AuthenticatedServiceBroker(state,owner,null,false,(_,_,request,_)=>{Interlocked.Increment(ref calls);Directory.CreateDirectory(request.Arg["dst"]);return Task.FromResult(new OperationReceipt(true,"inner",request.Rid!,"done",request.Op));}))
     {
         Check((await restarted.RegisterTrayAsync(new TrayRegistration(owner,3,"pause-tray-2"),peer)).Ok,"restart tray registration failed");await Task.Delay(150);Equal(0,calls);Check(restarted.SetTrayPaused(false,peer).Ok,"tray resume rejected");await WaitRouterStateAsync(state,"paused-job","done");Equal(1,calls);Check(Directory.Exists(dst),"resumed job did not execute");
     }
@@ -728,7 +745,7 @@ static async Task Phase2CliBodyFormsAsync()
 static async Task LineEditBrokerAsync()
 {
     using var temp=new TempRoot();var serviceState=temp.Dir("edit-service");var trayState=temp.Dir("edit-tray");var owner=LocalIdentity.Current().Sid;var peer=new LocalPeer(owner,3);var file=Path.Combine(temp.Path,"broker edit Ω.txt");await File.WriteAllTextAsync(file,"one\r\ntwo\r\nthree\r\nfour\r\n",new UnicodeEncoding(false,true));var body="TWO Ω\nTHREE from broker";
-    await using var engine=new AgentOpsEngine(trayState);await using var broker=new AuthenticatedServiceBroker(serviceState,owner,new RootCodeVerifier(Path.Combine(serviceState,"root.verifier")),false,(_,_,request,ct)=>engine.ExecuteAuthenticatedFrozenDirectAsync(request,ct));Check((await broker.RegisterTrayAsync(new TrayRegistration(owner,3,"edit-direct"),peer)).Ok,"edit tray rejected");var receipt=await broker.HandleUserAsync(new OperationRequest("edit",new Dictionary<string,string>{{"dst",file},{"line","2"},{"count","2"}},"edit-broker",Cwd:temp.Path,Body:body),peer,CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5));Check(receipt.Ok,receipt.Err??"line edit failed");Equal("one\r\nTWO Ω\r\nTHREE from broker\r\nfour\r\n",await File.ReadAllTextAsync(file,Encoding.Unicode));Check(!StateContainsAscii(serviceState,body)&&!StateContainsAscii(trayState,body),"line edit body persisted");
+    await using var engine=new AgentOpsEngine(trayState);await using var broker=new AuthenticatedServiceBroker(serviceState,owner,null,false,(_,_,request,ct)=>engine.ExecuteAuthenticatedFrozenDirectAsync(request,ct));Check((await broker.RegisterTrayAsync(new TrayRegistration(owner,3,"edit-direct"),peer)).Ok,"edit tray rejected");var receipt=await broker.HandleUserAsync(new OperationRequest("edit",new Dictionary<string,string>{{"dst",file},{"line","2"},{"count","2"}},"edit-broker",Cwd:temp.Path,Body:body),peer,CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5));Check(receipt.Ok,receipt.Err??"line edit failed");Equal("one\r\nTWO Ω\r\nTHREE from broker\r\nfour\r\n",await File.ReadAllTextAsync(file,Encoding.Unicode));Check(!StateContainsAscii(serviceState,body)&&!StateContainsAscii(trayState,body),"line edit body persisted");
 }
 
 static async Task TextContextEncodingHelpAsync()
@@ -745,7 +762,7 @@ static async Task TextContextEncodingHelpAsync()
     var invalidResponse=await CallAsync(capture,new{op="read_lines",src=path,line=0,count=1});Equal(-32602,invalidResponse.GetProperty("error").GetProperty("code").GetInt32());Check(invalidResponse.GetProperty("error").GetProperty("message").GetString()!.Contains("name=read_lines",StringComparison.Ordinal),invalidResponse.ToString());
 
     using var temp=new TempRoot();var serviceState=temp.Dir("text-contract-service");var trayState=temp.Dir("text-contract-tray");var workspace=temp.Dir("text contract workspace");new WorkspaceRegistry(new AgentOpsPaths(serviceState)).Register("text-contract",workspace);var source=Path.Combine(workspace,"source Ω.txt");await File.WriteAllBytesAsync(source,[0xFF,0xFE,..new UnicodeEncoding(false,false,true).GetBytes("one\r\ntwo Ω\r\nthree\r\n")]);var destination=Path.Combine(workspace,"converted utf8.txt");var owner=LocalIdentity.Current().Sid;var peer=new LocalPeer(owner,3);
-    await using var engine=new AgentOpsEngine(trayState,directOnly:true);await using var broker=new AuthenticatedServiceBroker(serviceState,owner,new RootCodeVerifier(Path.Combine(serviceState,"root.verifier")),false,(_,_,request,ct)=>engine.ExecuteAuthenticatedFrozenDirectAsync(request,ct));Check((await broker.RegisterTrayAsync(new TrayRegistration(owner,3,"text-contract-tray"),peer)).Ok,"text contract tray rejected");
+    await using var engine=new AgentOpsEngine(trayState,directOnly:true);await using var broker=new AuthenticatedServiceBroker(serviceState,owner,null,false,(_,_,request,ct)=>engine.ExecuteAuthenticatedFrozenDirectAsync(request,ct));Check((await broker.RegisterTrayAsync(new TrayRegistration(owner,3,"text-contract-tray"),peer)).Ok,"text contract tray rejected");
     var lines=await broker.HandleUserAsync(new OperationRequest("read_lines",new Dictionary<string,string>{{"src","source Ω.txt"},{"line","2"},{"count","1"}},"context-read",Ws:"text-contract",Cwd:null),peer,CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5));Check(lines.Ok,lines.Err??"read lines failed");Equal(3,lines.Data!["total"] is JsonElement totalJson?totalJson.GetInt32():Convert.ToInt32(lines.Data["total"]));var lineEntries=lines.Data["entries"] is JsonElement entriesJson?entriesJson:JsonSerializer.SerializeToElement(lines.Data["entries"]);Equal("two Ω",lineEntries[0].GetProperty("text").GetString());
     var inspect=await broker.HandleUserAsync(new OperationRequest("encoding",new Dictionary<string,string>{{"op","inspect"},{"src","source Ω.txt"}},"encoding-inspect",Ws:"text-contract",Cwd:null),peer,CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5));Check(inspect.Ok,inspect.Err??"inspect failed");Check(!inspect.Data!.ContainsKey("text"),"service encoding inspection exposed content");Equal("utf16le",inspect.Data["enc"]?.ToString());
     var convert=await broker.HandleUserAsync(new OperationRequest("encoding",new Dictionary<string,string>{{"op","convert"},{"src","source Ω.txt"},{"dst","converted utf8.txt"},{"enc","utf8"}},"encoding-convert",Ws:"text-contract",Cwd:null),peer,CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5));Check(convert.Ok,convert.Err??"convert failed");Equal("one\r\ntwo Ω\r\nthree\r\n",await File.ReadAllTextAsync(destination,new UTF8Encoding(false,true)));
@@ -880,30 +897,56 @@ static async Task TransportDisconnectAsync()
 static async Task BrokerRouteLossAndForeignAsync()
 {
     using var temp=new TempRoot();var state=temp.Dir("broker-boundaries");var owner=LocalIdentity.Current().Sid;var other="S-1-5-21-1064206094-724938797-970556320-424242";var calls=0;
-    await using(var broker=new AuthenticatedServiceBroker(state,owner,new RootCodeVerifier(Path.Combine(state,"root.verifier")),false,(_,_,request,_)=>Task.FromResult(new OperationReceipt(false,"x",request.Rid!,"failed",request.Op,"svc_down"))))
+    await using(var broker=new AuthenticatedServiceBroker(state,owner,null,false,(_,_,request,_)=>Task.FromResult(new OperationReceipt(false,"x",request.Rid!,"failed",request.Op,"svc_down"))))
     {Check((await broker.RegisterTrayAsync(new TrayRegistration(owner,3,"lost"),new LocalPeer(owner,3))).Ok,"fixture tray rejected");var receipt=await broker.HandleUserAsync(new OperationRequest("mkdir",new Dictionary<string,string>{{"dst",Path.Combine(temp.Path,"waiting")}},"route-lost"),new LocalPeer(owner,3),CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(3));Equal("waiting_user",receipt.State);}
-    var foreignState=temp.Dir("foreign-state");await using(var first=new AuthenticatedServiceBroker(foreignState,other,new RootCodeVerifier(Path.Combine(foreignState,"root.verifier")))){var queued=await first.HandleUserAsync(new OperationRequest("mkdir",new Dictionary<string,string>{{"dst",Path.Combine(temp.Path,"foreign")}},"foreign-row"),new LocalPeer(other,3),CancellationToken.None);Equal("waiting_user",queued.State);}
-    await using(var replacement=new AuthenticatedServiceBroker(foreignState,owner,new RootCodeVerifier(Path.Combine(foreignState,"root.verifier")),false,(_,_,request,_)=>{Interlocked.Increment(ref calls);return Task.FromResult(new OperationReceipt(true,"y",request.Rid!,"done",request.Op));})){await WaitRouterStateAsync(foreignState,"foreign-row","recovery_required");Check((await replacement.RegisterTrayAsync(new TrayRegistration(owner,7,"new-owner"),new LocalPeer(owner,7))).Ok,"new owner tray rejected");await Task.Delay(100);}Equal(0,calls);
+    var foreignState=temp.Dir("foreign-state");await using(var first=new AuthenticatedServiceBroker(foreignState,other,null)){var queued=await first.HandleUserAsync(new OperationRequest("mkdir",new Dictionary<string,string>{{"dst",Path.Combine(temp.Path,"foreign")}},"foreign-row"),new LocalPeer(other,3),CancellationToken.None);Equal("waiting_user",queued.State);}
+    await using(var replacement=new AuthenticatedServiceBroker(foreignState,owner,null,false,(_,_,request,_)=>{Interlocked.Increment(ref calls);return Task.FromResult(new OperationReceipt(true,"y",request.Rid!,"done",request.Op));})){await WaitRouterStateAsync(foreignState,"foreign-row","recovery_required");Check((await replacement.RegisterTrayAsync(new TrayRegistration(owner,7,"new-owner"),new LocalPeer(owner,7))).Ok,"new owner tray rejected");await Task.Delay(100);}Equal(0,calls);
 }
 
-static Task RootCodeStoreAsync()
+static async Task RootCodeStoreAsync()
 {
-    using var temp=new TempRoot();var path=Path.Combine(temp.Path,"root.verifier");var verifier=new RootCodeVerifier(path);for(var i=0;i<10;i++)verifier.Enroll($"code{i}",$"A{i:000}"[^4..]);Equal(10,verifier.Labels().Count);Check(verifier.Verify("A000")&&verifier.Verify("A009"),"enrolled code rejected");try{verifier.Enroll("duplicate","A009");throw new Exception("expected root_code_duplicate");}catch(InvalidOperationException ex){Equal("root_code_duplicate",ex.Message);}verifier.Enroll("code0","Z999");Check(verifier.Verify("Z999")&&!verifier.Verify("A000"),"replace failed");Check(verifier.Remove("code1")&&!verifier.Remove("code1"),"remove failed");Check(!verifier.Verify("A001"),"removed code accepted");verifier.Enroll("replacement","B001");Equal(10,verifier.Labels().Count);try{verifier.Enroll("eleventh","C001");throw new Exception("expected root_code_limit");}catch(InvalidOperationException ex){Equal("root_code_limit",ex.Message);}var bytes=File.ReadAllBytes(path);foreach(var code in new[]{"Z999","A009","B001"})Check(bytes.AsSpan().IndexOf(Encoding.ASCII.GetBytes(code))>=0,"visible code missing from root store");Equal("Z999",verifier.Definitions().Single(x=>x.Label=="code0").Code);return Task.CompletedTask;
+    using var temp=new TempRoot();var target=Path.Combine(temp.Path,"retired-input-must-not-create");
+    await using var capture=new RecordingDispatcher(request=>new(true,"captured",request.Rid??"capture-rid","done",request.Op));
+    foreach(var arguments in new string[][]
+    {
+        ["root","ls"], ["root","upsert","fixture","--stdin"], ["root","rm","fixture"],
+        ["root=AB12","diag","rid=retired-leading"], ["diag","root=AB12","rid=retired-trailing"],
+        ["diag","root_code=AB12","rid=retired-alias"], ["mkdir",target,"root=AB12","rid=retired-mutation"]
+    })
+    {
+        var before=capture.Count;using var output=new StringWriter();using var error=new StringWriter();
+        Equal(2,await PaoProgram.RunCliAsync(arguments,capture,output,error,CancellationToken.None,stdin:new StringReader("AB12\n")));
+        Equal(before,capture.Count);
+    }
+    foreach(var name in new[]{"root","root_upsert","root_ls","root_rm"})
+    {
+        using var input=JsonDocument.Parse(JsonSerializer.Serialize(new{op=name,rid="retired-public"}));
+        var before=capture.Count;var response=await PaoProgram.CallUnifiedMcpToolAsync(input.RootElement,capture,CancellationToken.None);
+        Check(response["isError"]?.GetValue<bool>()==true,"retired public operation accepted");Equal(before,capture.Count);
+    }
+    using var legacyWrite=JsonDocument.Parse(JsonSerializer.Serialize(new{op="mkdir",dst=target,root="AB12",rid="retired-mcp-mutation"}));
+    var rejected=await PaoProgram.CallUnifiedMcpToolAsync(legacyWrite.RootElement,capture,default);
+    Check(rejected["isError"]?.GetValue<bool>()==true && capture.Count==0 && !Directory.Exists(target),"legacy mutation reached an execution/RID owner");
+
 }
 
-static async Task RootCodePolicyAsync()
+static Task RootCodePolicyAsync()
 {
-    using var temp=new TempRoot();var state=temp.Dir("root-policy");var allowed=temp.Dir("allowed");var denied=temp.Dir("denied");var executable=Path.GetFullPath(Environment.ProcessPath!);var owner=LocalIdentity.Current().Sid;var root=new RootCodeVerifier(Path.Combine(state,"root.verifier"));
-    root.Enroll(new RootCodeDefinition("scoped","P4O7",new RootAccessPolicy("allow",[executable]),new RootAccessPolicy("allow",[allowed])));
-    var calls=0;await using var broker=new AuthenticatedServiceBroker(state,owner,root,false,null,(request,_)=>{Interlocked.Increment(ref calls);return Task.FromResult(new OperationReceipt(true,"inner",request.Rid!,"done",request.Op));});
-    var allowedPeer=new LocalPeer(owner,3,executable);var wrongApp=new LocalPeer(owner,3,Path.Combine(temp.Path,"other.exe"));
-    var appDenied=await broker.HandleSystemAsync(new OperationRequest("mkdir",new Dictionary<string,string>{{"dst",Path.Combine(allowed,"app-blocked")}},"app-denied",Root:"P4O7"),wrongApp,CancellationToken.None);Equal("root_app_denied",appDenied.Err);
-    var pathDenied=await broker.HandleSystemAsync(new OperationRequest("mkdir",new Dictionary<string,string>{{"dst",Path.Combine(denied,"blocked")}},"path-denied",Root:"P4O7"),allowedPeer,CancellationToken.None);Equal("root_path_denied",pathDenied.Err);
-    var accepted=await broker.HandleSystemAsync(new OperationRequest("mkdir",new Dictionary<string,string>{{"dst",Path.Combine(allowed,"accepted")}},"path-allowed",Root:"P4O7"),allowedPeer,CancellationToken.None);Equal(0,accepted.ExitCode);Equal(1,calls);
-    var definition=root.Definitions().Single();Equal("P4O7",definition.Code);Equal("allow",definition.Applications.Mode);Equal(executable,definition.Applications.Values.Single());Equal(Path.GetFullPath(allowed),definition.Folders.Values.Single());
-    root.Enroll(new RootCodeDefinition("blocked","D3N7",new RootAccessPolicy("deny",[executable]),new RootAccessPolicy("deny",[denied])));var blocked=root.Match("D3N7")!;
-    Check(!RootCodeVerifier.AllowsApplication(blocked,executable),"application denylist allowed a listed executable");Check(RootCodeVerifier.AllowsApplication(blocked,Path.GetFullPath(FakeToolExe())),"application denylist blocked an unlisted executable");
-    Check(!RootCodeVerifier.AllowsFolders(blocked,new OperationRequest("mkdir",new Dictionary<string,string>{{"dst",Path.Combine(denied,"child")}})),"folder denylist allowed a listed subtree");Check(RootCodeVerifier.AllowsFolders(blocked,new OperationRequest("mkdir",new Dictionary<string,string>{{"dst",Path.Combine(allowed,"child")}})),"folder denylist blocked an unrelated root");
+    using var temp=new TempRoot();var allowed=temp.Dir("allowed");var denied=temp.Dir("denied");var executable=Path.GetFullPath(Environment.ProcessPath!);
+    var applicationPolicy=ProtectedAccessRules.NormalizePolicy(new("allow",[executable,executable]),true);
+    var folderPolicy=ProtectedAccessRules.NormalizePolicy(new("allow",[allowed]),false);
+    var grant=new ProtectedExecutionGrant("reviewed-owner-scope",applicationPolicy,folderPolicy);
+    Equal(1,applicationPolicy.Values.Count);
+    Check(ProtectedAccessRules.AllowsApplication(grant,executable),"listed executable rejected");
+    Check(!ProtectedAccessRules.AllowsApplication(grant,Path.Combine(temp.Path,"other.exe")),"foreign executable admitted");
+    Check(ProtectedAccessRules.AllowsFolders(grant,new("mkdir",new Dictionary<string,string>{{"dst",Path.Combine(allowed,"child")}})),"allowed descendant rejected");
+    Check(!ProtectedAccessRules.AllowsFolders(grant,new("mkdir",new Dictionary<string,string>{{"dst",allowed+"-sibling"}})),"prefix sibling admitted");
+    var blocked=new ProtectedExecutionGrant("denied-owner-scope",new("deny",[executable]),new("deny",[denied]));
+    Check(!ProtectedAccessRules.AllowsApplication(blocked,executable),"listed denied executable admitted");
+    Check(ProtectedAccessRules.AllowsApplication(blocked,Path.GetFullPath(FakeToolExe())),"unlisted executable denied");
+    Check(!ProtectedAccessRules.AllowsFolders(blocked,new("mkdir",new Dictionary<string,string>{{"dst",Path.Combine(denied,"child")}})),"denied subtree admitted");
+    Check(ProtectedAccessRules.AllowsFolders(blocked,new("mkdir",new Dictionary<string,string>{{"dst",Path.Combine(allowed,"child")}})),"unrelated root denied");
+    return Task.CompletedTask;
 }
 
 static async Task PipeClientApplicationAsync()
@@ -922,14 +965,8 @@ static async Task PipeClientApplicationAsync()
 
 static async Task OwnerControlAsync()
 {
-    using var temp=new TempRoot();var state=temp.Dir("control-state");var code="Q7Z9";
-    using(var service=await StartServiceAsync(state,startTray:false))
-    {
-        var enrolled=await RunPaoAsync(["root","upsert","build-admin","--stdin"],code+"\n");Equal(0,enrolled.ExitCode);var rootStore=Path.Combine(state,"root.verifier");Check(File.ReadAllText(rootStore).Contains(code,StringComparison.Ordinal),"root code is not visible in owner store");Check(!StateContainsAscii(state,code),"root code leaked into a durable job database or log");
-        var labels=await RunPaoAsync(["root","ls"]);Equal(0,labels.ExitCode);Check(Uri.UnescapeDataString(Field(labels.Stdout,"labels")).Contains("build-admin",StringComparison.Ordinal),labels.Stdout);Check(Uri.UnescapeDataString(Field(labels.Stdout,"codes")).Contains(code,StringComparison.Ordinal),"owner listing omitted visible code");
-        var removed=await RunPaoAsync(["root","rm","build-admin"]);Equal(0,removed.ExitCode);Check(!new RootCodeVerifier(Path.Combine(state,"root.verifier")).Verify(code),"removed root code still verifies");
-    }
-
+    using var temp=new TempRoot();var state=temp.Dir("control-state");
+    await RootCodeStoreAsync();
     using var routed=await StartServiceAsync(state,startTray:true);
     var queueStat=await RunPaoAsync(["queue","stat"]);Check(queueStat.ExitCode==0,$"queue stat failed: {queueStat.Stdout} {queueStat.Stderr}");var pause=await RunPaoAsync(["queue","pause"]);Check(pause.ExitCode==0,$"queue pause failed: {pause.Stdout} {pause.Stderr}");var paused=await RunPaoAsync(["queue","stat"]);Check(paused.Stdout.Contains("paused=true",StringComparison.OrdinalIgnoreCase),paused.Stdout);var resume=await RunPaoAsync(["queue","resume"]);Check(resume.ExitCode==0,$"queue resume failed: {resume.Stdout} {resume.Stderr}");
     var executable=FakeToolExe();using var stream=File.OpenRead(executable);var sha=Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(stream)).ToLowerInvariant();
@@ -1008,7 +1045,7 @@ static async Task OwnerSessionChangeAsync()
 {
     using var temp=new TempRoot();var state=temp.Dir("state");var owner=LocalIdentity.Current().Sid;var dst=Path.Combine(temp.Path,"resumed");string jid;
     var rootPath=Path.Combine(state,"root.verifier");
-    await using(var first=new AuthenticatedServiceBroker(state,owner,new RootCodeVerifier(rootPath)))
+    await using(var first=new AuthenticatedServiceBroker(state,owner,null))
     {
         var queued=await first.HandleUserAsync(new OperationRequest("mkdir",new Dictionary<string,string>{{"dst",dst}},"session-change"),new LocalPeer(owner,3),CancellationToken.None);
         Equal("waiting_user",queued.State);jid=queued.Jid;
@@ -1016,7 +1053,7 @@ static async Task OwnerSessionChangeAsync()
         Equal("auth",zero.Err);
     }
     var executions=0;
-    await using(var restarted=new AuthenticatedServiceBroker(state,owner,new RootCodeVerifier(rootPath),false,(peer,_,request,_)=>
+    await using(var restarted=new AuthenticatedServiceBroker(state,owner,null,false,(peer,_,request,_)=>
     {
         Equal(7,peer.Session);Interlocked.Increment(ref executions);Directory.CreateDirectory(request.Arg["dst"]);return Task.FromResult(new OperationReceipt(true,Guid.NewGuid().ToString("N"),request.Rid!,"done",request.Op));
     }))
@@ -1070,9 +1107,11 @@ static async Task RoutingBoundaryAsync()
     Equal("user-host", ordinary.Data!["route"]?.ToString());
 
     var rootAdmin = await dispatcher.DispatchAsync(new OperationRequest("root", new Dictionary<string,string>{{"op","ls"}}, "route-root-admin"));
-    Equal("service-user", rootAdmin.Data!["route"]?.ToString());
+    Equal("root_codes_removed", rootAdmin.Err);
+    var queue=await dispatcher.DispatchAsync(new OperationRequest("queue",new Dictionary<string,string>{{"op","stat"}},"route-owner-queue"));
+    Equal("service-user",queue.Data!["route"]?.ToString());
 
-    var elevated = await dispatcher.DispatchAsync(new OperationRequest("stat", new Dictionary<string,string>{{"src","C:\\fixture"}}, "route-system", Root:"AB12"));
+    var elevated = await dispatcher.DispatchAsync(new OperationRequest("stat", new Dictionary<string,string>{{"src","C:\\fixture"}}, "route-system", System:true, ConnectionAuthority:ApprovedConnectionFixture.DefaultAuthority));
     Equal("system", elevated.Data!["route"]?.ToString());
 
     Equal(1, user.Count);
@@ -1148,10 +1187,14 @@ static async Task RoutingFallbackAsync()
     var unusedService = new RecordingDispatcher(request => throw new InvalidOperationException("ambiguous direct submission was retried"));
     await using (var noReplay = new RoutingDispatcher(mustNotRetry,unusedService,system))
     {
-        var receipt = await noReplay.DispatchAsync(new OperationRequest("mkdir",new Dictionary<string,string>{{"dst","C:\\fixture"}},"ambiguous-direct"));
+        // Isolate receipt/fallback handling from the real nested-mutation guard.
+        // The test executable may itself be a PAO mutation child; a read-only
+        // request still proves that an ambiguous original is never replayed.
+        var receipt = await noReplay.DispatchAsync(new OperationRequest("diag",new Dictionary<string,string>(),"ambiguous-direct"));
         Equal("recovery_required",receipt.Err);
         Check(receipt.Partial,"ambiguous direct submission lost its partial marker");
     }
+    Equal(1,mustNotRetry.Count);
     Equal(0,unusedService.Count);
 }
 
@@ -1190,35 +1233,25 @@ static async Task DirectUserHostWithoutServiceAsync()
 
 static async Task RootWithoutTrayAsync()
 {
-    using var temp = new TempRoot();
-    var owner = LocalIdentity.Current();
-    var verifier = new RootCodeVerifier(Path.Combine(temp.Path,"root.verifier"));
-    verifier.Enroll("AB12");
-    var systemCalls = 0;
-    await using var broker = new AuthenticatedServiceBroker(
-        temp.Dir("service-state"),
-        owner.Sid,
-        verifier,
-        false,
-        null,
-        (request,_) =>
-        {
-            Interlocked.Increment(ref systemCalls);
-            return Task.FromResult(new OperationReceipt(true,"system-jid",request.Rid!,"done",OperationNames.Public(request)));
-        });
-
-    var receipt = await broker.HandleSystemAsync(
-        new OperationRequest("mkdir",new Dictionary<string,string>{{"dst",Path.Combine(temp.Path,"root-target")}},"root-no-tray",Root:"AB12"),
-        owner,
-        CancellationToken.None);
-    Check(receipt.Ok,receipt.Err??"root request failed without a tray");
-    Equal(1,systemCalls);
+    using var temp=new TempRoot();var owner=LocalIdentity.Current();var approval=new ApprovedConnectionFixture(owner);var systemCalls=0;var registered=false;
+    await using var broker=new AuthenticatedServiceBroker(temp.Dir("service-state"),owner.Sid,approval.Authorize,false,null,
+        (request,_)=>{Interlocked.Increment(ref systemCalls);return Task.FromResult(new OperationReceipt(true,"system-jid",request.Rid!,"done",OperationNames.Public(request)));},ownerHostVerifier:peer=>registered&&approval.IsTrustedHost(peer));
+    var noHost=await broker.HandleSystemAsync(approval.System(new("diag",new Dictionary<string,string>(),"no-fixture-Host")),owner,default);
+    Equal("full_control_required",noHost.Err);Equal(0,systemCalls);
+    Check((await broker.RegisterTrayAsync(new TrayRegistration(owner.Sid,owner.Session,"fixture-ordinary-Host"),owner)).Ok,"fixture Host registration failed");
+    registered=true;
+    // This predicate models an authenticated ordinary Host generation. The
+    // fixture proves only that visible tray UI is unnecessary, not Host absence.
+    var receipt=await broker.HandleSystemAsync(approval.System(new("mkdir",new Dictionary<string,string>{{"dst",Path.Combine(temp.Path,"approved-target")}},"approved-without-ui")),owner,CancellationToken.None);
+    Check(receipt.Ok,receipt.Err??"approved registered-Host request failed without tray UI");Equal(1,systemCalls);
+    var missingHost=await broker.HandleSystemAsync(approval.System(new("diag",new Dictionary<string,string>(),"untrusted-host")),owner with{ProcessId=(owner.ProcessId??1)+1},CancellationToken.None);
+    Equal("full_control_required",missingHost.Err);Equal(1,systemCalls);
 }
 
 static async Task BrokerSequenceGateAsync()
 {
     using var temp=new TempRoot();var state=temp.Dir("state");var owner=LocalIdentity.Current().Sid;var order=new List<string>();var gate=new object();
-    await using var broker=new AuthenticatedServiceBroker(state,owner,new RootCodeVerifier(Path.Combine(state,"root.verifier")),false,async(_,_,request,_)=>{if(request.Rid=="older")await Task.Delay(150);lock(gate)order.Add(request.Rid!);return new OperationReceipt(true,Guid.NewGuid().ToString("N"),request.Rid!,"done",request.Op);});
+    await using var broker=new AuthenticatedServiceBroker(state,owner,null,false,async(_,_,request,_)=>{if(request.Rid=="older")await Task.Delay(150);lock(gate)order.Add(request.Rid!);return new OperationReceipt(true,Guid.NewGuid().ToString("N"),request.Rid!,"done",request.Op);});
     var older=await broker.HandleUserAsync(new OperationRequest("mkdir",new Dictionary<string,string>{{"dst",Path.Combine(temp.Path,"older")}},"older"),new LocalPeer(owner,3),CancellationToken.None);Equal("waiting_user",older.State);
     Check((await broker.RegisterTrayAsync(new TrayRegistration(owner,7,"sequence-tray"),new LocalPeer(owner,7))).Ok,"tray registration failed");
     var submits=Enumerable.Range(0,4).Select(i=>broker.HandleUserAsync(new OperationRequest("mkdir",new Dictionary<string,string>{{"dst",Path.Combine(temp.Path,"new"+i)}},"new"+i),new LocalPeer(owner,7),CancellationToken.None)).ToArray();await Task.WhenAll(submits);await WaitRouterStateAsync(state,"new3","done");
@@ -1228,13 +1261,13 @@ static async Task BrokerSequenceGateAsync()
 static async Task TrayReconnectRaceAsync()
 {
     using var temp=new TempRoot();var state=temp.Dir("state");var owner=LocalIdentity.Current().Sid;var oldEntered=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);var releaseOld=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);var executions=0;
-    await using var broker=new AuthenticatedServiceBroker(state,owner,new RootCodeVerifier(Path.Combine(state,"root.verifier")),false,async(peer,_,request,_)=>{if(peer.Session==3){oldEntered.TrySetResult();await releaseOld.Task;return new OperationReceipt(false,"x",request.Rid!,"failed",request.Op,"svc_down");}Interlocked.Increment(ref executions);return new OperationReceipt(true,"y",request.Rid!,"done",request.Op);});
+    await using var broker=new AuthenticatedServiceBroker(state,owner,null,false,async(peer,_,request,_)=>{if(peer.Session==3){oldEntered.TrySetResult();await releaseOld.Task;return new OperationReceipt(false,"x",request.Rid!,"failed",request.Op,"svc_down");}Interlocked.Increment(ref executions);return new OperationReceipt(true,"y",request.Rid!,"done",request.Op);});
     Check((await broker.RegisterTrayAsync(new TrayRegistration(owner,3,"old"),new LocalPeer(owner,3))).Ok,"old tray rejected");var pending=broker.HandleUserAsync(new OperationRequest("mkdir",new Dictionary<string,string>{{"dst",Path.Combine(temp.Path,"race")}},"reconnect"),new LocalPeer(owner,3),CancellationToken.None);await oldEntered.Task;Check((await broker.RegisterTrayAsync(new TrayRegistration(owner,7,"new"),new LocalPeer(owner,7))).Ok,"new tray rejected");releaseOld.TrySetResult();await pending;await WaitRouterStateAsync(state,"reconnect","done");Equal(1,executions);
 }
 
 static async Task SystemDiagNoReplayAsync()
 {
-    using var temp=new TempRoot();var state=temp.Dir("state");var system=Directory.CreateDirectory(Path.Combine(state,"system")).FullName;var marker=Path.Combine(temp.Path,"must-not-execute");await File.WriteAllTextAsync(Path.Combine(system,"agentops.db"),"preseeded queued run "+marker);var owner=LocalIdentity.Current().Sid;await using var broker=new AuthenticatedServiceBroker(state,owner,new RootCodeVerifier(Path.Combine(state,"root.verifier")));await Task.Delay(200);Check(!File.Exists(marker),"System replay state executed");Check(File.Exists(Path.Combine(system,"agentops.db")),"System state was opened or replaced");
+    using var temp=new TempRoot();var state=temp.Dir("state");var system=Directory.CreateDirectory(Path.Combine(state,"system")).FullName;var marker=Path.Combine(temp.Path,"must-not-execute");await File.WriteAllTextAsync(Path.Combine(system,"agentops.db"),"preseeded queued run "+marker);var owner=LocalIdentity.Current().Sid;await using var broker=new AuthenticatedServiceBroker(state,owner,null);await Task.Delay(200);Check(!File.Exists(marker),"System replay state executed");Check(File.Exists(Path.Combine(system,"agentops.db")),"System state was opened or replaced");
 }
 
 static async Task ReleaseIdentityOverridesAsync()
@@ -1281,7 +1314,13 @@ static async Task TrayCommitCrashAsync()
 
 static async Task SquattedSystemPipeAsync()
 {
-    await using var fake=new NamedPipeServerStream(NamedPipeDispatcher.SystemPipeName,PipeDirection.InOut,1,PipeTransmissionMode.Byte,PipeOptions.Asynchronous);var connected=fake.WaitForConnectionAsync();var resultTask=RunPaoWithoutConsoleOverrideAsync(["root=AB12","diag","rid=squatted-root"]);using var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(5));await connected.WaitAsync(timeout.Token);var buffer=new byte[1];var read=await fake.ReadAsync(buffer,timeout.Token);var result=await resultTask;Equal(0,read);Equal(4,result.ExitCode);Check(result.Stdout.Contains("err=auth",StringComparison.Ordinal),result.Stdout);
+    await using var fake=new NamedPipeServerStream(NamedPipeDispatcher.SystemPipeName,PipeDirection.InOut,1,PipeTransmissionMode.Byte,PipeOptions.Asynchronous);
+    var connected=fake.WaitForConnectionAsync();
+    await using var dispatcher=new NamedPipeDispatcher(NamedPipeDispatcher.SystemPipeName,expectedServer:new LocalPeer("S-1-5-18",0));
+    var resultTask=dispatcher.DispatchAsync(new("diag",new Dictionary<string,string>(),"squatted-system",System:true,ConnectionAuthority:ApprovedConnectionFixture.DefaultAuthority));
+    using var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(5));await connected.WaitAsync(timeout.Token);
+    var buffer=new byte[1];var read=await fake.ReadAsync(buffer,timeout.Token);var result=await resultTask;
+    Equal(0,read);Equal("auth",result.Err);Check(!result.Ok,"untrusted pipe server accepted System request");
 }
 
 static Task PipeAclAsync()
@@ -1291,17 +1330,78 @@ static Task PipeAclAsync()
 
 static async Task RootSystemDispatchAsync()
 {
-    using var temp=new TempRoot();var state=temp.Dir("state");new RootCodeVerifier(Path.Combine(state,"root.verifier")).Enroll("AB12");using var service=await StartServiceAsync(state,startTray:false);var invalid=await RunPaoAsync(["root=ZZ99","diag","rid=bad-root"]);Equal(4,invalid.ExitCode);Equal("auth",Field(invalid.Stdout,"err"));Equal(0L,SystemJobCount(state));var valid=await RunPaoAsync(["root=AB12","diag","rid=good-root"]);Check(valid.ExitCode==0,$"valid root diag exit={valid.ExitCode} out={valid.Stdout} err={valid.Stderr}");Equal(0L,SystemJobCount(state));var systemDirectory=Path.Combine(temp.Path,"system-created");var made=await RunPaoAsync(["root=AB12","mkdir",systemDirectory,"rid=system-mkdir"]);Check(made.ExitCode==0,$"valid root mkdir exit={made.ExitCode} out={made.Stdout} err={made.Stderr}");Check(Directory.Exists(systemDirectory),"authorized System mkdir did not execute");Equal(0L,EngineJobCount(Path.Combine(state,"system-direct")));
-    var retrySource=Path.Combine(temp.Path,"retry-source.txt");var retryDestination=Path.Combine(temp.Path,"retry-destination.txt");var failed=await RunPaoAsync(["root=AB12","cp",retrySource,retryDestination,"rid=system-failed-copy"]);Equal(3,failed.ExitCode);var failedJid=Field(failed.Stdout,"jid");var rootlessRetry=await RunPaoAsync(["job","retry",failedJid,"rid=system-retry-without-code"]);Equal(3,rootlessRetry.ExitCode);File.WriteAllText(retrySource,"retried");var retried=await RunPaoAsync(["root=AB12","job","retry",failedJid,"rid=system-retry"]);Equal(0,retried.ExitCode);var waited=await RunPaoAsync(["job","wait",Field(retried.Stdout,"jid")]);Equal(0,waited.ExitCode);Equal("retried",File.ReadAllText(retryDestination));
-    var mcpDirectory=Path.Combine(temp.Path,"mcp system 雪 &");var mcp="{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-11-25\",\"capabilities\":{},\"clientInfo\":{\"name\":\"root-test\",\"version\":\"1\"}}}\n{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}\n{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"pao\",\"arguments\":{\"op\":\"diag\",\"root\":\"AB12\",\"rid\":\"mcp-root\"}}}\n{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"pao\",\"arguments\":{\"op\":\"mkdir\",\"dst\":"+JsonSerializer.Serialize(mcpDirectory)+",\"root\":\"AB12\",\"rid\":\"mcp-system-mkdir\"}}}\n";var mcpResult=await RunPaoAsync(["mcp"],mcp);Equal(0,mcpResult.ExitCode);Check(mcpResult.Stdout.Contains("mcp-root",StringComparison.Ordinal),mcpResult.Stdout);Check(mcpResult.Stdout.Contains("mcp-system-mkdir",StringComparison.Ordinal),mcpResult.Stdout);Check(Directory.Exists(mcpDirectory),"MCP System mkdir did not execute");var marker=Path.Combine(temp.Path,"must-not-run");var denied=await RunPaoAsync(["root=AB12","run",marker,"rid=system-run"]);Equal(2,denied.ExitCode);Check(!File.Exists(marker),"arbitrary System action executed");Equal(0L,SystemJobCount(state));Check(!StateContainsAscii(state,"AB12"),"root code persisted");
+    using var temp=new TempRoot();var owner=LocalIdentity.Current();var approval=new ApprovedConnectionFixture(owner);var calls=0;
+    await using var broker=new AuthenticatedServiceBroker(temp.Dir("approval-router"),owner.Sid,approval.Authorize,false,null,
+        (request,_)=>{Interlocked.Increment(ref calls);if(request.Op=="mkdir")Directory.CreateDirectory(request.Arg["dst"]);return Task.FromResult(new OperationReceipt(true,"captured",request.Rid!,"done",request.Op));},ownerHostVerifier:approval.IsTrustedHost);
+    var original=approval.System(new("diag",new Dictionary<string,string>(),"approval-request"));
+    foreach(var invalid in new[]
+    {
+        original with{System=false},original with{ConnectionAuthority=null},
+        original with{ConnectionAuthority=approval.Current with{Authority=Guid.NewGuid().ToString("N")}},
+        original with{ConnectionAuthority=approval.Current with{ConnectionId=Guid.NewGuid().ToString("N")}},
+        original with{ConnectionAuthority=approval.Current with{CredentialGeneration=Guid.NewGuid().ToString("N")}},
+        original with{ConnectionAuthority=approval.Current with{GrantRevision=approval.Current.GrantRevision+1}}
+    }) {Equal("full_control_required",(await broker.HandleSystemAsync(invalid,owner,default)).Err);Equal(0,calls);}
+    var legacy=await broker.HandleSystemAsync(original with{Root="AB12"},owner,default);
+    Equal("root_codes_removed",legacy.Err);Equal(0,calls);
+    Equal("full_control_required",(await broker.HandleSystemAsync(original,owner with{Sid="foreign-owner"},default)).Err);Equal(0,calls);
+    approval.Enabled=false;Equal("full_control_required",(await broker.HandleSystemAsync(original,owner,default)).Err);Equal(0,calls);
+    approval.Enabled=true;approval.FullControl=false;Equal("full_control_required",(await broker.HandleSystemAsync(original,owner,default)).Err);Equal(0,calls);
+    approval.FullControl=true;
+    var target=Path.Combine(temp.Path,"retired-mutation-target");
+    var legacyMutation=approval.System(new("mkdir",new Dictionary<string,string>{{"dst",target}},"same-rid-after-legacy")) with{Root="AB12"};
+    Equal("root_codes_removed",(await broker.HandleSystemAsync(legacyMutation,owner,default)).Err);
+    Equal(0,calls);Check(!Directory.Exists(target),"retired input executed a mutation");
+    var currentMutation=await broker.HandleSystemAsync(legacyMutation with{Root=null},owner,default);
+    Check(currentMutation.Ok && Directory.Exists(target),"retired input claimed the RID or blocked a later approved request");Equal(1,calls);
+    Check((await broker.HandleSystemAsync(original,owner,default)).Ok,"current approval rejected");Equal(2,calls);
+    approval.Current=approval.Current with{CredentialGeneration=Guid.NewGuid().ToString("N"),GrantRevision=2};
+    Equal("full_control_required",(await broker.HandleSystemAsync(original,owner,default)).Err);Equal(2,calls);
+    Check((await broker.HandleSystemAsync(approval.System(original),owner,default)).Ok,"current rotated approval rejected");Equal(3,calls);
+    Check(!File.Exists(Path.Combine(temp.Path,"root.verifier")),"retired credential store was created");
 }
 
 static async Task UserSystemFifoAsync()
 {
-    using var temp=new TempRoot();var state=temp.Dir("mixed-fifo");var owner=LocalIdentity.Current().Sid;var peer=new LocalPeer(owner,3);var root=new RootCodeVerifier(Path.Combine(state,"root.verifier"));root.Enroll("mixed","A1B2");var entered=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);var release=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);var order=new List<string>();var active=0;var maximum=0;
+    using var temp=new TempRoot();var state=temp.Dir("mixed-fifo");var peer=new LocalPeer(LocalIdentity.Current().Sid,3);var approval=new ApprovedConnectionFixture(peer);
+    var entered=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);var release=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);var order=new List<string>();var active=0;var maximum=0;
     async Task<OperationReceipt> Execute(string context,OperationRequest request){var now=Interlocked.Increment(ref active);maximum=Math.Max(maximum,now);lock(order)order.Add(context+":"+request.Rid);if(request.Rid=="user-first"){entered.TrySetResult();await release.Task;}await Task.Delay(25);Interlocked.Decrement(ref active);return new(true,"inner",request.Rid!,"done",request.Op);}
-    await using var broker=new AuthenticatedServiceBroker(state,owner,root,false,(_,_,request,_)=>Execute("user",request),(request,_)=>Execute("system",request));Check((await broker.RegisterTrayAsync(new TrayRegistration(owner,3,"mixed-tray"),peer)).Ok,"mixed tray rejected");
-    var first=broker.HandleUserAsync(new OperationRequest("mkdir",new Dictionary<string,string>{{"dst",Path.Combine(temp.Path,"first")}},"user-first"),peer,CancellationToken.None);await entered.Task;var middle=broker.HandleSystemAsync(new OperationRequest("mkdir",new Dictionary<string,string>{{"dst",Path.Combine(temp.Path,"system")}},"system-middle",Root:"A1B2"),peer,CancellationToken.None);var last=broker.HandleUserAsync(new OperationRequest("mkdir",new Dictionary<string,string>{{"dst",Path.Combine(temp.Path,"last")}},"user-last"),peer,CancellationToken.None);release.TrySetResult();await Task.WhenAll(first,middle,last);Equal(1,maximum);Equal(new[]{"user:user-first","system:system-middle","user:user-last"},order.ToArray());Check(!StateContainsAscii(state,"A1B2"),"mixed FIFO persisted root code");
+    await using var broker=new AuthenticatedServiceBroker(state,peer.Sid,approval.Authorize,false,(_,_,request,_)=>Execute("user",request),(request,_)=>Execute("system",request),ownerHostVerifier:approval.IsTrustedHost);
+    Check((await broker.RegisterTrayAsync(new TrayRegistration(peer.Sid,3,"mixed-tray"),peer)).Ok,"mixed Host rejected");
+    var first=broker.HandleUserAsync(new("mkdir",new Dictionary<string,string>{{"dst",Path.Combine(temp.Path,"first")}},"user-first"),peer,default);await entered.Task;
+    var middle=broker.HandleSystemAsync(approval.System(new("mkdir",new Dictionary<string,string>{{"dst",Path.Combine(temp.Path,"system")}},"system-middle")),peer,default);
+    var last=broker.HandleUserAsync(new("mkdir",new Dictionary<string,string>{{"dst",Path.Combine(temp.Path,"last")}},"user-last"),peer,default);
+    release.TrySetResult();await Task.WhenAll(first,middle,last);Equal(1,maximum);Equal(new[]{"user:user-first","system:system-middle","user:user-last"},order.ToArray());
+
+    // Recheck approval after queue admission. The ordinary blocker is already
+    // admitted; revocation denies only the new protected callback behind it.
+    var blocked=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var unblock=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);var protectedCalls=0;
+    await using var revokedBroker=new AuthenticatedServiceBroker(temp.Dir("revoked-fifo"),peer.Sid,approval.Authorize,false,
+        async(_,_,request,_)=>{blocked.TrySetResult();await unblock.Task;return new(true,"ordinary",request.Rid!,"done",request.Op);},
+        (request,_)=>{Interlocked.Increment(ref protectedCalls);return Task.FromResult(new OperationReceipt(true,"protected",request.Rid!,"done",request.Op));},
+        ownerHostVerifier:approval.IsTrustedHost);
+    Check((await revokedBroker.RegisterTrayAsync(new TrayRegistration(peer.Sid,3,"revoked-Host"),peer)).Ok,"revoked fixture Host rejected");
+    using var deadline=new CancellationTokenSource(TimeSpan.FromSeconds(5));
+    var blocker=revokedBroker.HandleUserAsync(new("mkdir",new Dictionary<string,string>{{"dst",Path.Combine(temp.Path,"ordinary-blocker")}},"ordinary-blocker"),peer,deadline.Token);
+    Task<OperationReceipt>? queued=null;
+    try
+    {
+        await blocked.Task.WaitAsync(deadline.Token);
+        var target=Path.Combine(temp.Path,"must-not-execute-revoked");
+        queued=revokedBroker.HandleSystemAsync(approval.System(new("mkdir",new Dictionary<string,string>{{"dst",target}},"queued-before-revoke")),peer,deadline.Token);
+        Check(!queued.IsCompleted,"protected request bypassed ordinary FIFO owner");
+        approval.Enabled=false;unblock.TrySetResult();
+        var result=await queued.WaitAsync(deadline.Token);await blocker.WaitAsync(deadline.Token);
+        Equal("connection_revoked",result.Err);Equal(0,protectedCalls);Check(!Directory.Exists(target),"revoked queued effect executed");
+    }
+    finally
+    {
+        unblock.TrySetResult();
+        await blocker.WaitAsync(TimeSpan.FromSeconds(5));
+        if(queued is not null)await queued.WaitAsync(TimeSpan.FromSeconds(5));
+    }
+
 }
 
 static async Task TwoClientFifoAsync()
@@ -1387,7 +1487,7 @@ static async Task McpGitCwdDetailAsync()
     var missingState=temp.Dir("missing-state");await using(var missingEngine=new AgentOpsEngine(missingState)){var missing=await CallAsync(new EngineDispatcher(missingEngine),new{op="git_status",cwd=requestedCwd,detail=false,rid="missing-git"});AssertReceipt(missing,"missing-git","git_unconfigured");var receipt=missing.GetProperty("result").GetProperty("structuredContent");Equal(3,receipt.GetProperty("exitCode").GetInt32());Check(receipt.GetProperty("remedy").GetString()!.Contains("canonical Git executable",StringComparison.Ordinal),receipt.ToString());}
 
     var brokerState=temp.Dir("broker-state");var brokerWorkspace=temp.Dir("broker workspace");new WorkspaceRegistry(new AgentOpsPaths(brokerState)).Register("exchange-source",brokerWorkspace);OperationRequest? routed=null;var owner=LocalIdentity.Current().Sid;var peer=new LocalPeer(owner,3);
-    await using(var broker=new AuthenticatedServiceBroker(brokerState,owner,new RootCodeVerifier(Path.Combine(brokerState,"root.verifier")),false,(_,_,request,_)=>{routed=request;return Task.FromResult(new OperationReceipt(true,"inner",request.Rid!,"done",request.Op));}))
+    await using(var broker=new AuthenticatedServiceBroker(brokerState,owner,null,false,(_,_,request,_)=>{routed=request;return Task.FromResult(new OperationReceipt(true,"inner",request.Rid!,"done",request.Op));}))
     {
         Check((await broker.RegisterTrayAsync(new TrayRegistration(owner,3,"git-contract-tray"),peer)).Ok,"fixture tray rejected");var routedReceipt=await broker.HandleUserAsync(new OperationRequest("git",new Dictionary<string,string>{{"op","status"}},"broker-workspace",Ws:"exchange-source",Cwd:null),peer,CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5));Check(routedReceipt.Ok,routedReceipt.ToString());
     }
@@ -1539,7 +1639,7 @@ static async Task UiServiceBoundaryAsync()
 {
     using var temp=new TempRoot();var serviceState=temp.Dir("ui-service-state");var trayState=temp.Dir("ui-tray-state");var owner="S-1-5-21-4242";var peer=new LocalPeer(owner,7);var secretTitle="UI selector secret Ω & "+Guid.NewGuid().ToString("N");OperationRequest? routed=null;
     await using(var engine=new AgentOpsEngine(trayState,directOnly:true))
-    await using(var broker=new AuthenticatedServiceBroker(serviceState,owner,new RootCodeVerifier(Path.Combine(serviceState,"root.verifier")),false,async(_,_,request,ct)=>{routed=request;if(request.Arg.GetValueOrDefault("op")=="status")return await engine.ExecuteAuthenticatedFrozenDirectAsync(request,ct);return new OperationReceipt(true,"inner",request.Rid!,"done",OperationNames.Public(request),Data:new Dictionary<string,object?>{{"title",secretTitle},{"text",secretTitle},{"hwnd","0x1"}});} ))
+    await using(var broker=new AuthenticatedServiceBroker(serviceState,owner,null,false,async(_,_,request,ct)=>{routed=request;if(request.Arg.GetValueOrDefault("op")=="status")return await engine.ExecuteAuthenticatedFrozenDirectAsync(request,ct);return new OperationReceipt(true,"inner",request.Rid!,"done",OperationNames.Public(request),Data:new Dictionary<string,object?>{{"title",secretTitle},{"text",secretTitle},{"hwnd","0x1"}});} ))
     {
         var directStatus=await engine.ExecuteAuthenticatedFrozenDirectAsync(new OperationRequest("ui",new Dictionary<string,string>{{"op","status"}},"ui-direct-status"));Check(directStatus.Ok,$"direct UI status {directStatus.State}/{directStatus.Err}");
         var waiting=await broker.HandleUserAsync(new OperationRequest("ui",new Dictionary<string,string>{{"op","find"},{"title",secretTitle},{"match","exact"},{"tmo","5"}},"ui-secret"),peer,CancellationToken.None);Equal("waiting_user",waiting.State);Check(!StateContainsAscii(serviceState,secretTitle),"UI selector persisted before tray registration");
@@ -1548,13 +1648,13 @@ static async Task UiServiceBoundaryAsync()
         var directStatusAgain=await engine.ExecuteAuthenticatedFrozenDirectAsync(new OperationRequest("ui",new Dictionary<string,string>{{"op","status"}},"ui-direct-status-2"));Check(directStatusAgain.Ok,$"second direct UI status {directStatusAgain.State}/{directStatusAgain.Err}");
         var capturePath=Path.Combine(temp.Path,"capture.png");var capture=await broker.HandleUserAsync(new OperationRequest("ui",new Dictionary<string,string>{{"op","capture"},{"hwnd","0x1"},{"pid","42"},{"start","2026-08-27T20:15:30.1234567Z"},{"dst",capturePath},{"fmt","png"},{"tmo","5"}},"ui-capture-freeze"),peer,CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(10));Check(capture.Ok,capture.Err??capture.State);Equal(Path.GetFullPath(capturePath),routed!.Arg["dst"]);Check(routed.PathRoots is not null,"capture path admission metadata was lost");
         var status=await broker.HandleUserAsync(new OperationRequest("ui",new Dictionary<string,string>{{"op","status"}},"ui-status"),peer,CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(10));Check(status.Ok,$"{status.Err} {JsonSerializer.Serialize(status.Data)}");Equal(true,Convert.ToBoolean(status.Data!["available"]));
-        var denied=await broker.HandleSystemAsync(new OperationRequest("ui",new Dictionary<string,string>{{"op","status"}},"ui-system",Root:"AB12"),peer,CancellationToken.None);Equal("auth",denied.Err);
+        var denied=await broker.HandleSystemAsync(new OperationRequest("ui",new Dictionary<string,string>{{"op","status"}},"ui-system",System:true,ConnectionAuthority:ApprovedConnectionFixture.DefaultAuthority),peer,CancellationToken.None);Equal("full_control_required",denied.Err);
     }
 }
 
 static async Task UiBrokerEquivalenceAsync()
 {
-    using var temp=new TempRoot();var owner=LocalIdentity.Current().Sid;var peer=new LocalPeer(owner,Math.Max(1,LocalIdentity.Current().Session));await using var engine=new AgentOpsEngine(temp.Dir("ui-broker-tray"),directOnly:true);await using var broker=new AuthenticatedServiceBroker(temp.Dir("ui-broker-service"),owner,new RootCodeVerifier(Path.Combine(temp.Path,"root.verifier")),false,(_,_,request,ct)=>engine.ExecuteAuthenticatedFrozenDirectAsync(request,ct));Check((await broker.RegisterTrayAsync(new TrayRegistration(owner,peer.Session,"ui-equivalence"),peer)).Ok,"fixture tray rejected");var dispatcher=new BrokerDispatcher(broker,peer);
+    using var temp=new TempRoot();var owner=LocalIdentity.Current().Sid;var peer=new LocalPeer(owner,Math.Max(1,LocalIdentity.Current().Session));await using var engine=new AgentOpsEngine(temp.Dir("ui-broker-tray"),directOnly:true);await using var broker=new AuthenticatedServiceBroker(temp.Dir("ui-broker-service"),owner,null,false,(_,_,request,ct)=>engine.ExecuteAuthenticatedFrozenDirectAsync(request,ct));Check((await broker.RegisterTrayAsync(new TrayRegistration(owner,peer.Session,"ui-equivalence"),peer)).Ok,"fixture tray rejected");var dispatcher=new BrokerDispatcher(broker,peer);
     using var cliOut=new StringWriter();using var cliErr=new StringWriter();Equal(0,await PaoProgram.RunCliAsync(["ui","status","rid=ui-cli-broker"],dispatcher,cliOut,cliErr,CancellationToken.None));Equal(string.Empty,cliErr.ToString().Trim());Equal("1",Field(cliOut.ToString(),"ok"));Equal("true",Field(cliOut.ToString(),"available"));
     using var reader=new McpLineReader();using var writer=new McpCaptureWriter();using var stderr=new StringWriter();var run=PaoProgram.RunMcpAsync(dispatcher,reader,writer,stderr,CancellationToken.None,defaultCwd:Environment.CurrentDirectory);reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=1,method="initialize",@params=new{protocolVersion="2026-07-28",capabilities=new{},clientInfo=new{name="ui-broker",version="1"}}}));reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",method="notifications/initialized",@params=new{}}));reader.Send(JsonSerializer.Serialize(new{jsonrpc="2.0",id=2,method="tools/call",@params=new{name="pao",arguments=new{op="ui_status",rid="ui-mcp-broker"}}}));var line=await writer.Response.WaitAsync(TimeSpan.FromSeconds(10));reader.Complete();Equal(0,await run);Equal(string.Empty,stderr.ToString().Trim());using var response=JsonDocument.Parse(line);var receipt=response.RootElement.GetProperty("result").GetProperty("structuredContent");Check(receipt.GetProperty("ok").GetBoolean(),receipt.ToString());Equal("ui_status",receipt.GetProperty("op").GetString());var data=receipt.GetProperty("data");Equal(true,data.GetProperty("available").GetBoolean());Equal(Uri.UnescapeDataString(Field(cliOut.ToString(),"provider")),data.GetProperty("provider").GetString());Equal(Uri.UnescapeDataString(Field(cliOut.ToString(),"architecture")),data.GetProperty("architecture").GetString());
 }
@@ -1563,7 +1663,7 @@ static async Task FeedbackInboxAsync()
 {
     using var temp=new TempRoot();var serviceState=temp.Dir("feedback-service");var trayState=temp.Dir("feedback-tray");var owner=LocalIdentity.Current().Sid;var peer=new LocalPeer(owner,3);string fid;
     await using(var engine=new AgentOpsEngine(trayState,directOnly:true))
-    await using(var broker=new AuthenticatedServiceBroker(serviceState,owner,new RootCodeVerifier(Path.Combine(serviceState,"root.verifier")),false,(_,_,request,ct)=>engine.ExecuteAuthenticatedFrozenDirectAsync(request,ct)))
+    await using(var broker=new AuthenticatedServiceBroker(serviceState,owner,null,false,(_,_,request,ct)=>engine.ExecuteAuthenticatedFrozenDirectAsync(request,ct)))
     {
         Check((await broker.RegisterTrayAsync(new TrayRegistration(owner,3,"feedback-tray"),peer)).Ok,"feedback tray rejected");
         var dispatcher=new BrokerDispatcher(broker,peer);var submitted=await CallAsync(dispatcher,new{op="feedback_submit",kind="improvement",area="mcp.schema",summary="Return a field-specific remedy Ω & brackets [x]",notes="Observed with a conventional request; no secrets.",rid="feedback-submit"});
@@ -1721,11 +1821,6 @@ static async Task<(int ExitCode,string Stdout,string Stderr)> RunPaoFromAsync(st
 {
     var start=new ProcessStartInfo(Dotnet()){UseShellExecute=false,RedirectStandardOutput=true,RedirectStandardError=true,CreateNoWindow=true,WorkingDirectory=cwd};start.ArgumentList.Add(PaoDll());foreach(var arg in args)start.ArgumentList.Add(arg);using var process=Process.Start(start)!;var stdout=process.StandardOutput.ReadToEndAsync();var stderr=process.StandardError.ReadToEndAsync();using var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(15));await process.WaitForExitAsync(timeout.Token);return(process.ExitCode,await stdout,await stderr);
 }
-static async Task<(int ExitCode,string Stdout,string Stderr)> RunPaoWithoutConsoleOverrideAsync(IEnumerable<string> args)
-{
-    var start=new ProcessStartInfo(Dotnet()){UseShellExecute=false,RedirectStandardOutput=true,RedirectStandardError=true,CreateNoWindow=true};start.ArgumentList.Add(PaoDll());foreach(var arg in args)start.ArgumentList.Add(arg);start.Environment.Remove("PAO_TEST_SERVICE_SID");start.Environment.Remove("PAO_TEST_SERVICE_SESSION");using var process=Process.Start(start)!;var stdout=process.StandardOutput.ReadToEndAsync();var stderr=process.StandardError.ReadToEndAsync();using var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(10));await process.WaitForExitAsync(timeout.Token);return(process.ExitCode,await stdout,await stderr);
-}
-
 static async Task<ServiceLease> StartServiceAsync(string state,string? dotnetTool=null,string? fakeArgsPath=null,bool startTray=true,bool crashAfterTray=false)
 {
     var start = new ProcessStartInfo(Dotnet()) { UseShellExecute=false, RedirectStandardOutput=true, RedirectStandardError=true, CreateNoWindow=true };
@@ -1765,10 +1860,6 @@ static (string Sid,int Session,string State) ReadRouterIdentity(string state,str
 }
 static string RouterJid(string state,string rid){using var connection=new SqliteConnection(new SqliteConnectionStringBuilder{DataSource=Path.Combine(state,"agentops-router.db"),Mode=SqliteOpenMode.ReadOnly,Pooling=false}.ToString());connection.Open();using var command=connection.CreateCommand();command.CommandText="SELECT jid FROM routed_jobs WHERE rid=$rid";command.Parameters.AddWithValue("$rid",rid);return command.ExecuteScalar()?.ToString()??throw new Exception("router jid missing");}
 static OperationRequest ReadRouterRequest(string state,string rid){using var connection=new SqliteConnection(new SqliteConnectionStringBuilder{DataSource=Path.Combine(state,"agentops-router.db"),Mode=SqliteOpenMode.ReadOnly,Pooling=false}.ToString());connection.Open();using var command=connection.CreateCommand();command.CommandText="SELECT request FROM routed_jobs WHERE rid=$rid";command.Parameters.AddWithValue("$rid",rid);return JsonSerializer.Deserialize<OperationRequest>(command.ExecuteScalar()?.ToString()??throw new Exception("router request missing"),new JsonSerializerOptions(JsonSerializerDefaults.Web))!;}
-static long SystemJobCount(string state)
-{
-    return EngineJobCount(Path.Combine(state,"system"));
-}
 static long EngineJobCount(string state){var db=Path.Combine(state,"agentops.db");if(!File.Exists(db))return 0;using var connection=new SqliteConnection(new SqliteConnectionStringBuilder{DataSource=db,Mode=SqliteOpenMode.ReadOnly,Pooling=false}.ToString());connection.Open();using var command=connection.CreateCommand();command.CommandText="SELECT COUNT(*) FROM jobs";return Convert.ToInt64(command.ExecuteScalar());}
 static bool StateContainsAscii(string state,string value)
 {
@@ -1895,4 +1986,19 @@ sealed class McpCaptureWriter : StringWriter
     private readonly TaskCompletionSource<string> _response=new(TaskCreationOptions.RunContinuationsAsynchronously);
     public Task<string> Response=>_response.Task;
     public override Task WriteLineAsync(string? value){if(value?.Contains("\"id\":2",StringComparison.Ordinal)==true)_response.TrySetResult(value);return base.WriteLineAsync(value);}
+}
+
+// Public immutable coordinates only. This fixture models a current protected
+// registry and a separately authenticated ordinary Host; it is not credentials.
+internal sealed class ApprovedConnectionFixture(LocalPeer owner)
+{
+    internal static Pegasus.Cortex.Product.CortexMcpConnectionAuthority DefaultAuthority { get; }=new(
+        "11111111111111111111111111111111","22222222222222222222222222222222","33333333333333333333333333333333",1);
+    internal Pegasus.Cortex.Product.CortexMcpConnectionAuthority Current { get; set; }=DefaultAuthority;
+    internal bool Enabled { get; set; }=true;
+    internal bool FullControl { get; set; }=true;
+    internal bool Authorize(Pegasus.Cortex.Product.CortexMcpConnectionAuthority authority,bool fullControl)=>
+        Enabled&&authority==Current&&(!fullControl||FullControl);
+    internal bool IsTrustedHost(LocalPeer peer)=>peer==owner;
+    internal OperationRequest System(OperationRequest request)=>request with{Root=null,System=true,ConnectionAuthority=Current};
 }

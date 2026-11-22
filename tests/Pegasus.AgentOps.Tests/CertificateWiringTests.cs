@@ -221,7 +221,7 @@ internal static class CertificateWiringTests
         var dispatches = 0;
         var state = fixture.Directory("broker");
         await using var broker = new AuthenticatedServiceBroker(state, OwnerSid,
-            new RootCodeVerifier(Path.Combine(state, "unused.verifier")), false,
+            null, false,
             (_, _, _, _) => { dispatches++; throw new InvalidOperationException("certificate broker delegated to user"); },
             (_, _) => { dispatches++; throw new InvalidOperationException("certificate broker delegated to system"); }, maintenanceMode: fixture.Mode);
         var user = await broker.HandleUserAsync(inspect, fixture.Peer, CancellationToken.None);

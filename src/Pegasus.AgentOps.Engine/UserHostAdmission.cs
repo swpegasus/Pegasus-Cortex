@@ -100,7 +100,9 @@ internal static class UserHostStartup
         using var initialization = admission.TryEnter() ?? throw new AgentOpsException("host_stopping");
         CortexUserStateDirectories.EnsureExecution(layout);
         var engine = new AgentOpsEngine(layout.UserExecutionDirectory, null, false, null, true, null,
-            maintenanceMode: maintenance, userHostAdmission: admission);
+            maintenanceMode: maintenance, userHostAdmission: admission,
+            connectionAuthorization:(authority,full)=>Pegasus.Cortex.Product.CortexMcpConnections.Find(
+                Pegasus.Cortex.Product.CortexMcpConnections.ReadForInstallRoot(layout.InstallRoot),authority,full) is not null);
         try
         {
             if (OperatingSystem.IsWindows())

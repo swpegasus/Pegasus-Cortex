@@ -171,6 +171,9 @@ internal static class CortexCodexMcpRegistration
     private static void ValidateRouteField(string name, string value, bool shared)
     {
         if (name == "enabled") { if (value is not ("true" or "false")) throw InvalidConfig(); return; }
+        // Preserve the user's explicit public-ID credential helper across upgrades.
+        // Setup never invokes it or reads client credential material.
+        if (shared && name == "http_headers_helper") { _ = StringValue(value); return; }
         if (name is "startup_timeout_sec" or "tool_timeout_sec" or "required" or "enabled_tools" or "disabled_tools" or "default_tools_approval_mode") return;
         if (shared && name == "url" || !shared && name is ("command" or "args")) return;
         throw InvalidConfig();

@@ -45,7 +45,7 @@ internal static class WindowsTaskWiringTests
             Check(exit == 0 && capture.Calls == before + 1 && capture.Last!.Op == "windows_task" &&
                 capture.Last.Arg["op"] == action && capture.Last.Ws is null && capture.Last.Cwd is null,
                 "CLI selected wrong action/context");
-            foreach (var forbidden in new[] { "server", "principal", "env", "cwd", "ws", "__execution_context_system" })
+            foreach (var forbidden in new[] { "server", "principal", "env", "cwd", "ws", "root", "connectionAuthority", "__execution_context_system" })
             {
                 var bad = example.DeepClone().AsObject(); bad[forbidden] = "forbidden";
                 using var input = JsonDocument.Parse(bad.ToJsonString()); before = capture.Calls;
@@ -54,17 +54,17 @@ internal static class WindowsTaskWiringTests
             }
             if (action is "prepare" or "create" or "update")
             {
-                var bad = example.DeepClone().AsObject(); bad["root"] = "AB12";
+                var bad = example.DeepClone().AsObject(); bad["system"] = true;
                 using var input = JsonDocument.Parse(bad.ToJsonString()); before = capture.Calls;
                 await PaoProgram.CallUnifiedMcpToolAsync(input.RootElement, capture, default);
                 Check(capture.Calls == before, "task authoring admitted System selector");
             }
             else
             {
-                var root = example.DeepClone().AsObject(); root["root"] = "AB12";
+                var root = example.DeepClone().AsObject(); root["system"] = true;
                 using var input = JsonDocument.Parse(root.ToJsonString()); before = capture.Calls;
                 await PaoProgram.CallUnifiedMcpToolAsync(input.RootElement, capture, default);
-                Check(capture.Calls == before + 1 && capture.Last!.Root == "AB12" && capture.Last.Cwd is null,
+                Check(capture.Calls == before + 1 && capture.Last!.System && capture.Last.Root is null && capture.Last.ConnectionAuthority is null && capture.Last.Cwd is null,
                     "explicit existing-task System route missing");
             }
             if (WindowsTaskOperationContract.IsReadOnly(action))
@@ -145,18 +145,21 @@ internal static class WindowsTaskWiringTests
     {
         using var root = new OwnedRoot();
         var state = System.IO.Path.Combine(root.Path, "system");
-        await using var engine = Engine(state, null, direct: true);
         var owner = LocalIdentity.Current();
+        var approval = new ApprovedConnectionFixture(owner);
+        await using var engine = Engine(state, null, direct: true, authorization:approval.Authorize);
         var fixture = WindowsTaskTests.CreateEngineFixture(owner.Sid, () => new("S-1-5-18", 0, Elevated: true), WindowsTaskAuthority.System);
         engine.BindWindowsTasks(fixture.Operations);
-        var verifier = new RootCodeVerifier(System.IO.Path.Combine(root.Path, "root.verifier"));
-        var image = owner.ApplicationPath ?? throw new Exception("fixture_image_unavailable");
-        verifier.Enroll(new RootCodeDefinition("task-control", "AB12", new RootAccessPolicy("allow", [image]), RootAccessPolicy.Off));
         await using var broker = new AuthenticatedServiceBroker(System.IO.Path.Combine(root.Path, "router"), owner.Sid,
-            verifier, false, null, (request, token) => engine.ExecuteAuthenticatedFrozenDirectAsync(request, token));
-        var request = Request("enable", "system-original") with { Root = "AB12" };
-        Check(!(await broker.HandleSystemAsync(request with { Root = "ZZ99" }, owner, default)).Ok && fixture.NativeCalls == 0,
-            "invalid Root reached task provider");
+            approval.Authorize, false, null, (request, token) => engine.ExecuteAuthenticatedFrozenDirectAsync(request, token),
+            ownerHostVerifier: approval.IsTrustedHost);
+        var request = approval.System(Request("enable", "system-original"));
+        foreach (var denied in new[]
+        {
+            request with { Root = "AB12" }, request with { System = false }, request with { ConnectionAuthority = null },
+            request with { ConnectionAuthority = approval.Current with { GrantRevision = 2 } }
+        }) Check(!(await broker.HandleSystemAsync(denied, owner, default)).Ok && fixture.NativeCalls == 0,
+            "retired or absent/stale approval reached task provider");
         foreach (var invalid in new[]
         {
             request with { PathRoots = new Dictionary<string, string> { ["src"] = root.Path } },
@@ -175,7 +178,7 @@ internal static class WindowsTaskWiringTests
         {
             await fixture.Entered.WaitAsync(deadline.Token);
             var original = Stored(state, request.Rid!).Receipt;
-            var query = new OperationRequest("job", new Dictionary<string, string> { ["op"] = "stat", ["jid"] = original.Jid }, "observer", Root: "AB12");
+            var query = new OperationRequest("job", new Dictionary<string, string> { ["op"] = "stat", ["jid"] = original.Jid }, "observer", System: true, ConnectionAuthority: approval.Current);
             var observed = await broker.HandleSystemAsync(query, owner, deadline.Token);
             Check(observed.Ok && Record(observed).Jid == original.Jid && Record(observed).State == "running" &&
                 Rows(state) == 1 && Rows(System.IO.Path.Combine(root.Path, "router"), "agentops-router.db", "routed_jobs") == 0,
@@ -216,8 +219,10 @@ internal static class WindowsTaskWiringTests
             "lost task-body replay created another job or native action");
     }
 
-    private static AgentOpsEngine Engine(string path, UserHostAdmission? admission, bool direct = false) =>
-        new(path, null, direct, null, false, null, maintenanceMode: new OpenMode(), userHostAdmission: admission);
+    private static AgentOpsEngine Engine(string path, UserHostAdmission? admission, bool direct = false,
+        Func<Pegasus.Cortex.Product.CortexMcpConnectionAuthority,bool,bool>? authorization = null) =>
+        new(path, null, direct, null, false, null, maintenanceMode: new OpenMode(), userHostAdmission: admission,
+            connectionAuthorization:authorization);
     private static OperationRequest Request(string action, string? rid = null)
     {
         var body = new JsonObject { ["version"] = 1 };

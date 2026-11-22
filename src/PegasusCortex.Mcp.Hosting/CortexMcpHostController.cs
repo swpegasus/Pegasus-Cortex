@@ -60,12 +60,13 @@ public sealed class CortexMcpHostController:IAsyncDisposable
             unavailable.SetState(CortexMcpHostStatus.Unavailable,"settings_unavailable:"+error.GetType().Name);
             return unavailable;
         }
-        return await StartAsync(settings,currentOwner,admittedDispatcherFactory,stopToken,certificateResolver).ConfigureAwait(false);
+        return await StartAsync(settings,currentOwner,admittedDispatcherFactory,stopToken,certificateResolver,
+            new CortexMcpRequestAuthenticator(installRoot)).ConfigureAwait(false);
     }
 
     public static async Task<CortexMcpHostController> StartAsync(CortexMcpSettings settings,CortexMcpOwner currentOwner,
         Func<CancellationToken,Task<IMcpDispatcher>> admittedDispatcherFactory,CancellationToken stopToken,
-        ICortexMcpCertificateResolver? certificateResolver=null)
+        ICortexMcpCertificateResolver? certificateResolver=null,IMcpRequestAuthenticator? authenticator=null)
     {
         RequireOwner(currentOwner);
         ArgumentNullException.ThrowIfNull(admittedDispatcherFactory);
@@ -78,6 +79,7 @@ public sealed class CortexMcpHostController:IAsyncDisposable
         { controller.SetState(CortexMcpHostStatus.ConfiguredForOtherOwner);return controller; }
         try
         {
+            if(authenticator is null)throw new CortexMcpHostingException("connection_authenticator_required");
             controller.certificates=(certificateResolver??new CortexMcpCertificateResolver()).Resolve(settings,currentOwner);
             RequireResolvedCertificatePins(settings,currentOwner,controller.certificates);
             stopToken.ThrowIfCancellationRequested();
@@ -89,7 +91,8 @@ public sealed class CortexMcpHostController:IAsyncDisposable
             {
                 BindAddress=IPAddress.Parse(settings.BindAddress),Port=settings.Port,
                 AllowedPeerCidrs=settings.AllowedPeerCidrs.ToArray(),ServerName=settings.ServerName,
-                ServerCertificate=controller.certificates.Server,QualificationAuthority=controller.certificates.Authority
+                ServerCertificate=controller.certificates.Server,QualificationAuthority=controller.certificates.Authority,
+                Authenticator=authenticator
             },new Dictionary<string,IMcpDispatcher>(StringComparer.Ordinal) { [ProductKey]=controller.dispatcher },stopToken).ConfigureAwait(false);
             controller.SetState(CortexMcpHostStatus.Ready,effectiveOwner:currentOwner,
                 endpoint:new Uri(controller.listener.Address,EndpointPath),qualification:controller.listener.LastTlsQualification);
@@ -214,7 +217,7 @@ public sealed class CortexMcpHostController:IAsyncDisposable
     private static bool IsOperationalFailure(Exception error)=>error is not OutOfMemoryException and not StackOverflowException;
 
     /// <summary>Tracks initialize AND dispatch, including callbacks that ignore cancellation.</summary>
-    internal sealed class CallbackDispatcher:IMcpDispatcher
+    internal sealed class CallbackDispatcher:IMcpDispatcher,IMcpSessionLifecycle
     {
         private readonly IMcpDispatcher inner;
         private readonly object gate=new();
@@ -234,6 +237,20 @@ public sealed class CortexMcpHostController:IAsyncDisposable
             InvokeAsync(token=>inner.InitializeAsync(token),cancellationToken);
         public Task<JsonObject> DispatchAsync(McpRequestContext context,JsonObject request,CancellationToken cancellationToken)=>
             InvokeAsync(token=>inner.DispatchAsync(context,request,token),cancellationToken);
+
+        public async ValueTask SessionOpenedAsync(McpSessionContext context,CancellationToken cancellationToken)
+        {
+            if(inner is not IMcpSessionLifecycle lifecycle)return;
+            await InvokeAsync(async token=>
+            {
+                await lifecycle.SessionOpenedAsync(context,token).ConfigureAwait(false);
+                return new JsonObject();
+            },cancellationToken).ConfigureAwait(false);
+        }
+        // Listener disposal awaits this cleanup before releasing the borrowed dispatcher.
+        // Cleanup remains legal after BeginClose and has no cancellation token.
+        public ValueTask SessionClosedAsync(McpSessionContext context,McpSessionCloseReason reason)=>
+            inner is IMcpSessionLifecycle lifecycle?lifecycle.SessionClosedAsync(context,reason):ValueTask.CompletedTask;
 
         private async Task<JsonObject> InvokeAsync(Func<CancellationToken,Task<JsonObject>> callback,CancellationToken cancellationToken)
         {

@@ -104,7 +104,7 @@ internal sealed class SettingsWindow : Form
                 "Tools & recipes" => CreateTabs(("Operation browser", () => new CortexOperationBrowserPage()),
                     ("Recipes", () => new RecipeRegistryPage()), ("Tools", () => new ToolRegistryPage())),
                 "Connections & access" => CreateTabs(("Applications", () => new ApplicationAccessPage()),
-                    ("Administrator codes & scopes", () => new RootCodeRegistryPage()),
+                    ("Connections & Full control", () => new CortexMcpConnectionsPage()),
                     ("Certificate passwords", () => new CortexCertificatePasswordsPage(_beginCertificatePasswordOperation)),
                     ("SMB passwords", () => new CortexCertificatePasswordsPage(_beginCertificatePasswordOperation, purpose: OwnerPasswordPurpose.SmbPassword)),
                     ("Connection profiles", () => new CortexConnectionProfilesPage())),
@@ -683,56 +683,6 @@ internal sealed class RecipeRegistryPage : RegistryPage
     }
 }
 
-internal sealed class RootCodeRegistryPage : RegistryPage
-{
-    public RootCodeRegistryPage() : base("Select a code, then Edit selected to set its domains. All = unrestricted; allow = only listed paths; deny = exclude listed paths. MCP and CLI identify as the product-local pao.exe. Changes require Save.") { }
-    protected override string Operation => "root";
-
-    protected override IReadOnlyList<RegistryItem> ReadItems(OperationReceipt receipt)
-    {
-        var data = DataElement(receipt, "codes");
-        if (data.ValueKind != JsonValueKind.Array) return [];
-        return data.EnumerateArray().Select(x =>
-        {
-            var label = x.GetProperty("label").GetString() ?? "(unnamed)";
-            var legacy=x.TryGetProperty("legacyHidden",out var legacyValue)&&legacyValue.GetBoolean();
-            var applications=x.GetProperty("applications");var folders=x.GetProperty("folders");
-            static string Values(JsonElement policy)=>policy.GetProperty("values").EnumerateArray().Select(value=>value.GetString()).Where(value=>value is not null).Aggregate(string.Empty,(current,value)=>current.Length==0?value!:current+Environment.NewLine+value);
-            return new RegistryItem(label, new Dictionary<string, string>
-            {
-                ["Label"] = label,
-                ["Code"] = legacy ? "Legacy hidden code — replace to make visible" : x.GetProperty("code").GetString() ?? string.Empty,
-                ["Application Mode"] = DisplayRootMode(applications.GetProperty("mode").GetString()),
-                ["Applications"] = Values(applications),
-                ["Folder Mode"] = DisplayRootMode(folders.GetProperty("mode").GetString()),
-                ["Folders"] = Values(folders)
-            });
-        }).ToArray();
-    }
-
-    private static string DisplayRootMode(string? mode) =>
-        string.Equals(mode, "off", StringComparison.Ordinal) ? "all" : mode ?? "all";
-
-    protected override async Task<bool> ShowAddOrReplaceAsync(RegistryItem? selected)
-    {
-        using var dialog = new RootCodeDialog(selected);
-        if (dialog.ShowDialog(this) != DialogResult.OK) return false;
-        var receipt = await DispatchAsync(
-            new Dictionary<string, string> { ["op"] = "upsert", ["label"] = dialog.CodeLabel },
-            dialog.SubmissionJson);
-        dialog.ClearCode();
-        if (!receipt.Ok)
-        {
-            SetFailure(receipt);
-            return false;
-        }
-        return true;
-    }
-
-    protected override IReadOnlyDictionary<string, string> RemoveArguments(RegistryItem selected) =>
-        new Dictionary<string, string> { ["op"] = "rm", ["label"] = selected.Name };
-}
-
 internal sealed class ApplicationAccessPage : RegistryPage
 {
     public ApplicationAccessPage() : base(
@@ -996,105 +946,5 @@ internal sealed class RecipeDefinitionDialog : DefinitionDialog
             ExpectedExitCodes: ParseExitCodes(_expectedExits.Text),
             ScriptPath: script,
             OutputBehavior: Enum.Parse<ToolOutputBehavior>(_output.Text));
-    }
-}
-
-internal sealed class RootCodeDialog : Form
-{
-    private readonly TextBox _label = new() { Dock = DockStyle.Fill };
-    private readonly TextBox _code = new()
-    {
-        CharacterCasing = CharacterCasing.Upper,
-        Dock = DockStyle.Left,
-        MaxLength = 4,
-        Width = 120
-    };
-    private readonly ComboBox _applicationMode=new(){Dock=DockStyle.Left,DropDownStyle=ComboBoxStyle.DropDownList,Width=160};
-    private readonly TextBox _applications=new(){Dock=DockStyle.Fill,Multiline=true,ScrollBars=ScrollBars.Vertical};
-    private readonly ComboBox _folderMode=new(){Dock=DockStyle.Left,DropDownStyle=ComboBoxStyle.DropDownList,Width=160};
-    private readonly TextBox _folders=new(){Dock=DockStyle.Fill,Multiline=true,ScrollBars=ScrollBars.Vertical};
-
-    public RootCodeDialog(RegistryItem? selected)
-    {
-        CortexWindowIcon.Apply(this);
-        CortexTheme.Apply(this);
-        AutoScaleMode = AutoScaleMode.Font;
-        Text = selected is null ? "Add root code and scope" : "Edit root code and scope";
-        StartPosition = FormStartPosition.CenterParent;
-        ClientSize = new Size(820, 580);
-        MinimumSize = new Size(760, 550);
-        MinimizeBox = MaximizeBox = false;
-        _label.Text = selected?.Name ?? string.Empty;
-        _label.ReadOnly = selected is not null;
-        _code.Text=selected is not null&&selected.Details.TryGetValue("Code",out var selectedCode)&&Regex.IsMatch(selectedCode,"^[A-Z0-9]{4}$",RegexOptions.CultureInvariant)?selectedCode:string.Empty;
-        _applicationMode.Items.AddRange(["all","allow","deny"]);_applicationMode.SelectedItem=DisplayMode(selected?.Details.GetValueOrDefault("Application Mode"));
-        _folderMode.Items.AddRange(["all","allow","deny"]);_folderMode.SelectedItem=DisplayMode(selected?.Details.GetValueOrDefault("Folder Mode"));
-        _applications.Text=selected?.Details.GetValueOrDefault("Applications")??string.Empty;_folders.Text=selected?.Details.GetValueOrDefault("Folders")??string.Empty;
-
-        var fields = new TableLayoutPanel { ColumnCount = 2, Dock = DockStyle.Fill, Padding = new Padding(12),AutoScroll=true };
-        fields.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
-        fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        fields.RowStyles.Add(new RowStyle(SizeType.Absolute,34));fields.RowStyles.Add(new RowStyle(SizeType.Absolute,34));fields.RowStyles.Add(new RowStyle(SizeType.Absolute,34));fields.RowStyles.Add(new RowStyle(SizeType.Absolute,115));fields.RowStyles.Add(new RowStyle(SizeType.Absolute,34));fields.RowStyles.Add(new RowStyle(SizeType.Absolute,115));
-        fields.Controls.Add(new Label { AutoSize = true, Text = "Label", Padding = new Padding(0, 7, 0, 0) }, 0, 0);
-        fields.Controls.Add(_label, 1, 0);
-        fields.Controls.Add(new Label { AutoSize = true, Text = "4-character code", Padding = new Padding(0, 7, 0, 0) }, 0, 1);
-        fields.Controls.Add(_code, 1, 1);
-        fields.Controls.Add(new Label { AutoSize = true, Text = "Application policy", Padding = new Padding(0, 7, 0, 0) }, 0, 2);fields.Controls.Add(_applicationMode,1,2);
-        fields.Controls.Add(new Label { AutoSize = true, Text = "Executable paths", Padding = new Padding(0, 7, 0, 0) }, 0, 3);fields.Controls.Add(PathListPanel(_applications,true),1,3);
-        fields.Controls.Add(new Label { AutoSize = true, Text = "Folder policy", Padding = new Padding(0, 7, 0, 0) }, 0, 4);fields.Controls.Add(_folderMode,1,4);
-        fields.Controls.Add(new Label { AutoSize = true, Text = "Folder roots", Padding = new Padding(0, 7, 0, 0) }, 0, 5);fields.Controls.Add(PathListPanel(_folders,false),1,5);
-
-        var buttons = new FlowLayoutPanel { AutoSize = true, Dock = DockStyle.Bottom, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(8) };
-        var cancel = new Button { AutoSize = true, DialogResult = DialogResult.Cancel, Text = "Cancel" };
-        var save = new Button { AutoSize = true, Text = "Save" };
-        save.Click += (_, _) =>
-        {
-            if (!Regex.IsMatch(_label.Text, "^[A-Za-z0-9_-]{1,32}$", RegexOptions.CultureInvariant) ||
-                !Regex.IsMatch(_code.Text, "^[A-Z0-9]{4}$", RegexOptions.CultureInvariant))
-            {
-                MessageBox.Show(this, "Use a 1–32 character label and exactly four letters or digits.", "Invalid root code", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-            try{_submission=BuildSubmission();}catch(Exception ex)when(ex is ArgumentException or IOException){MessageBox.Show(this,ex.Message,"Invalid root-code policy",MessageBoxButtons.OK,MessageBoxIcon.Warning);return;}
-            DialogResult = DialogResult.OK;
-            Close();
-        };
-        buttons.Controls.AddRange([cancel, save]);
-        AcceptButton = save;
-        CancelButton = cancel;
-        Controls.Add(fields);
-        Controls.Add(buttons);
-        var explanation = new Label { Dock = DockStyle.Top, Height = 86, Padding = new Padding(12, 6, 12, 0), Text = "Application domain: exact calling .exe (normally pao.exe), not the program it launches. Folder domain: listed roots and descendants. All permits every path; Allow restricts to the list; Deny excludes it. Both filters must permit the operation." };
-        Controls.Add(explanation);
-    }
-
-    public string CodeLabel => _label.Text.Trim();
-    public string Code => _code.Text;
-    private object? _submission;
-    public string SubmissionJson=>JsonSerializer.Serialize(_submission??BuildSubmission(),JsonOptions.Web);
-    public void ClearCode() { _code.Clear(); _submission = null; }
-
-    private object BuildSubmission()
-    {
-        static string[] Lines(string value)=>value.Split(['\r','\n'],StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
-        var applications = RootCodeVerifier.NormalizePolicy(new RootAccessPolicy(_applicationMode.Text, Lines(_applications.Text)), application: true);
-        var folders = RootCodeVerifier.NormalizePolicy(new RootAccessPolicy(_folderMode.Text, Lines(_folders.Text)), application: false);
-        return new { code = _code.Text, applications, folders };
-    }
-
-    private static string DisplayMode(string? mode) =>
-        string.IsNullOrWhiteSpace(mode) || string.Equals(mode, "off", StringComparison.OrdinalIgnoreCase)
-            ? "all"
-            : mode.ToLowerInvariant();
-
-    private Control PathListPanel(TextBox list,bool executable)
-    {
-        var panel=new TableLayoutPanel{ColumnCount=2,Dock=DockStyle.Fill};panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-        var add=new Button{AutoSize=true,Text=executable?"Add executable…":"Add folder…"};add.Click+=(_,_)=>
-        {
-            string? selected;if(executable){using var picker=new OpenFileDialog{CheckFileExists=true,Filter="Executable files (*.exe)|*.exe"};selected=picker.ShowDialog(this)==DialogResult.OK?picker.FileName:null;}
-            else{using var picker=new FolderBrowserDialog{ShowNewFolderButton=false};selected=picker.ShowDialog(this)==DialogResult.OK?picker.SelectedPath:null;}
-            if(selected is null)return;list.Text=list.TextLength==0?selected:list.Text+Environment.NewLine+selected;
-        };panel.Controls.Add(list,0,0);panel.Controls.Add(add,1,0);return panel;
     }
 }

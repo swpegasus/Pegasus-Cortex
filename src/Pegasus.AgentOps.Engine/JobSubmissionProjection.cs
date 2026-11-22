@@ -50,7 +50,7 @@ internal static class JobSubmissionProjection
         // applications, terminals, administrator and credential routes retain their
         // independent receipt policies, including complete omission of this view.
         // Service bodies and config preimages use their own metadata-only receipt policy.
-        if (request.Op == "windows_service" || request.Root is not null || !Families.Contains(request.Op)) return null;
+        if (request.Op == "windows_service" || request.Root is not null || request.System || !Families.Contains(request.Op)) return null;
         var omitted = new SortedSet<string>(StringComparer.Ordinal);
         var arguments = new SortedDictionary<string, string>(StringComparer.Ordinal);
         var truncated = false;

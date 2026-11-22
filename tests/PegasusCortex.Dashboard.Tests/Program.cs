@@ -51,6 +51,7 @@ internal static class DashboardTestProgram
         }
         if (args is ["--processor-policy-only"]) return CortexProcessorPolicyTests.Run();
         if (args is ["--mcp-settings-only"]) return CortexMcpSettingsPageTests.Run();
+        if (args is ["--mcp-connections-only"]) return CortexMcpConnectionsPageTests.Run();
         if (args is ["--mcp-setup-only"])
         {
             CortexMcpSetupWorkflowTests.RunAsync().GetAwaiter().GetResult();
@@ -127,60 +128,37 @@ internal static class DashboardTestProgram
             }
             var application = Path.Combine(fixture, "fixture.EXE");
             File.WriteAllBytes(application, [0x4d, 0x5a]);
-            var appPolicy = RootCodeVerifier.NormalizePolicy(new("allow", [application, application]), true);
-            var folderPolicy = RootCodeVerifier.NormalizePolicy(new("allow", [fixture]), false);
-            var allApplications = RootCodeVerifier.NormalizePolicy(new("all", []), true);
-            var allFolders = RootCodeVerifier.NormalizePolicy(new("all", []), false);
+            var appPolicy = ProtectedAccessRules.NormalizePolicy(new("allow", [application, application]), true);
+            var folderPolicy = ProtectedAccessRules.NormalizePolicy(new("allow", [fixture]), false);
+            var allApplications = ProtectedAccessRules.NormalizePolicy(new("all", []), true);
+            var allFolders = ProtectedAccessRules.NormalizePolicy(new("all", []), false);
             Check(appPolicy.Values.Count == 1, "deduplication");
-            var definition = new RootCodeDefinition("fixture", "TEST", appPolicy, folderPolicy);
-            Check(RootCodeVerifier.AllowsApplication(definition, application), "listed app rejected");
-            Check(!RootCodeVerifier.AllowsApplication(definition, Path.Combine(fixture, "other.exe")), "unlisted app permitted");
-            Check(RootCodeVerifier.AllowsFolders(definition, new OperationRequest("stat", new Dictionary<string,string> { ["src"] = Path.Combine(fixture, "child.txt") })), "allowed descendant rejected");
-            Check(!RootCodeVerifier.AllowsFolders(definition, new OperationRequest("stat", new Dictionary<string,string> { ["src"] = fixture + "-sibling" })), "prefix sibling escaped restriction");
+            var definition = new ProtectedExecutionGrant("fixture", appPolicy, folderPolicy);
+            Check(ProtectedAccessRules.AllowsApplication(definition, application), "listed app rejected");
+            Check(!ProtectedAccessRules.AllowsApplication(definition, Path.Combine(fixture, "other.exe")), "unlisted app permitted");
+            Check(ProtectedAccessRules.AllowsFolders(definition, new OperationRequest("stat", new Dictionary<string,string> { ["src"] = Path.Combine(fixture, "child.txt") })), "allowed descendant rejected");
+            Check(!ProtectedAccessRules.AllowsFolders(definition, new OperationRequest("stat", new Dictionary<string,string> { ["src"] = fixture + "-sibling" })), "prefix sibling escaped restriction");
             var deny = definition with { Folders = new("deny", [fixture]) };
-            Check(!RootCodeVerifier.AllowsFolders(deny, new OperationRequest("stat", new Dictionary<string,string> { ["src"] = Path.GetDirectoryName(fixture)! })), "deny parent traversal permitted");
-            var unrestricted = new RootCodeDefinition("all", "TEST", allApplications, allFolders);
+            Check(!ProtectedAccessRules.AllowsFolders(deny, new OperationRequest("stat", new Dictionary<string,string> { ["src"] = Path.GetDirectoryName(fixture)! })), "deny parent traversal permitted");
+            var unrestricted = new ProtectedExecutionGrant("all", allApplications, allFolders);
             Check(allApplications.Mode == "off" && allFolders.Mode == "off" &&
-                RootCodeVerifier.AllowsApplication(unrestricted, Path.Combine(fixture, "anything.exe")) &&
-                RootCodeVerifier.AllowsFolders(unrestricted, new OperationRequest("stat", new Dictionary<string,string> { ["src"] = @"C:\anywhere" })),
+                ProtectedAccessRules.AllowsApplication(unrestricted, Path.Combine(fixture, "anything.exe")) &&
+                ProtectedAccessRules.AllowsFolders(unrestricted, new OperationRequest("stat", new Dictionary<string,string> { ["src"] = @"C:\anywhere" })),
                 "explicit all policy did not canonicalize to unrestricted access");
-            foreach (var policy in new[] { new RootAccessPolicy("allow", []), new RootAccessPolicy("allow", ["relative.exe"]), new RootAccessPolicy("bogus", []) })
+            foreach (var policy in new[] { new ProtectedAccessPolicy("allow", []), new ProtectedAccessPolicy("allow", ["relative.exe"]), new ProtectedAccessPolicy("bogus", []) })
             {
-                try { RootCodeVerifier.NormalizePolicy(policy, true); throw new Exception("invalid policy accepted"); }
+                try { ProtectedAccessRules.NormalizePolicy(policy, true); throw new Exception("invalid policy accepted"); }
                 catch (ArgumentException) { }
             }
             Console.WriteLine("PASS shared application/folder policy normalization and enforcement (fixture only)");
 
-            var selected = new RegistryItem("fixture", new Dictionary<string,string>
-            {
-                ["Code"]="TEST", ["Application Mode"]="allow", ["Applications"]=application,
-                ["Folder Mode"]="allow", ["Folders"]=fixture
-            });
-            using (var dialog = new RootCodeDialog(selected))
-            {
-                using var json = JsonDocument.Parse(dialog.SubmissionJson);
-                Check(json.RootElement.GetProperty("applications").GetProperty("values").GetArrayLength() == 1, "app scope lost in editor");
-                Check(json.RootElement.GetProperty("folders").GetProperty("mode").GetString() == "allow", "folder policy lost");
-                Check(Children(dialog).OfType<Button>().Any(x => x.Text == "Add executable…"), "app picker missing");
-                Check(Children(dialog).OfType<Button>().Any(x => x.Text == "Add folder…"), "folder picker missing");
-                if (args is [var directory]) Render(dialog, directory, "root-scope-fixture.png");
-                dialog.ClearCode();
-                Check(dialog.Code.Length == 0, "editor did not clear code");
-            }
-            var allSelected = new RegistryItem("all-fixture", new Dictionary<string,string>
-            {
-                ["Code"]="TEST", ["Application Mode"]="all", ["Applications"]="",
-                ["Folder Mode"]="all", ["Folders"]=""
-            });
-            using (var dialog = new RootCodeDialog(allSelected))
-            {
-                using var json = JsonDocument.Parse(dialog.SubmissionJson);
-                Check(json.RootElement.GetProperty("applications").GetProperty("mode").GetString() == "off" &&
-                    json.RootElement.GetProperty("folders").GetProperty("mode").GetString() == "off" &&
-                    Children(dialog).OfType<ComboBox>().Count(box => box.Items.Contains("all")) == 2,
-                    "root-code UI did not expose all as a clear unrestricted policy");
-            }
-            Console.WriteLine("PASS scope-editor round trip and picker controls (dummy code only)");
+            Check(typeof(SettingsWindow).Assembly.GetType("Pegasus.AgentOps.Tray.RootCodeDialog", false) is null,
+                "retired four-character root-code editor remains exposed");
+            Check(PaoProgram.UnifiedMcpOperationHelp("root") is null &&
+                PaoProgram.UnifiedMcpOperationHelp("root_ls") is null &&
+                PaoProgram.UnifiedMcpOperationHelp("root_upsert") is null,
+                "retired root-code operation remains advertised");
+            Console.WriteLine("PASS retired root-code editor and public operations absent; current connections page has separate focused fixtures");
 
             using (var form = new Form { Size = new Size(1150, 740), Text = "Cortex utilization — synthetic fixture" })
             using (var page = new UtilizationPage(autoLoad: false) { Dock = DockStyle.Fill })

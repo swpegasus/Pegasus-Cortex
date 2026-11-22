@@ -7,7 +7,6 @@ using Microsoft.Data.Sqlite;
 internal static class MaintenanceIntervalTests
 {
     private const string TaskId="01a12d3b-7157-7352-ac1f-a5f549ceb103";
-    private const string Code="T7Q9"; // Private fixture verifier; never a live grant.
 
     internal static async Task InitializationFreshAsync()
     {
@@ -105,7 +104,7 @@ internal static class MaintenanceIntervalTests
 
     private static OperationRequest Diagnostic()=>new("diag",new Dictionary<string,string>());
     private static AuthenticatedServiceBroker ObservationBroker(string root,LocalPeer peer,string service,MaintenanceInitializationObservation observation)=>
-        new(Path.Combine(root,"observation-router"),peer.Sid,new RootCodeVerifier(Path.Combine(root,"observation.verifier")),false,null,
+        new(Path.Combine(root,"observation-router"),peer.Sid,null,false,null,
             ownerAdmin:null,maintenanceMode:new MaintenanceModeStore(service,protect:false,requireProvisioned:true),maintenanceInitialization:observation);
     private static void AssertInitialization(OperationReceipt result,string feature,string outcome,string stage,string cause)
     {
@@ -287,7 +286,7 @@ internal static class MaintenanceIntervalTests
         internal Launcher Launcher {get;}=new();
         internal OwnerAdminExecution Manager=null!;internal AgentOpsEngine User=null!;internal AuthenticatedServiceBroker Broker=null!;
         internal OwnerAdminAuthorization Scope=null!;internal string ScopeSha="";internal string Epoch="";internal string Executable="";
-        private RootCodeVerifier _verifier=null!;private string _beginRid=Guid.NewGuid().ToString("N"),_endRid=Guid.NewGuid().ToString("N");
+        private ApprovedConnectionFixture _approval=null!;private string _beginRid=Guid.NewGuid().ToString("N"),_endRid=Guid.NewGuid().ToString("N");
         internal Func<Task>? BeforeDispatch;internal Func<CancellationToken,Task>? BeforeProbe;internal bool ReturnUnknown;
         internal MaintenanceInitializationObservation Initialization=MaintenanceInitializationObservation.Started;
         internal MaintenanceInitializationObservation BeforeInitializationCompletion=null!;
@@ -295,7 +294,7 @@ internal static class MaintenanceIntervalTests
         internal async Task Ready()
         {
             Directory.CreateDirectory(Root);Executable=Path.Combine(Root,"worker.exe");File.WriteAllText(Executable,"private executable fixture");
-            _verifier=new RootCodeVerifier(Path.Combine(Root,"fixture.verifier"));_verifier.Enroll("fixture",Code);
+            _approval=new ApprovedConnectionFixture(Peer);
             Open();
             Scope=new(1,Guid.NewGuid().ToString("N"),TaskId,Peer.Sid,Peer.Session,Peer.ApplicationPath!,Hash(Peer.ApplicationPath!),Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),DateTimeOffset.UtcNow.AddHours(1),
                 [new(Executable,Hash(Executable),true)],[],[Root],[Root,Path.GetDirectoryName(Peer.ApplicationPath!)!],[Root],["filesystem"],true,true,true);
@@ -309,7 +308,7 @@ internal static class MaintenanceIntervalTests
                 initializationProgress:(stage,initialized)=>{Initialization=Initialization.Observe(stage,initialized);InitializationProgress.Add((stage,initialized));});
             BeforeInitializationCompletion=Initialization;Initialization=Initialization.Completed();
             User=new AgentOpsEngine(Path.Combine(Root,"user"),null,false,null,false,null,maintenanceMode:Manager.MaintenanceMode);
-            Broker=new AuthenticatedServiceBroker(Path.Combine(Root,"router"),Peer.Sid,_verifier,false,Dispatch,null,null,Manager,maintenanceInitialization:Initialization);
+            Broker=new AuthenticatedServiceBroker(Path.Combine(Root,"router"),Peer.Sid,_approval.Authorize,false,Dispatch,null,null,Manager,maintenanceInitialization:Initialization,ownerHostVerifier:_approval.IsTrustedHost);
         }
         private async Task<OperationReceipt> Dispatch(LocalPeer peer,string pipe,OperationRequest request,CancellationToken ct)
         {
@@ -346,7 +345,7 @@ internal static class MaintenanceIntervalTests
         internal OwnerAdminDefinition Definition()=>new(1,Scope.Id,TaskId,Peer.Sid,Peer.Session,Peer.ApplicationPath!,Scope.ClientSha256,Scope.OwnerProfile,Guid.NewGuid().ToString("N"),DateTimeOffset.UtcNow.AddMinutes(30),"exe",Executable,Hash(Executable),Root,[],[],Scope.ReadRoots,Scope.WriteRoots,["filesystem"],true,MaintenanceEpoch:Epoch);
         internal Task<OperationReceipt> Run(OwnerAdminDefinition definition)=>Control("run",new Dictionary<string,string>(){["cfg"]=Scope.Id,["sha"]=OwnerAdminExecution.Digest(definition)},definition,definition.ExpectedRid);
         internal Task<OperationReceipt> Control(string action,Dictionary<string,string> args,object? body=null,string? rid=null,CancellationToken cancellation=default)
-        {args["op"]=action;return Broker.HandleSystemAsync(new("admin",args,rid??Guid.NewGuid().ToString("N"),Root:Code,Body:body is null?null:JsonSerializer.Serialize(body,OwnerAdminExecution.Json)),Peer,cancellation);}
+        {args["op"]=action;return Broker.HandleSystemAsync(new("admin",args,rid??Guid.NewGuid().ToString("N"),Body:body is null?null:JsonSerializer.Serialize(body,OwnerAdminExecution.Json),System:true,ConnectionAuthority:_approval.Current),Peer,cancellation);}
         internal async Task Wait(string jid)
         {for(var attempt=0;attempt<100;attempt++){var result=await Control("stat",new Dictionary<string,string>(){["jid"]=jid});if(result.State is not("starting" or "running"))return;await Task.Delay(20);}throw new TimeoutException("fake process monitor");}
         public async ValueTask DisposeAsync(){if(Launcher.Last is{} process)process.Exit??=0;if(Broker is not null)await Broker.DisposeAsync();if(User is not null)await User.DisposeAsync();Manager?.Dispose();}

@@ -10,6 +10,8 @@
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\Shared\RootedIo\*.cs" Link="RootedIo\%(Filename)%(Extension)" />
+    <InternalsVisibleTo Include="PegasusCortex.Persistence.File.Tests" />
     <ProjectReference Include="..\PegasusCortex.Contracts\PegasusCortex.Contracts.csproj" />
     <ProjectReference Include="..\PegasusCortex.Core\PegasusCortex.Core.csproj" />
   </ItemGroup>

@@ -6,8 +6,16 @@ using Pegasus.Cortex.Core.Knowledge;
 using Pegasus.Cortex.Core.V2;
 using Pegasus.Cortex.Persistence.Sqlite.V2;
 
+if(args is ["--semantic-admission-only"])
+{
+    await SqliteSemanticAdmissionTests.RunAsync();
+    Console.WriteLine("PASS SQLite semantic admission and attribution integration.");
+    return 0;
+}
+
 var tests = new (string Name, Func<Task> Run)[]
 {
+    ("v2 semantic admission precedes initialization and idempotency", SqliteSemanticAdmissionTests.RunAsync),
     ("fresh v2 preserves exact UTF-8 and never touches v1", ExactRoundTripAndGenerationIsolationAsync),
     ("v2 head search is namespace-local Unicode-safe and minimum-match aware", UnicodeSearchAndChunksAsync),
     ("v2 atomic batch rolls every staged write back on stale input", AtomicBatchRollbackAsync),

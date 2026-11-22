@@ -457,7 +457,7 @@ internal static class ProcessThreadContractTests
         var brokerCalls = 0;
         var brokerState = temp.Dir("thread-broker");
         await using (var broker = new AuthenticatedServiceBroker(brokerState, OwnerSid,
-            new RootCodeVerifier(Path.Combine(brokerState, "fixture-unused.verifier")), false,
+            null, false,
             (_, _, _, _) => { brokerCalls++; return Task.FromResult(old); },
             (_, _) => { brokerCalls++; return Task.FromResult(old); }, maintenanceMode: new OpenMode()))
         {

@@ -17,14 +17,17 @@ internal sealed class CortexEmbeddedMcpDispatcher : IMcpDispatcher
     private readonly CortexMcpInvocationProcessor _invocations;
     private readonly BoundedRequestDispatcher _dispatcher;
     private readonly UserHostAdmission _admission;
+    private readonly Func<McpRequestContext,CortexMcpInvocationProcessor>? _invocationFactory;
     private int _closed;
 
     internal CortexEmbeddedMcpDispatcher(ICortexMcpProtocolApplication admittedApplication,
-        BoundedRequestDispatcher dispatcher, UserHostAdmission admission, TextWriter diagnostics)
+        BoundedRequestDispatcher dispatcher, UserHostAdmission admission, TextWriter diagnostics,
+        Func<McpRequestContext,CortexMcpInvocationProcessor>? invocationFactory=null)
     {
         _invocations = new(admittedApplication, diagnostics);
         _dispatcher = dispatcher;
         _admission = admission;
+        _invocationFactory = invocationFactory;
     }
 
     public Task<JsonObject> InitializeAsync(CancellationToken cancellationToken)
@@ -59,15 +62,19 @@ internal sealed class CortexEmbeddedMcpDispatcher : IMcpDispatcher
         var idNode = JsonNode.Parse(id.GetRawText());
         var method = methodValue.GetString()!;
         JsonElement? parameters = envelope.TryGetProperty("params", out var values) ? values.Clone() : null;
+        CortexMcpInvocationProcessor processor;
+        try { processor = _invocationFactory?.Invoke(context) ?? _invocations; }
+        catch(UnauthorizedAccessException)
+        { return McpProtocol.Error(idNode, -32001, "Connection approval is unavailable or revoked.", "connection_revoked"); }
         if (Volatile.Read(ref _closed) != 0 || !_admission.Accepting)
             return McpStdioServer.TransportError(DispatchState.NotDispatched, idNode);
 
         // The transport assigns these labels; neither a task ID nor HTTP metadata
-        // changes the owner identity, PAO route, credential or root-code policy.
+        // changes the authenticated connection identity or its current approval.
         var session = "shared:" + context.SessionId;
         var stream = context.StreamId.ToString(CultureInfo.InvariantCulture);
         if (!_dispatcher.TrySubmit(session, payload.Length,
-                token => _invocations.InvokeAsync(id, method, parameters, token),
+                token => processor.InvokeAsync(id, method, parameters, token),
                 cancellationToken, CorrelatedRequestSession.RequestTimeout, out var ticket, stream))
             return McpStdioServer.TransportError(DispatchState.CapacityExceeded, idNode);
 

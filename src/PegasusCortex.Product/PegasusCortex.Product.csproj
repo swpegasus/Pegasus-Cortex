@@ -9,5 +9,6 @@
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="PegasusCortex.Mcp.Hosting" />
+    <InternalsVisibleTo Include="PegasusCortex.Host" />
   </ItemGroup>
 </Project>

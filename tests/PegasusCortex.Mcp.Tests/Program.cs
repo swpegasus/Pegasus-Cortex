@@ -11,8 +11,16 @@ using Pegasus.Cortex.Mcp.Diagnostics;
 using Pegasus.Cortex.Mcp.Knowledge;
 using Pegasus.Cortex.Mcp.Protocol;
 
+if(args is ["--semantic-source-only"])
+{
+    await CortexSemanticSourceMcpTests.RunAsync();
+    Console.WriteLine("PASS semantic source and wire-admission fixtures.");
+    return 0;
+}
+
 var tests = new (string Name, Func<Task> Run)[]
 {
+    ("V2 verified invocation source stays separate from declared labels", CortexSemanticSourceMcpTests.RunAsync),
     ("V2 MCP exposes one bounded eight-tool operational surface", CortexV2McpContractTests.RunAsync),
     ("V2 MCP reports optional personal-profile state without stale bodies", CortexPersonalProfileMcpTests.RunAsync),
     ("initialize lifecycle and read-only tool contract", InitializeLifecycleAsync),

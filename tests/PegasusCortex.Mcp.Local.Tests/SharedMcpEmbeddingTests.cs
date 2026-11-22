@@ -17,9 +17,11 @@ internal static class SharedMcpEmbeddingTests
         ReadinessNeverReopensDuringDrain();
         await AdmissionAsync();
         await SharedSchedulingAsync();
+        await ConnectionFactoryAdmissionAsync();
         await NativeFaultClosesIngressBeforeDrainAsync();
         await ServiceGatewayAsync();
-        Console.WriteLine("PASS embedded shared MCP: registered-client lease regression, optional managed-key refusal/no reissue, monotonic readiness, owner admission, same resident scheduler, typed-ID/argument isolation, cancellation uncertainty/drain and service-gateway close; in-memory and owned-file fixtures, no live endpoint");
+        await ServiceInvocationEnvelopeAsync();
+        Console.WriteLine("PASS embedded shared MCP: registered-client lease regression, optional managed-key refusal/no reissue, monotonic readiness, owner admission, same resident scheduler, typed-ID/context isolation, revoked factory/queued admission, cancellation uncertainty/drain and exact service identity envelope; in-memory and owned-file fixtures, no live endpoint");
     }
 
 
@@ -84,7 +86,8 @@ internal static class SharedMcpEmbeddingTests
                 var invocation = new JsonObject
                 {
                     ["sessionId"] = new string('e', 32), ["streamId"] = 1, ["taskId"] = null,
-                    ["requestId"] = "102", ["request"] = Request(102, "service-after-refusal")
+                    ["requestId"] = "102", ["identity"] = IdentityJson(SyntheticIdentity()),
+                    ["request"] = Request(102, "service-after-refusal")
                 };
                 var relayed = await gateway.ExecuteServiceRequestAsync(Relay("invoke", invocation.ToJsonString()),
                     CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5));
@@ -266,6 +269,147 @@ internal static class SharedMcpEmbeddingTests
         }
     }
 
+    private static async Task ConnectionFactoryAdmissionAsync()
+    {
+        var admission = new UserHostAdmission();
+        var scheduler = new BoundedRequestDispatcher(workers: 1);
+        var app = new HeldApplication();
+        var expected = SyntheticIdentity();
+        var approved = true;
+        var factoryCalls = 0;
+        CortexMcpInvocationProcessor Factory(McpRequestContext context)
+        {
+            Interlocked.Increment(ref factoryCalls);
+            if (!Volatile.Read(ref approved) || context.Identity != expected)
+                throw new UnauthorizedAccessException("fixture connection revoked");
+            // Use the production wrapper's callback-time guard as well as the
+            // pre-schedule factory check; queueing must not freeze old approval.
+            return new(CortexClientApplication.ForOwnerEndpoint(app, admission,
+                () => Volatile.Read(ref approved) && context.Identity == expected), TextWriter.Null);
+        }
+        await using var adapter = new CortexEmbeddedMcpDispatcher(
+            CortexClientApplication.ForOwnerEndpoint(app, admission), scheduler, admission, TextWriter.Null, Factory);
+        try
+        {
+            foreach (var context in new[]
+            {
+                Context('a', 31) with { Identity = null },
+                Context('b', 31) with { Identity = new(expected.Authority, new string('4', 32), expected.Generation) },
+                Context('c', 31) with { Identity = new(expected.Authority, expected.Subject, new string('5', 32)) }
+            })
+            {
+                var refused = await adapter.DispatchAsync(context, Request(31, "unapproved"), CancellationToken.None);
+                Check(refused["error"]?["data"]?["code"]?.GetValue<string>() == "connection_revoked" &&
+                    app.Calls == 0 && scheduler.Snapshot.Count == 0 && admission.ActiveCount == 0,
+                    "missing or foreign identity reached scheduler/application before factory refusal");
+            }
+            approved = false;
+            var revoked = await adapter.DispatchAsync(Context('d', 32), Request(32, "revoked"), CancellationToken.None);
+            Check(revoked["error"]?["data"]?["code"]?.GetValue<string>() == "connection_revoked" && app.Calls == 0,
+                "revoked factory admitted a new application call");
+            approved = true;
+            var running = adapter.DispatchAsync(Context('e', 33), Request(33, "already-running"), CancellationToken.None);
+            await app.Entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            var queued = adapter.DispatchAsync(Context('f', 34), Request(34, "queued-before-revoke"), CancellationToken.None);
+            Check(scheduler.Snapshot.Running == 1 && scheduler.Snapshot.Count == 2 && app.Calls == 1,
+                "revocation fixture did not hold one actually queued callback");
+            approved = false;
+            app.Release.TrySetResult();
+            var results = await Task.WhenAll(running, queued).WaitAsync(TimeSpan.FromSeconds(5));
+            Check(results[0]["result"]?["structuredContent"]?["tag"]?.GetValue<string>() == "already-running" &&
+                results[1]["result"]?["isError"]?.GetValue<bool>() == true && app.Calls == 1,
+                "queued stale approval reached the application or replayed the original call");
+            await scheduler.WhenIdleAsync().WaitAsync(TimeSpan.FromSeconds(5));
+            Check(factoryCalls == 6 && admission.ActiveCount == 0, "factory or queued callback leaked/replayed admission");
+        }
+        finally
+        {
+            app.Release.TrySetResult();
+            await scheduler.WhenIdleAsync().WaitAsync(TimeSpan.FromSeconds(5));
+        }
+    }
+
+    private static async Task ServiceInvocationEnvelopeAsync()
+    {
+        var gateway = new CortexOwnerMcpGateway();
+        var dispatcher = new GatewayDispatcher();
+        gateway.Bind(CortexMcpSettingsStore.Default with { Enabled = true, Owner = CortexMcpOwner.Service }, () => dispatcher);
+        try
+        {
+            var first = Context('a', 7) with { TaskId = "first-task" };
+            var second = Context('b', 7) with { TaskId = "second-task",
+                Identity = new(new string('4', 32), new string('5', 32), new string('6', 32)) };
+            foreach (var context in new[] { first, second })
+            {
+                var request = Request(7, context.TaskId!);
+                var response = await gateway.ExecuteServiceRequestAsync(
+                    Relay("invoke", Invocation(context, request).ToJsonString()), CancellationToken.None);
+                Check(response.Ok && response.Data?.GetValueOrDefault("mcp") is JsonObject answer &&
+                    answer["id"]?.GetValue<int>() == 7, "exact six-field private invocation was refused or lost its ID");
+            }
+            var observed = dispatcher.Contexts.ToArray();
+            Check(observed.Length == 2 && observed[0] == first && observed[1] == second &&
+                observed[0].Identity != observed[1].Identity && observed[0].SessionId != observed[1].SessionId,
+                "private hop mixed identity, task, stream or session coordinates");
+
+            var valid = Invocation(first, Request(7, "negative-envelope"));
+            var invalid = new List<JsonObject>();
+            void Mutate(Action<JsonObject> change)
+            { var value = valid.DeepClone().AsObject(); change(value); invalid.Add(value); }
+            Mutate(value => value.Remove("identity")); // Original five-field envelope is deliberately obsolete.
+            Mutate(value => value["identity"] = null);
+            Mutate(value => value["identity"] = "declared-name");
+            Mutate(value => value["identity"]!.AsObject().Remove("authority"));
+            Mutate(value => value["identity"]!["subject"] = new string('0', 32));
+            Mutate(value => value["identity"]!["generation"] = "caller-label");
+            Mutate(value => value["identity"]!["authority"] = 1);
+            Mutate(value => value["identity"]!["fullControl"] = true);
+            Mutate(value => value["requestId"] = "\"7\""); // Numeric and string IDs are distinct.
+            Mutate(value => value["streamId"] = 0);
+            var bodies = invalid.Select(value => value.ToJsonString()).ToList();
+            bodies.Add(valid.ToJsonString().Insert(1, "\"identity\":" + IdentityJson(first.Identity!).ToJsonString() + ","));
+            bodies.Add(valid.ToJsonString().Replace("\"identity\":{", "\"identity\":{\"subject\":\"" +
+                new string('2', 32) + "\",", StringComparison.Ordinal));
+            foreach (var body in bodies)
+            {
+                var refused = await gateway.ExecuteServiceRequestAsync(Relay("invoke", body), CancellationToken.None);
+                Check(!refused.Ok && refused.Err == "invalid" && dispatcher.Contexts.Count == 2,
+                    "malformed, old or forged private identity envelope reached dispatch");
+            }
+
+            var stringRequest = Request(7, "string-id");
+            stringRequest["id"] = "7";
+            var stringContext = first with { RequestId = "\"7\"" };
+            var stringResult = await gateway.ExecuteServiceRequestAsync(
+                Relay("invoke", Invocation(stringContext, stringRequest).ToJsonString()), CancellationToken.None);
+            Check(stringResult.Ok && stringResult.Data?.GetValueOrDefault("mcp") is JsonObject mapped &&
+                mapped["id"]?.GetValue<string>() == "7" && dispatcher.Contexts.Last() == stringContext,
+                "valid typed string ID or its authenticated context changed on the private hop");
+
+            foreach (var request in new[]
+            {
+                Relay("invoke", valid.ToJsonString()) with { System = true },
+                Relay("invoke", valid.ToJsonString()) with { ConnectionAuthority = new Pegasus.Cortex.Product.CortexMcpConnectionAuthority(
+                    new string('1', 32), new string('2', 32), new string('3', 32), 1) }
+            })
+            {
+                try
+                {
+                    await gateway.ExecuteServiceRequestAsync(request, CancellationToken.None);
+                    throw new InvalidOperationException("private relay accepted outer execution authority");
+                }
+                catch (AgentOpsException error) { Check(error.Code == "invalid", "unexpected private relay authority refusal"); }
+            }
+            Check(dispatcher.Contexts.Count == 3, "outer authority refusal invoked the product dispatcher");
+        }
+        finally
+        {
+            dispatcher.Release.TrySetResult();
+            await gateway.CloseAndDrainAsync().WaitAsync(TimeSpan.FromSeconds(5));
+        }
+        Check(dispatcher.Disposals == 1, "invocation gateway did not release its one borrowed dispatcher");
+    }
+
     private static async Task NativeFaultClosesIngressBeforeDrainAsync()
     {
         var root = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "cortex-native-stop-" + Guid.NewGuid().ToString("N")));
@@ -319,7 +463,16 @@ internal static class SharedMcpEmbeddingTests
 
     private static OperationRequest Relay(string kind, string body) => new("_cortex_shared_mcp",
         new Dictionary<string, string> { ["kind"] = kind }, Guid.NewGuid().ToString("N"), Body: body);
-    private static McpRequestContext Context(char identity, int id) => new("cortex", new string(identity, 32), identity, null, id.ToString());
+    private static McpRequestContext Context(char identity, int id) =>
+        new("cortex", new string(identity, 32), identity, null, id.ToString()) { Identity = SyntheticIdentity() };
+    private static McpAuthenticatedIdentity SyntheticIdentity() => new(new string('1', 32), new string('2', 32), new string('3', 32));
+    private static JsonObject IdentityJson(McpAuthenticatedIdentity identity) => new()
+    { ["authority"] = identity.Authority, ["subject"] = identity.Subject, ["generation"] = identity.Generation };
+    private static JsonObject Invocation(McpRequestContext context, JsonObject request) => new()
+    {
+        ["sessionId"] = context.SessionId, ["streamId"] = context.StreamId, ["taskId"] = context.TaskId,
+        ["requestId"] = context.RequestId, ["identity"] = IdentityJson(context.Identity!), ["request"] = request.DeepClone()
+    };
     private static JsonObject Request(int id, string tag) => new()
     {
         ["jsonrpc"] = "2.0", ["id"] = id, ["method"] = "tools/call",
@@ -356,13 +509,17 @@ internal static class SharedMcpEmbeddingTests
 
     private sealed class GatewayDispatcher : IMcpDispatcher
     {
+        internal readonly System.Collections.Concurrent.ConcurrentQueue<McpRequestContext> Contexts = new();
         internal readonly TaskCompletionSource Entered = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal readonly TaskCompletionSource Release = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal int Disposals;
         public async Task<JsonObject> InitializeAsync(CancellationToken cancellationToken)
         { Entered.TrySetResult(); await Release.Task; return new JsonObject { ["fixture"] = true }; }
-        public Task<JsonObject> DispatchAsync(McpRequestContext context, JsonObject request, CancellationToken cancellationToken) =>
-            Task.FromResult(new JsonObject { ["jsonrpc"] = "2.0", ["id"] = request["id"]?.DeepClone(), ["result"] = new JsonObject() });
+        public Task<JsonObject> DispatchAsync(McpRequestContext context, JsonObject request, CancellationToken cancellationToken)
+        {
+            Contexts.Enqueue(context);
+            return Task.FromResult(new JsonObject { ["jsonrpc"] = "2.0", ["id"] = request["id"]?.DeepClone(), ["result"] = new JsonObject() });
+        }
         public ValueTask DisposeAsync() { Interlocked.Increment(ref Disposals); return ValueTask.CompletedTask; }
     }
 }

@@ -535,13 +535,7 @@ public sealed partial class FileCortexV2Store : ICortexV2Store
             cancellationToken.ThrowIfCancellationRequested();
             try
             {
-                return new FileStream(
-                    CortexFileV2PathPolicy.WriteLockPath(_projectRoot),
-                    FileMode.OpenOrCreate,
-                    FileAccess.ReadWrite,
-                    FileShare.None,
-                    1,
-                    FileOptions.WriteThrough);
+                return CortexFileV2AtomicIo.OpenWriteLease(CortexFileV2PathPolicy.WriteLockPath(_projectRoot));
             }
             catch (IOException) when (stopwatch.Elapsed < TimeSpan.FromSeconds(30))
             {

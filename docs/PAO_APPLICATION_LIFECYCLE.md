@@ -10,9 +10,11 @@ The signed-in user execution host owns each admitted application generation.
 It uses the existing User execution level, authenticated same-user/session pipe,
 and registered tool admission: exact executable, probe, arguments, environment,
 working directory, and configured Hidden or Visible window mode. This is not a
-new approval system and does not grant System/elevated execution. Root codes,
-raw executables, command strings, and arbitrary environment overrides are not
-accepted by these operations. A missing or older user host fails explicitly;
+new approval system and does not grant System/elevated execution. An MCP
+connection's Full control approval does not change a registered User tool's
+execution token: `system:true` is unavailable for these application operations.
+Legacy root codes, raw executables, command strings, and arbitrary environment
+overrides are not accepted. A missing or older user host fails explicitly;
 there is no service fallback.
 
 A short request finishing or the root application window exiting does not end

@@ -9,22 +9,10 @@ internal static class InventoryJsonWriter
     internal const string SchemaVersion = "pegasus.cortex.archive-inventory/1";
 
     internal static void WriteCreateNew(
-        string path,
+        FileStream stream,
         ArchivePreflight preflight,
         IReadOnlyList<MaterializedEntryRecord> entries)
     {
-        var options = new FileStreamOptions
-        {
-            Mode = FileMode.CreateNew,
-            Access = FileAccess.Write,
-            Share = FileShare.None,
-            BufferSize = 16 * 1024,
-            Options = FileOptions.SequentialScan
-        };
-        if (!OperatingSystem.IsWindows())
-            options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
-
-        using var stream = new FileStream(path, options);
         using (var writer = new Utf8JsonWriter(
                    stream,
                    new JsonWriterOptions

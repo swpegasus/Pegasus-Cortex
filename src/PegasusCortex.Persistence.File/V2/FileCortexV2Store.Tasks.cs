@@ -110,7 +110,7 @@ public sealed partial class FileCortexV2Store
                 contentChanged,
                 CortexFileV2AtomicIo.Sha256(Encoding.UTF8.GetBytes(task.Content)),
                 task.PhaseId,
-                task.CheckpointSubject));
+                task.CheckpointSubject, task.Provenance.VerifiedSource));
             previous = task;
         }
         return new CortexTaskResultV2([command.Namespace], "history", null, [], history, null);
@@ -351,5 +351,5 @@ public sealed partial class FileCortexV2Store
         task.PhaseId,
         task.CheckpointSubject is null
             ? null
-            : Excerpt(task.CheckpointSubject, CortexV2Limits.MaximumCheckpointSubjectCharacters));
+            : Excerpt(task.CheckpointSubject, CortexV2Limits.MaximumCheckpointSubjectCharacters), task.Provenance.VerifiedSource);
 }

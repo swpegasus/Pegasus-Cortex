@@ -2,7 +2,9 @@
 
 Pegasus Cortex provides one private, local, versioned named-pipe authorization
 route for the `PegasusCerebral` Windows service. It is separate from the public
-PAO CLI/MCP contract and from attended four-character root codes.
+PAO CLI/MCP contract and from persistent MCP connection approvals. The private
+Cerebral application Full control grant is managed independently; an MCP grant
+does not enroll or renew that application session.
 
 ## Security boundary
 
@@ -48,11 +50,14 @@ service boundary and must never expose it through an agent, UI, CLI, MCP,
 receipt, task, or log. Cortex stores only a salted PBKDF2-SHA256 verifier. It
 does not store plaintext credential material.
 
-## Attended service lifecycle
+## Explicit protected service lifecycle
 
-The public PAO CLI/MCP contract also exposes a separate attended,
-root-authorized service-lifecycle route for the exact `PegasusCerebral`
-service. It is not part of the private application credential session.
+Current source exposes a separate protected service-lifecycle contract for the
+exact `PegasusCerebral` service. Through MCP it requires boolean `system:true`,
+that connection's active Full control approval, and the optional Cortex
+execution service. It is not part of the private Cerebral application credential
+session. The boolean is execution intent, not a credential or a grant; the
+admitted Cortex owner Host supplies the nonsecret authority context internally.
 `service_status` returns bounded state and, when running, the exact process ID
 and canonical UTC process-start identity. `service_stop` and
 `service_restart` require those observed values; `service_start` requires
@@ -61,9 +66,10 @@ and canonical UTC process-start identity. `service_stop` and
 This is not a generic Service Control Manager interface. The adapter accepts
 no other service name, executable path, command line, or machine, and cannot
 target Cortex's own service. It executes only through the authenticated
-LocalSystem broker. The attended root value is validated before dispatch,
-stripped before durable queueing, and never written to a receipt or Cortex
-record.
+LocalSystem broker, which checks the actual registered owner Host and the current
+protected connection approval. Revocation or credential-generation changes deny
+new dispatches. A name, chat label or task ID cannot substitute for that proof.
+Legacy root-code arguments are rejected rather than interpreted as approval.
 
 After `connect`, the same pipe carries sequential, existing
 `OperationRequest` and `OperationReceipt` frames. Cortex removes no validation
@@ -93,6 +99,7 @@ peer verifier.
 
 Unsigned, tampered, expired, wrong-EKU, wrong-signer, wrong-path, wrong-PID,
 wrong-service, wrong-SID, non-session-zero, revoked, malformed, or stale
-credentials fail closed. Cortex continues to support attended root codes
-independently. Cortex and Cerebral remain functional at their ordinary
-nonprivileged boundaries when this optional application session is absent.
+credentials fail closed. MCP connection approval and its optional Full control
+remain separate from this application session. Cortex and Cerebral remain
+functional at their ordinary nonprivileged boundaries when this optional session
+is absent. These source contracts do not establish installed or live availability.

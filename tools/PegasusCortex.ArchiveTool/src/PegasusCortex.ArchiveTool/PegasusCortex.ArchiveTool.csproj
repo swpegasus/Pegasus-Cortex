@@ -8,4 +8,7 @@
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <RestoreLockedMode>true</RestoreLockedMode>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\..\..\src\Shared\RootedIo\*.cs" Link="RootedIo\%(Filename)%(Extension)" />
+  </ItemGroup>
 </Project>

@@ -34,10 +34,10 @@ public static class WindowsTaskOperationContract
             request.PathRoots is { Count: > 0 } || request.Arg.Keys.Any(key => key is not ("op" or "rid" or "wait" or "elevate")) ||
             request.Arg.TryGetValue("rid", out var rid) && rid != request.Rid)
             throw Invalid("arguments");
-        if (request.Root is not null && (!IsSystemAction(action) || request.Root.Length is < 1 or > 128 || request.Root.Any(char.IsControl)))
-            throw Invalid("root");
+        if (request.Root is not null)throw Invalid("root_codes_removed");
+        if(request.System&&!IsSystemAction(action))throw Invalid("system");
         var requiresOwnerElevation = request.Arg.TryGetValue("elevate", out var elevation);
-        if (requiresOwnerElevation && (elevation != "uac" || !IsOwnerElevationAction(action) || request.Root is not null))
+        if (requiresOwnerElevation && (elevation != "uac" || !IsOwnerElevationAction(action) || request.System))
             throw Invalid("elevate");
         var mutation = !IsReadOnly(action);
         if (request.Rid is { } supplied && !ValidRid(supplied) || (mutation || requiresOwnerElevation) && request.Rid is null) throw Invalid("rid");

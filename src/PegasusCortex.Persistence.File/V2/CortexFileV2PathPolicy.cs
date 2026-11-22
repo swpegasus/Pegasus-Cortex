@@ -130,8 +130,7 @@ internal static partial class CortexFileV2PathPolicy
         var candidate = string.Equals(root, full, comparison) ? root : Contained(root, full);
         if (System.IO.File.Exists(candidate))
             throw new InvalidDataException("A file occupies a required Cortex directory.");
-        if (!Directory.Exists(candidate))
-            Directory.CreateDirectory(candidate);
+        using var admittedDirectory = Pegasus.Cortex.RootedIo.RootedDirectory.OpenRoot(candidate, createMissing: true);
         RejectReparseAncestry(root, candidate);
         return candidate;
     }

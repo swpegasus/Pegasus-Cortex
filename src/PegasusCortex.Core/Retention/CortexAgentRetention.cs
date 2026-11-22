@@ -41,6 +41,52 @@ public static class CortexRetainedDocumentKinds
 /// </summary>
 public static class CortexRetentionContentPolicy
 {
+    public static void RequireSemanticAccepted(params string?[] fields)
+    {
+        ArgumentNullException.ThrowIfNull(fields);
+        if (fields.Length > 2048) throw new CortexRetentionContentRejectedException(["screening_size"]);
+        foreach (var field in fields)
+        {
+            if (field is null) continue;
+            CheckSemanticText(field);
+            if (field.AsSpan().TrimStart() is var trimmed && trimmed.Length > 0 && trimmed[0] is '{' or '[')
+            {
+                JsonDocument? parsed = null;
+                try { parsed = JsonDocument.Parse(field, new JsonDocumentOptions { MaxDepth = 32 }); }
+                catch (JsonException) { /* Ordinary notes and code need not be JSON. */ }
+                using (parsed)
+                    if (parsed is not null) RequireSemanticJsonAccepted(parsed.RootElement);
+            }
+        }
+    }
+
+    public static void RequireSemanticJsonAccepted(JsonElement value)
+    {
+        var remaining = 4096;
+        Visit(value, 0);
+        void Visit(JsonElement item, int depth)
+        {
+            if (--remaining < 0 || depth > 32) throw new CortexRetentionContentRejectedException(["screening_size"]);
+            if (item.ValueKind == JsonValueKind.String) CheckSemanticText(item.GetString()!);
+            else if (item.ValueKind == JsonValueKind.Array)
+                foreach (var child in item.EnumerateArray()) Visit(child, depth + 1);
+            else if (item.ValueKind == JsonValueKind.Object)
+                foreach (var property in item.EnumerateObject())
+                {
+                    CheckSemanticText(property.Name);
+                    if (property.Value.ValueKind == JsonValueKind.String)
+                        CheckSemanticText(property.Name + "=" + JsonSerializer.Serialize(property.Value.GetString()));
+                    Visit(property.Value, depth + 1);
+                }
+        }
+    }
+
+    private static void CheckSemanticText(string text)
+    {
+        var result = LearningFeedbackContentScreening.ScreenSemanticText(text);
+        if (!result.Accepted) throw new CortexRetentionContentRejectedException(result.FindingCodes);
+    }
+
     public static void RequireAccepted(byte[] canonicalUtf8, string? additionalText = null)
     {
         ArgumentNullException.ThrowIfNull(canonicalUtf8);

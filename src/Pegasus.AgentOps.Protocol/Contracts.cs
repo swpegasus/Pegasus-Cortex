@@ -36,7 +36,9 @@ public sealed record OperationRequest(
     bool Quiet = false,
     bool Detail = false,
     IReadOnlyDictionary<string, string>? PathRoots = null,
-    [property: JsonIgnore] string? Body = null)
+    [property: JsonIgnore] string? Body = null,
+    bool System = false,
+    CortexMcpConnectionAuthority? ConnectionAuthority = null)
 {
     public const int MaxBodyBytes = 1024 * 1024;
     public const string BodyOmittedKey = "__body_omitted";
@@ -333,18 +335,38 @@ internal sealed class WireOperationRequestConverter:JsonConverter<OperationReque
         // marker after validating public arguments; never inject it here.
         var body=String(root,"body");ValidateBody(body);
         return new OperationRequest(op,arg,String(root,"rid"),String(root,"ws"),String(root,"cwd"),String(root,"root"),Bool(root,"quiet"),Bool(root,"detail"),
-            root.TryGetProperty("pathRoots",out var roots)&&roots.ValueKind!=JsonValueKind.Null?JsonSerializer.Deserialize<Dictionary<string,string>>(roots.GetRawText(),options):null,body);
+            root.TryGetProperty("pathRoots",out var roots)&&roots.ValueKind!=JsonValueKind.Null?JsonSerializer.Deserialize<Dictionary<string,string>>(roots.GetRawText(),options):null,body,
+            StrictBoolean(root,"system"),ReadConnectionAuthority(root,options));
     }
 
     public override void Write(Utf8JsonWriter writer,OperationRequest value,JsonSerializerOptions options)
     {
         ValidateBody(value.Body);writer.WriteStartObject();writer.WriteString("op",value.Op);writer.WritePropertyName("arg");JsonSerializer.Serialize(writer,value.Arg,options);
         Write(writer,"rid",value.Rid);Write(writer,"ws",value.Ws);Write(writer,"cwd",value.Cwd);Write(writer,"root",value.Root);writer.WriteBoolean("quiet",value.Quiet);writer.WriteBoolean("detail",value.Detail);
-        writer.WritePropertyName("pathRoots");JsonSerializer.Serialize(writer,value.PathRoots,options);Write(writer,"body",value.Body);writer.WriteEndObject();
+        writer.WritePropertyName("pathRoots");JsonSerializer.Serialize(writer,value.PathRoots,options);Write(writer,"body",value.Body);
+        writer.WriteBoolean("system",value.System);writer.WritePropertyName("connectionAuthority");
+        JsonSerializer.Serialize(writer,value.ConnectionAuthority,options);writer.WriteEndObject();
     }
 
     private static string? String(JsonElement root,string name)=>root.TryGetProperty(name,out var value)&&value.ValueKind!=JsonValueKind.Null?value.GetString():null;
     private static bool Bool(JsonElement root,string name)=>root.TryGetProperty(name,out var value)&&value.ValueKind==JsonValueKind.True;
+    private static bool StrictBoolean(JsonElement root,string name)
+    {
+        if(!root.TryGetProperty(name,out var value))return false;
+        if(value.ValueKind is not(JsonValueKind.True or JsonValueKind.False))throw new JsonException("invalid_system_intent");
+        return value.GetBoolean();
+    }
+    private static CortexMcpConnectionAuthority? ReadConnectionAuthority(JsonElement root,JsonSerializerOptions options)
+    {
+        if(!root.TryGetProperty("connectionAuthority",out var value)||value.ValueKind==JsonValueKind.Null)return null;
+        if(value.ValueKind!=JsonValueKind.Object||value.EnumerateObject().Count()!=4||
+            value.EnumerateObject().Select(p=>p.Name).Distinct(StringComparer.Ordinal).Count()!=4||
+            value.EnumerateObject().Any(p=>p.Name is not("authority" or "connectionId" or "credentialGeneration" or "grantRevision")))
+            throw new JsonException("invalid_connection_authority");
+        var authority=JsonSerializer.Deserialize<CortexMcpConnectionAuthority>(value.GetRawText(),options);
+        if(!CortexMcpConnections.IsAuthority(authority))throw new JsonException("invalid_connection_authority");
+        return authority;
+    }
     private static void Write(Utf8JsonWriter writer,string name,string? value){if(value is null)writer.WriteNull(name);else writer.WriteString(name,value);}
     private static void ValidateBody(string? body){if(body is not null&&Encoding.UTF8.GetByteCount(body)>OperationRequest.MaxBodyBytes)throw new JsonException("body_too_large");}
 }

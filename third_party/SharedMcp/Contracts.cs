@@ -4,8 +4,12 @@ using System.Text.Json.Nodes;
 
 namespace Pegasus.SharedMcp;
 
-/// <summary>Correlation only. Nothing in this context establishes identity or execution authority.</summary>
-public sealed record McpRequestContext(string Product, string SessionId, int StreamId, string? TaskId, string RequestId);
+/// <summary>Labels are correlation only. Identity comes exclusively from the host's authenticator, never request metadata.</summary>
+public sealed record McpRequestContext(string Product, string SessionId, int StreamId, string? TaskId, string RequestId)
+{
+    /// <summary>Authenticated connection identity, not an operation grant or an OS execution identity.</summary>
+    public McpAuthenticatedIdentity? Identity { get; init; }
+}
 
 /// <summary>The product owns its catalog, validation, execution, and privilege boundary.</summary>
 public interface IMcpDispatcher : IAsyncDisposable
@@ -36,6 +40,8 @@ public sealed class McpServerOptions
     public int MaximumResponseBytes { get; init; } = 2300000;
     public TimeSpan RequestTimeout { get; init; } = TimeSpan.FromMinutes(5);
     public TimeSpan SessionIdleTimeout { get; init; } = TimeSpan.FromMinutes(30);
+    /// <summary>Optional host-owned credential verifier. Null preserves the unauthenticated transport profile.</summary>
+    public IMcpRequestAuthenticator? Authenticator { get; init; }
     /// <summary>Optional bounded metadata sink. Bodies, headers and credentials never enter this callback.</summary>
     public Action<McpTrace>? Trace { get; init; }
 }

@@ -1,3 +1,9 @@
+if(args is ["--metadata-read-bounds-only"])
+{
+    await MetadataReadBoundsTests.RunAsync();
+    Console.WriteLine("PASS local metadata opened-handle bounds.");
+    return 0;
+}
 if (args is ["--owned-profile-protocol-child", var ownedProfile, var ownedStateRoot])
     return await OwnedProfileProtocolChild.RunAsync(ownedProfile, ownedStateRoot);
 if (args is ["--direct-stdio-retirement-only"])

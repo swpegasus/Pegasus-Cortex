@@ -26,13 +26,28 @@ internal sealed class CortexResidentServer(ICortexMcpProtocolApplication applica
     private readonly BoundedRequestDispatcher _dispatcher = new();
     internal int ConnectionCount => _sessions.Count;
 
-    internal IMcpDispatcher CreateOwnerEndpointDispatcher(UserHostAdmission ownerAdmission)
+    internal IMcpDispatcher CreateOwnerEndpointDispatcher(UserHostAdmission ownerAdmission,string? installRoot=null)
     {
         if (!ReferenceEquals(admission, ownerAdmission))
             throw new InvalidOperationException("The endpoint must retain the resident owner's admission boundary.");
         return new CortexEmbeddedMcpDispatcher(
             CortexClientApplication.ForOwnerEndpoint(application, ownerAdmission),
-            _dispatcher, ownerAdmission, diagnostics);
+            _dispatcher, ownerAdmission, diagnostics, installRoot is null?null:context =>
+            {
+                var identity=context.Identity??throw new UnauthorizedAccessException("connection_auth_required");
+                var store=Pegasus.Cortex.Product.CortexMcpConnections.ReadForInstallRoot(installRoot);
+                var grant=store?.Connections.SingleOrDefault(item=>item.Request.ConnectionId==identity.Subject);
+                if(store?.Authority!=identity.Authority||grant is not { Enabled:true }||
+                    grant.CredentialGeneration!=identity.Generation)throw new UnauthorizedAccessException("connection_revoked");
+                var authority=new Pegasus.Cortex.Product.CortexMcpConnectionAuthority(store.Authority,
+                    grant.Request.ConnectionId,grant.CredentialGeneration,grant.Revision);
+                bool Current(bool full)=>Pegasus.Cortex.Product.CortexMcpConnections.Find(
+                    Pegasus.Cortex.Product.CortexMcpConnections.ReadForInstallRoot(installRoot),authority,full) is not null;
+                var scoped=application is Pegasus.Cortex.Mcp.Local.Runtime.CortexUnifiedMcpApplication unified
+                    ?unified.ForConnection(authority,grant.Request.Name,Current):application;
+                return new Pegasus.Cortex.Mcp.Protocol.CortexMcpInvocationProcessor(
+                    CortexClientApplication.ForOwnerEndpoint(scoped,ownerAdmission,()=>Current(false)),diagnostics);
+            });
     }
 
     // HTTP cancellation may settle its response before a callback cooperates.

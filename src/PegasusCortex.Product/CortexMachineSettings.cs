@@ -17,7 +17,7 @@ internal static class CortexMachineSettings
     }
 
     internal static T Read<T>(string path,T factoryDefault,Func<byte[],T> deserialize,
-        Action<string> requireBoundary,int maximumBytes,string subject)
+        Action<string> requireBoundary,int maximumBytes,string subject,FileShare sharing=FileShare.Read)
     {
         requireBoundary(path);
         FileAttributes attributes;
@@ -25,7 +25,7 @@ internal static class CortexMachineSettings
         catch(FileNotFoundException) { return factoryDefault; }
         if((attributes&(FileAttributes.ReparsePoint|FileAttributes.Directory))!=0)
             throw new InvalidDataException(subject+" are not an ordinary file.");
-        using var stream=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read);
+        using var stream=new FileStream(path,FileMode.Open,FileAccess.Read,sharing);
         if(stream.Length<1||stream.Length>maximumBytes)throw new InvalidDataException(subject+" exceed their bounded file format.");
         var bytes=new byte[checked((int)stream.Length)];
         stream.ReadExactly(bytes);

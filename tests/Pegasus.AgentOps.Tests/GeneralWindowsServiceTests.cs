@@ -136,8 +136,10 @@ internal static class GeneralWindowsServiceTests
     private static async Task EngineAndBrokerAsync()
     {
         using var root = new OwnedRoot();
+        var owner = LocalIdentity.Current();
+        var approval = new ApprovedConnectionFixture(owner);
         var platform = new FakePlatform();
-        await using var engine = Engine(root.Path, platform);
+        await using var engine = Engine(root.Path, platform, approval);
         var read = await engine.ExecuteAsync(await Wire(Request("read")));
         var page = await engine.ExecuteAsync(Request("list"));
         Check(read.Ok && page.Ok && Rows(root.Path) == 0, "ordinary service reads became durable");
@@ -146,15 +148,13 @@ internal static class GeneralWindowsServiceTests
         Check(!denied.Ok && denied.Err == "auth" && platform.Stops == 0, "ordinary owner controlled a general service");
         var forged = Request("stop") with { Arg = new Dictionary<string, string> { ["op"] = "stop", ["__execution_context_system"] = "1" } };
         Check(!(await engine.ExecuteAsync(forged)).Ok && platform.Stops == 0, "caller-forged System context admitted");
-        var owner = LocalIdentity.Current();
-        var verifier = new RootCodeVerifier(System.IO.Path.Combine(root.Path, "root.verifier")); verifier.Enroll("AB12");
-        await using var broker = new AuthenticatedServiceBroker(System.IO.Path.Combine(root.Path, "broker"), owner.Sid, verifier,
-            false, null, (request, token) => engine.ExecuteAuthenticatedFrozenDirectAsync(request, token));
+        await using var broker = new AuthenticatedServiceBroker(System.IO.Path.Combine(root.Path, "broker"), owner.Sid, approval.Authorize,
+            false, null, (request, token) => engine.ExecuteAuthenticatedFrozenDirectAsync(request, token), ownerHostVerifier: approval.IsTrustedHost);
         Check(!(await broker.HandleSystemAsync(Request("stop") with { Root = "ZZ99" }, owner, CancellationToken.None)).Ok &&
-            platform.Stops == 0, "wrong root reached SCM");
-        var request = await Wire(Request("stop", rid: "root-stop") with { Root = "AB12" });
+            platform.Stops == 0, "retired root reached SCM");
+        var request = await Wire(Request("stop", rid: "root-stop") with { System = true, ConnectionAuthority = approval.Current });
         var result = await broker.HandleSystemAsync(request, owner, CancellationToken.None);
-        Check(result.Ok && platform.Stops == 1, "root-authenticated fixed service route did not complete");
+        Check(result.Ok && platform.Stops == 1, "approved Full-control fixed service route did not complete");
         await Retired(engine);
         var row = Stored(root.Path, "root-stop");
         Check(row.Receipt.Op == "windows_service_stop" && row.Request is null &&
@@ -178,24 +178,21 @@ internal static class GeneralWindowsServiceTests
     private static async Task RootObservationsAsync()
     {
         using var root = new OwnedRoot();
+        var owner = LocalIdentity.Current();
+        var approval = new ApprovedConnectionFixture(owner);
         var userPath = System.IO.Path.Combine(root.Path, "owner");
         var systemPath = System.IO.Path.Combine(root.Path, "system");
         var userPlatform = new FakePlatform { HideProcessIdentity = true };
         var systemPlatform = new FakePlatform();
         await using var user = Engine(userPath, userPlatform);
-        await using var system = Engine(systemPath, systemPlatform);
-        var owner = LocalIdentity.Current();
-        var image = owner.ApplicationPath ?? throw new InvalidOperationException("fixture application identity unavailable");
-        var verifier = new RootCodeVerifier(System.IO.Path.Combine(root.Path, "root.verifier"));
-        verifier.Enroll(new RootCodeDefinition("service-observation", "AB12",
-            new RootAccessPolicy("allow", [image]), RootAccessPolicy.Off));
-        await using var broker = new AuthenticatedServiceBroker(System.IO.Path.Combine(root.Path, "broker"), owner.Sid, verifier,
-            false, null, (request, token) => system.ExecuteAuthenticatedFrozenDirectAsync(request, token));
+        await using var system = Engine(systemPath, systemPlatform, approval);
+        await using var broker = new AuthenticatedServiceBroker(System.IO.Path.Combine(root.Path, "broker"), owner.Sid, approval.Authorize,
+            false, null, (request, token) => system.ExecuteAuthenticatedFrozenDirectAsync(request, token), ownerHostVerifier: approval.IsTrustedHost);
 
         var ordinary = await user.ExecuteAsync(await Wire(Request("read", rid: "ordinary-limited-read")));
         Check(ordinary.Ok && !Flag(ordinary, "process_identity_available") && ordinary.Data?.ContainsKey("start") != true,
             "ordinary read invented a process identity");
-        var privilegedRead = await Wire(Request("read", rid: "root-exact-read") with { Root = "AB12" });
+        var privilegedRead = await Wire(Request("read", rid: "root-exact-read") with { System = true, ConnectionAuthority = approval.Current });
         var privileged = await broker.HandleSystemAsync(privilegedRead, owner, CancellationToken.None);
         Check(privileged.Ok && Text(privileged.Data!["start"]) == StartIdentity &&
             Rows(userPath) == 0 && Rows(systemPath) == 0 && systemPlatform.Starts == 0 && systemPlatform.Stops == 0,
@@ -208,7 +205,7 @@ internal static class GeneralWindowsServiceTests
         Check(!(await broker.HandleSystemAsync(privilegedRead,
             owner with { ApplicationPath = System.IO.Path.Combine(root.Path, "foreign.exe") }, CancellationToken.None)).Ok,
             "unapproved application read admitted");
-        Check(!(await broker.HandleSystemAsync(Request("list") with { Root = "AB12" }, owner, CancellationToken.None)).Ok &&
+        Check(!(await broker.HandleSystemAsync(Request("list") with { System = true, ConnectionAuthority = approval.Current }, owner, CancellationToken.None)).Ok &&
             systemPlatform.Opens == opens, "privileged list or failed authorization reached the adapter");
 
         using var entered = new SemaphoreSlim(0, 1);
@@ -220,7 +217,7 @@ internal static class GeneralWindowsServiceTests
             entered.Release();
             release.Wait(deadline.Token);
         };
-        var mutationRequest = await Wire(Request("stop", rid: "observed-original-stop") with { Root = "AB12" });
+        var mutationRequest = await Wire(Request("stop", rid: "observed-original-stop") with { System = true, ConnectionAuthority = approval.Current });
         var mutation = Task.Run(() => broker.HandleSystemAsync(mutationRequest, owner, CancellationToken.None));
         try
         {
@@ -271,7 +268,7 @@ internal static class GeneralWindowsServiceTests
             }
             var bodyDenied = await broker.HandleSystemAsync(JobObservation("stat", original.Jid) with { Body = "{}" }, owner, deadline.Token);
             Check(!bodyDenied.Ok && bodyDenied.Err == "invalid", "job observer accepted a body");
-            var ordinaryJob = await user.ExecuteAsync(JobObservation("stat", original.Jid) with { Root = null });
+            var ordinaryJob = await user.ExecuteAsync(JobObservation("stat", original.Jid) with { Root = null, System = false, ConnectionAuthority = null });
             Check(!ordinaryJob.Ok && ordinaryJob.Err == "not_found", "ordinary job query crossed into the System Engine");
             release.Set();
             var finished = await mutation.WaitAsync(deadline.Token);
@@ -296,6 +293,8 @@ internal static class GeneralWindowsServiceTests
     private static async Task QueuedObservationAsync()
     {
         using var root = new OwnedRoot();
+        var owner = LocalIdentity.Current();
+        var approval = new ApprovedConnectionFixture(owner);
         var source = Request("start", rid: "queued-observation-source");
         var jid = Guid.NewGuid().ToString("N");
         using (var store = new SqliteJobStore(root.Path))
@@ -305,15 +304,13 @@ internal static class GeneralWindowsServiceTests
         var mode = new HeldMode();
         var platform = new FakePlatform();
         await using var engine = new AgentOpsEngine(root.Path, null, false, null, false, null,
-            maintenanceMode: mode, windowsServices: new WindowsServiceOperations(platform));
+            maintenanceMode: mode, windowsServices: new WindowsServiceOperations(platform), connectionAuthorization: approval.Authorize);
         // Startup deliberately retained this queued skeleton behind maintenance.
         // Opening the fake mode makes any accidental PumpRecovery observable.
         mode.Open = true;
         var reads = mode.Reads;
-        var owner = LocalIdentity.Current();
-        var verifier = new RootCodeVerifier(System.IO.Path.Combine(root.Path, "root.verifier")); verifier.Enroll("AB12");
-        await using var broker = new AuthenticatedServiceBroker(System.IO.Path.Combine(root.Path, "broker"), owner.Sid, verifier,
-            false, null, (query, token) => engine.ExecuteAuthenticatedFrozenDirectAsync(query, token));
+        await using var broker = new AuthenticatedServiceBroker(System.IO.Path.Combine(root.Path, "broker"), owner.Sid, approval.Authorize,
+            false, null, (query, token) => engine.ExecuteAuthenticatedFrozenDirectAsync(query, token), ownerHostVerifier: approval.IsTrustedHost);
         var snapshot = await broker.HandleSystemAsync(await Wire(JobObservation("stat", jid)), owner, CancellationToken.None);
         Check(snapshot.Ok && Record(snapshot).State == "queued", "queued receipt observation started recovery");
         using var observation = new CancellationTokenSource(TimeSpan.FromSeconds(5));
@@ -331,6 +328,8 @@ internal static class GeneralWindowsServiceTests
     private static async Task LostBodyAsync()
     {
         using var root = new OwnedRoot();
+        var owner = LocalIdentity.Current();
+        var approval = new ApprovedConnectionFixture(owner);
         var request = Request("start", rid: "queued-body-lost");
         var invocation = WindowsServiceOperationContract.Parse(request);
         using (var store = new SqliteJobStore(root.Path))
@@ -340,7 +339,7 @@ internal static class GeneralWindowsServiceTests
                 new("windows_service", new Dictionary<string, string> { ["op"] = "start", [OperationRequest.BodyOmittedKey] = "1" }, request.Rid), true);
         }
         var platform = new FakePlatform();
-        await using var engine = Engine(root.Path, platform);
+        await using var engine = Engine(root.Path, platform, approval);
         var frozen = request with { Arg = new Dictionary<string, string> { ["op"] = "start", ["__execution_context_system"] = "1" } };
         var result = await engine.ExecuteAuthenticatedFrozenDirectAsync(frozen);
         Check(result.State == "recovery_required" && result.Partial && Flag(result, "outcome_unknown") &&
@@ -349,10 +348,8 @@ internal static class GeneralWindowsServiceTests
         var replay = await engine.ExecuteAuthenticatedFrozenDirectAsync(frozen);
         Check(replay.Jid == result.Jid && replay.Partial && Flag(replay, "outcome_unknown") && platform.Opens == 0 && platform.Starts == 0,
             "same-RID recovery reissued a lost service body");
-        var owner = LocalIdentity.Current();
-        var verifier = new RootCodeVerifier(System.IO.Path.Combine(root.Path, "root.verifier")); verifier.Enroll("AB12");
-        await using var broker = new AuthenticatedServiceBroker(System.IO.Path.Combine(root.Path, "broker"), owner.Sid, verifier,
-            false, null, (query, token) => engine.ExecuteAuthenticatedFrozenDirectAsync(query, token));
+        await using var broker = new AuthenticatedServiceBroker(System.IO.Path.Combine(root.Path, "broker"), owner.Sid, approval.Authorize,
+            false, null, (query, token) => engine.ExecuteAuthenticatedFrozenDirectAsync(query, token), ownerHostVerifier: approval.IsTrustedHost);
         var observed = await broker.HandleSystemAsync(await Wire(JobObservation("stat", result.Jid)), owner, CancellationToken.None);
         var waited = await broker.HandleSystemAsync(await Wire(JobObservation("wait", result.Jid)), owner, CancellationToken.None);
         Check(observed.Ok && Record(observed).Partial && Flag(Record(observed), "outcome_unknown") &&
@@ -378,7 +375,7 @@ internal static class GeneralWindowsServiceTests
                 help["executionRoute"]!.GetValue<string>().Contains(WindowsServiceOperationContract.IsReadOnly(action) ? "owner" : "LocalSystem", StringComparison.OrdinalIgnoreCase),
                 "help implied readiness or wrong route");
             var arguments = new JsonObject { ["op"] = name, ["text"] = Body(action), ["rid"] = "captured-" + action };
-            if (!WindowsServiceOperationContract.IsReadOnly(action)) arguments["root"] = "AB12";
+            if (!WindowsServiceOperationContract.IsReadOnly(action)) arguments["system"] = true;
             using var json = JsonDocument.Parse(arguments.ToJsonString());
             var previous = capture.Calls;
             _ = await PaoProgram.CallUnifiedMcpToolAsync(json.RootElement, capture, CancellationToken.None, defaultWs: "must-not-apply");
@@ -387,32 +384,32 @@ internal static class GeneralWindowsServiceTests
                 "captured unified service shape changed");
         }
         var readHelp = PaoProgram.UnifiedMcpOperationHelp("windows_service_read")!;
-        Check(readHelp["allowed"]!.AsArray().Any(value => value!.GetValue<string>() == "root") &&
-            !readHelp["required"]!.AsArray().Any(value => value!.GetValue<string>() == "root"),
+        Check(readHelp["allowed"]!.AsArray().Any(value => value!.GetValue<string>() == "system") &&
+            !readHelp["required"]!.AsArray().Any(value => value!.GetValue<string>() == "system"),
             "privileged read was missing or made the default");
-        using (var rootRead = JsonDocument.Parse(new JsonObject { ["op"] = "windows_service_read", ["text"] = Body("read"), ["root"] = "AB12" }.ToJsonString()))
+        using (var rootRead = JsonDocument.Parse(new JsonObject { ["op"] = "windows_service_read", ["text"] = Body("read"), ["system"] = true }.ToJsonString()))
         {
             var prior = capture.Calls;
             _ = await PaoProgram.CallUnifiedMcpToolAsync(rootRead.RootElement, capture, CancellationToken.None, defaultWs: "must-not-apply");
-            Check(capture.Calls == prior + 1 && capture.Last!.Root == "AB12" && capture.Last.Ws is null && capture.Last.Cwd is null,
+            Check(capture.Calls == prior + 1 && capture.Last!.System && capture.Last.Root is null && capture.Last.ConnectionAuthority is null && capture.Last.Ws is null && capture.Last.Cwd is null,
                 "explicit read root was erased or acquired workspace state");
         }
         var serviceJid = new string('1', 32);
         foreach (var action in new[] { "stat", "wait" })
         {
             var help = PaoProgram.UnifiedMcpOperationHelp("job_" + action)!;
-            Check(help["allowed"]!.AsArray().Any(value => value!.GetValue<string>() == "root") &&
+            Check(help["allowed"]!.AsArray().Any(value => value!.GetValue<string>() == "system") &&
                 help["constraints"]!.GetValue<string>().Contains("Windows-service mutation", StringComparison.Ordinal),
                 "scoped root job observation missing from help");
-            using var query = JsonDocument.Parse(new JsonObject { ["op"] = "job_" + action, ["jid"] = serviceJid, ["root"] = "AB12" }.ToJsonString());
+            using var query = JsonDocument.Parse(new JsonObject { ["op"] = "job_" + action, ["jid"] = serviceJid, ["system"] = true }.ToJsonString());
             var prior = capture.Calls;
             _ = await PaoProgram.CallUnifiedMcpToolAsync(query.RootElement, capture, CancellationToken.None, defaultWs: "must-not-apply");
-            Check(capture.Calls == prior + 1 && capture.Last!.Root == "AB12" && capture.Last.Body is null &&
+            Check(capture.Calls == prior + 1 && capture.Last!.System && capture.Last.Root is null && capture.Last.ConnectionAuthority is null && capture.Last.Body is null &&
                 capture.Last.Ws is null && capture.Last.Cwd is null && capture.Last.Arg["jid"] == serviceJid,
                 "root job frontend routed or retained another shape");
             using var cliOut = new StringWriter(); using var cliError = new StringWriter();
-            Check(await PaoProgram.RunCliAsync(["job", action, serviceJid, "root=AB12"], capture, cliOut, cliError, CancellationToken.None) == 0 &&
-                capture.Last!.Root == "AB12" && capture.Last.Cwd is null, "root job CLI rejected");
+            Check(await PaoProgram.RunCliAsync(["job", action, serviceJid, "system=true"], capture, cliOut, cliError, CancellationToken.None) == 0 &&
+                capture.Last!.System && capture.Last.Root is null && capture.Last.ConnectionAuthority is null && capture.Last.Cwd is null, "root job CLI rejected");
         }
         using (var ordinaryJob = JsonDocument.Parse(new JsonObject { ["op"] = "job_stat", ["jid"] = serviceJid }.ToJsonString()))
         {
@@ -422,19 +419,28 @@ internal static class GeneralWindowsServiceTests
         var beforeInvalid = capture.Calls;
         foreach (var action in new[] { "ls", "cancel", "log", "prune" })
         {
-            using var query = JsonDocument.Parse(new JsonObject { ["op"] = "job_" + action, ["jid"] = serviceJid, ["root"] = "AB12" }.ToJsonString());
+            using var query = JsonDocument.Parse(new JsonObject { ["op"] = "job_" + action, ["jid"] = serviceJid, ["system"] = true }.ToJsonString());
             _ = await PaoProgram.CallUnifiedMcpToolAsync(query.RootElement, capture, CancellationToken.None);
         }
-        using (var list = JsonDocument.Parse(new JsonObject { ["op"] = "windows_service_list", ["text"] = Body("list"), ["root"] = "AB12" }.ToJsonString()))
+        using (var list = JsonDocument.Parse(new JsonObject { ["op"] = "windows_service_list", ["text"] = Body("list"), ["system"] = true }.ToJsonString()))
             _ = await PaoProgram.CallUnifiedMcpToolAsync(list.RootElement, capture, CancellationToken.None);
         using (var duplicate = JsonDocument.Parse($$"""{"op":"job_stat","jid":"{{serviceJid}}","jid":"{{serviceJid}}","root":"AB12"}"""))
             _ = await PaoProgram.CallUnifiedMcpToolAsync(duplicate.RootElement, capture, CancellationToken.None);
         Check(capture.Calls == beforeInvalid, "root job controls, duplicate observation fields or privileged list were advertised/admitted");
 
+        foreach (var retired in new[] { "AB12", " \"ab12\" ", "prefixAB12suffix" })
+        {
+            using var rejected = JsonDocument.Parse(new JsonObject { ["op"] = "windows_service_read", ["text"] = Body("read"), ["root"] = retired }.ToJsonString());
+            _ = await PaoProgram.CallUnifiedMcpToolAsync(rejected.RootElement, capture, CancellationToken.None);
+        }
+        using (var nonBoolean = JsonDocument.Parse(new JsonObject { ["op"] = "windows_service_read", ["text"] = Body("read"), ["system"] = "AB12" }.ToJsonString()))
+            _ = await PaoProgram.CallUnifiedMcpToolAsync(nonBoolean.RootElement, capture, CancellationToken.None);
+        Check(capture.Calls == beforeInvalid, "retired root or nonboolean System reached dispatcher");
+
         using var output = new StringWriter(); using var error = new StringWriter();
-        var exit = await PaoProgram.RunCliAsync(["windows_service", "stop", "--stdin", "root=AB12", "rid=captured-cli"],
+        var exit = await PaoProgram.RunCliAsync(["windows_service", "stop", "--stdin", "system=true", "rid=captured-cli"],
             capture, output, error, CancellationToken.None, new StringReader(Body("stop")));
-        Check(exit == 0 && capture.Last!.Root == "AB12" && capture.Last.Body == Body("stop"), "typed service CLI rejected");
+        Check(exit == 0 && capture.Last!.System && capture.Last.Root is null && capture.Last.ConnectionAuthority is null && capture.Last.Body == Body("stop"), "typed service CLI rejected");
         var before = capture.Calls;
         using var legacy = JsonDocument.Parse("{\"op\":\"service_status\",\"service\":\"Spooler\",\"root\":\"AB12\"}");
         _ = await PaoProgram.CallUnifiedMcpToolAsync(legacy.RootElement, capture, CancellationToken.None);
@@ -458,7 +464,7 @@ internal static class GeneralWindowsServiceTests
     }
 
     private static OperationRequest JobObservation(string action, string jid) => new("job",
-        new Dictionary<string, string> { ["op"] = action, ["jid"] = jid }, Guid.NewGuid().ToString("N"), Root: "AB12");
+        new Dictionary<string, string> { ["op"] = action, ["jid"] = jid }, Guid.NewGuid().ToString("N"), System: true, ConnectionAuthority: ApprovedConnectionFixture.DefaultAuthority);
     private static OperationReceipt Record(OperationReceipt observation) =>
         JsonSerializer.Deserialize<OperationReceipt>(JsonSerializer.Serialize(observation.Data!["rec"], Json), Json)!;
 
@@ -601,8 +607,9 @@ internal static class GeneralWindowsServiceTests
             "post-entry cancellation replayed or compensated service action");
     }
 
-    private static AgentOpsEngine Engine(string root, FakePlatform platform) => new(root, null, false, null, false, null,
-        maintenanceMode: new OpenMode(), windowsServices: new WindowsServiceOperations(platform));
+    private static AgentOpsEngine Engine(string root, FakePlatform platform, ApprovedConnectionFixture? approval = null) => new(root, null, false, null, false, null,
+        maintenanceMode: new OpenMode(), windowsServices: new WindowsServiceOperations(platform),
+        connectionAuthorization: approval is null ? null : approval.Authorize);
     private static OperationRequest Request(string action, string? body = null, string? rid = "fixture-service-rid") =>
         new("windows_service", new Dictionary<string, string> { ["op"] = action }, rid, Body: body ?? Body(action));
     private static WindowsServiceInvocation Parse(string action, string? body = null) => WindowsServiceOperationContract.Parse(Request(action, body));

@@ -161,12 +161,31 @@ public enum CortexResponseFormatV2
     Compact
 }
 
+/// <summary>Host-supplied transport attribution, separate from declared participant labels and Core permissions.</summary>
+public sealed record CortexInvocationSourceV2(string Kind, string Authority, string Subject, long Generation, string? Label = null)
+{
+    public CortexInvocationSourceV2 Validate()
+    {
+        const string prefix = "cortex.mcp/";
+        if (Kind != "approved-mcp-connection" || Authority is null || !Authority.StartsWith(prefix, StringComparison.Ordinal) ||
+            !GuidValue(Authority[prefix.Length..]) || !GuidValue(Subject) || Generation < 1 ||
+            Label is not null && (string.IsNullOrWhiteSpace(Label) || Label.Length > 256 || Label.Any(char.IsControl)))
+            throw new ArgumentException("A bounded host-verified invocation source is required.");
+        return this;
+    }
+
+    private static bool GuidValue(string? value) =>
+        Guid.TryParseExact(value, "N", out var id) && id != Guid.Empty ||
+        Guid.TryParseExact(value, "D", out id) && id != Guid.Empty;
+}
+
 public sealed record CortexProvenanceV2(
     CortexProvenanceSourceV2 Source,
     string Actor,
     string? SourceId,
     string? Evidence,
-    DateTimeOffset CapturedAtUtc);
+    DateTimeOffset CapturedAtUtc,
+    CortexInvocationSourceV2? VerifiedSource = null);
 
 public sealed record CortexProvenanceInputV2(
     [property: JsonRequired] CortexProvenanceSourceV2 Source,
@@ -177,7 +196,8 @@ public sealed record CortexProvenanceReceiptV2(
     CortexProvenanceSourceV2 Source,
     string Actor,
     string? SourceId,
-    DateTimeOffset CapturedAtUtc);
+    DateTimeOffset CapturedAtUtc,
+    CortexInvocationSourceV2? VerifiedSource = null);
 
 public sealed record CortexStatusV2(
     string Product,
@@ -336,7 +356,10 @@ public sealed record CortexTaskV2(
     DateTimeOffset? ArchivedAtUtc,
     CortexProvenanceV2 Provenance,
     string? PhaseId = null,
-    string? CheckpointSubject = null);
+    string? CheckpointSubject = null)
+{
+    public string ParticipantIdentityKind => "declared-label";
+}
 
 public sealed record CortexTaskSummaryV2(
     string Namespace,
@@ -349,7 +372,11 @@ public sealed record CortexTaskSummaryV2(
     string? ClaimedBy,
     string? BlockedReason,
     string? PhaseId = null,
-    string? CheckpointSubject = null);
+    string? CheckpointSubject = null,
+    CortexInvocationSourceV2? VerifiedSource = null)
+{
+    public string ParticipantIdentityKind => "declared-label";
+}
 
 public sealed record CortexTaskHistoryEventV2(
     string Namespace,
@@ -363,7 +390,8 @@ public sealed record CortexTaskHistoryEventV2(
     bool ContentChanged,
     string ContentHash,
     string? PhaseId = null,
-    string? CheckpointSubject = null);
+    string? CheckpointSubject = null,
+    CortexInvocationSourceV2? VerifiedSource = null);
 
 public sealed record CortexTaskCommandV2(
     string Namespace,

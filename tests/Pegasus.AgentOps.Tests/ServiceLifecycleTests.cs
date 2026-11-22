@@ -26,7 +26,7 @@ internal static class ServiceLifecycleTests
 
         var applicationBroker = new AuthenticatedServiceBroker(
             temp.Directory("application-broker"), LocalIdentity.Current().Sid,
-            new RootCodeVerifier(Path.Combine(temp.Path, "application-root.verifier")),
+            null,
             false, null,
             (request, cancellationToken) => engine.ExecuteAuthenticatedFrozenDirectAsync(request, cancellationToken));
         await using (applicationBroker)
@@ -37,30 +37,29 @@ internal static class ServiceLifecycleTests
         }
 
         var owner = LocalIdentity.Current();
-        var verifier = new RootCodeVerifier(Path.Combine(temp.Path, "root.verifier"));
-        verifier.Enroll("AB12");
+        var approval = new ApprovedConnectionFixture(owner);
         await using var broker = new AuthenticatedServiceBroker(
-            temp.Directory("broker"), owner.Sid, verifier, false, null,
-            (request, cancellationToken) => engine.ExecuteAuthenticatedFrozenDirectAsync(request, cancellationToken));
+            temp.Directory("broker"), owner.Sid, approval.Authorize, false, null,
+            (request, cancellationToken) => engine.ExecuteAuthenticatedFrozenDirectAsync(request, cancellationToken), ownerHostVerifier: approval.IsTrustedHost);
 
-        var denied = await broker.HandleSystemAsync(Request("status", "denied", root: "ZZ99"), owner, CancellationToken.None);
-        Is("auth", denied.Err, "invalid root code reached service lifecycle");
+        var denied = await broker.HandleSystemAsync(Request("status", "denied", system: true) with { ConnectionAuthority = approval.Current with { GrantRevision = 2 } }, owner, CancellationToken.None);
+        Is("full_control_required", denied.Err, "stale connection approval reached service lifecycle");
         Is(0, fake.Calls, "denied request reached SCM adapter");
 
-        var status = await broker.HandleSystemAsync(Request("status", "status", root: "AB12"), owner, CancellationToken.None);
+        var status = await broker.HandleSystemAsync(Request("status", "status", system: true), owner, CancellationToken.None);
         True(status.Ok, status.Err ?? "service status failed");
         Is("running", Convert.ToString(status.Data!["service_state"], CultureInfo.InvariantCulture), "service status mismatch");
         Is(4242, Integer(status.Data["pid"]), "service pid mismatch");
 
-        var stale = await broker.HandleSystemAsync(Request("stop", "stale", root: "AB12", expect: "running", pid: 9999, start: Start), owner, CancellationToken.None);
+        var stale = await broker.HandleSystemAsync(Request("stop", "stale", system: true, expect: "running", pid: 9999, start: Start), owner, CancellationToken.None);
         Is("pid_reused", stale.Err, "stale service identity was accepted");
         Is("running", fake.Current.State, "stale identity changed service state");
 
-        var stopped = await broker.HandleSystemAsync(Request("stop", "stop", root: "AB12", expect: "running", pid: 4242, start: Start), owner, CancellationToken.None);
+        var stopped = await broker.HandleSystemAsync(Request("stop", "stop", system: true, expect: "running", pid: 4242, start: Start), owner, CancellationToken.None);
         True(stopped.Ok, stopped.Err ?? "exact service stop failed");
         Is("stopped", fake.Current.State, "service did not stop");
 
-        var started = await broker.HandleSystemAsync(Request("start", "start", root: "AB12", expect: "stopped"), owner, CancellationToken.None);
+        var started = await broker.HandleSystemAsync(Request("start", "start", system: true, expect: "stopped"), owner, CancellationToken.None);
         True(started.Ok, started.Err ?? "exact service start failed");
         Is("running", fake.Current.State, "service did not start");
 
@@ -78,65 +77,51 @@ internal static class ServiceLifecycleTests
     private static async Task VerifyClientSurfacesAsync(string fixtureRoot)
     {
         await using var capture = new ServiceCaptureDispatcher();
-        using var stdout = new StringWriter();
-        using var stderr = new StringWriter();
+        using var stdout = new StringWriter(); using var stderr = new StringWriter();
         var cli = await PaoProgram.RunCliAsync(
-            ["service", "stop", Service, "expect=running", "pid=4242", $"start={Start}", "tmo=30", "root=AB12", "rid=cli-service"],
+            ["service", "stop", Service, "expect=running", "pid=4242", $"start={Start}", "tmo=30", "system=true", "rid=cli-service"],
             capture, stdout, stderr, CancellationToken.None);
-        Is(0, cli, $"service CLI rejected typed request: {stderr}");
-        Is("service", capture.Last!.Op, "CLI operation mismatch");
-        Is("stop", capture.Last.Arg["op"], "CLI action mismatch");
-        Is("AB12", capture.Last.Root, "CLI root was not transient request metadata");
-
+        Is(0, cli, $"service CLI rejected typed System intent: {stderr}");
+        Is("service", capture.Last!.Op, "CLI operation mismatch"); Is("stop", capture.Last.Arg["op"], "CLI action mismatch");
+        True(capture.Last.System && capture.Last.Root is null && capture.Last.ConnectionAuthority is null,
+            "public System intent supplied an approval or credential");
         stdout.GetStringBuilder().Clear(); stderr.GetStringBuilder().Clear();
         var wrappedCli = await PaoProgram.RunCliAsync(
-            ["service", "status", "\\\"" + Service + "\\\"", "\\\"root=ab12\\\"", "rid=\\\"cli-service-wrapped\\\""],
+            ["service", "status", "\\\"" + Service + "\\\"", "system=true", "rid=\\\"cli-service-wrapped\\\""],
             capture, stdout, stderr, CancellationToken.None);
-        Is(0, wrappedCli, $"service CLI rejected narrowly wrapped root input: {stderr}");
-        Is("AB12", capture.Last!.Root, "CLI did not canonicalize the wrapped lowercase root code");
-        Is(Service, capture.Last.Arg["service"], "CLI did not normalize a wrapped positional service field");
-        Is("cli-service-wrapped", capture.Last.Rid, "CLI did not normalize a wrapped typed scalar field");
-
+        Is(0, wrappedCli, $"service CLI rejected wrapped typed scalar fields: {stderr}");
+        Is(Service, capture.Last!.Arg["service"], "CLI changed wrapped service name");
+        Is("cli-service-wrapped", capture.Last.Rid, "CLI changed wrapped identifier");
         stdout.GetStringBuilder().Clear(); stderr.GetStringBuilder().Clear();
-        var leadingWrappedCli = await PaoProgram.RunCliAsync(
-            ["\\\"root=ab12\\\"", "service", "status", "\\\"" + Service + "\\\"", "rid=cli-leading-root"],
-            capture, stdout, stderr, CancellationToken.None);
-        Is(0, leadingWrappedCli, $"service CLI rejected a narrowly wrapped leading root input: {stderr}");
-        Is("AB12", capture.Last!.Root, "CLI did not canonicalize a leading wrapped lowercase root code");
-
-        var callsBeforeMalformedCli = capture.Calls;
-        stdout.GetStringBuilder().Clear(); stderr.GetStringBuilder().Clear();
-        var malformedCli = await PaoProgram.RunCliAsync(
-            ["service", "status", Service, "root=prefixAB12suffix", "rid=cli-service-malformed"],
-            capture, stdout, stderr, CancellationToken.None);
-        Is(2, malformedCli, "CLI accepted root text containing more than the exact code");
-        Is(callsBeforeMalformedCli, capture.Calls, "malformed CLI root reached the dispatcher");
-
-        using var validJson = JsonDocument.Parse($$"""{"op":"service_status","service":"{{Service}}","root":"AB12","rid":"mcp-service"}""");
-        var mcp = await PaoProgram.CallUnifiedMcpToolAsync(validJson.RootElement, capture, CancellationToken.None);
-        Is(callsBeforeMalformedCli + 1, capture.Calls, "MCP rejected typed service status");
-        Is("service", capture.Last!.Op, "MCP operation mismatch");
-        Is("status", capture.Last.Arg["op"], "MCP action mismatch");
-
-        using var wrappedJson = JsonDocument.Parse($$"""{"op":"service_status","service":" \"{{Service}}\" ","root":" \\\"ab12\\\" ","rid":" \"mcp-service-wrapped\" "}""");
-        var wrappedMcp = await PaoProgram.CallUnifiedMcpToolAsync(wrappedJson.RootElement, capture, CancellationToken.None);
-        Is(callsBeforeMalformedCli + 2, capture.Calls, "MCP rejected narrowly wrapped root input");
-        Is("AB12", capture.Last!.Root, "MCP did not canonicalize the wrapped lowercase root code");
-        Is(Service, capture.Last.Arg["service"], "MCP did not normalize a wrapped typed service field");
-        Is("mcp-service-wrapped", capture.Last.Rid, "MCP did not normalize a wrapped typed identifier");
-
-        using var missingRootJson = JsonDocument.Parse($$"""{"op":"service_status","service":"{{Service}}"}""");
-        var missingRoot = await PaoProgram.CallUnifiedMcpToolAsync(missingRootJson.RootElement, capture, CancellationToken.None);
-        Is(callsBeforeMalformedCli + 2, capture.Calls, "MCP accepted service control without root authorization");
-
-        using var arbitraryJson = JsonDocument.Parse("""{"op":"service_status","service":"Spooler","root":"AB12"}""");
-        var arbitrary = await PaoProgram.CallUnifiedMcpToolAsync(arbitraryJson.RootElement, capture, CancellationToken.None);
-        Is(callsBeforeMalformedCli + 2, capture.Calls, "MCP accepted an arbitrary Windows service");
-
-        using var embeddedJson = JsonDocument.Parse($$"""{"op":"service_status","service":"{{Service}}","root":"prefixAB12suffix"}""");
-        var embedded = await PaoProgram.CallUnifiedMcpToolAsync(embeddedJson.RootElement, capture, CancellationToken.None);
-        Is(callsBeforeMalformedCli + 2, capture.Calls, "MCP accepted root text containing more than the exact code");
-
+        Is(0, await PaoProgram.RunCliAsync(["system=true", "service", "status", Service, "rid=cli-leading-system"],
+            capture, stdout, stderr, CancellationToken.None), "leading explicit System intent rejected");
+        True(capture.Last!.System, "leading System intent was lost");
+        foreach (var retired in new[] { "root=AB12", "root=ab12", "root=prefixAB12suffix", "system=AB12" })
+        {
+            var before = capture.Calls; stdout.GetStringBuilder().Clear(); stderr.GetStringBuilder().Clear();
+            Is(2, await PaoProgram.RunCliAsync(["service", "status", Service, retired, "rid=retired-service"],
+                capture, stdout, stderr, CancellationToken.None), "retired code/nonboolean System accepted");
+            Is(before, capture.Calls, "invalid authorization input reached dispatcher");
+        }
+        using var validJson = JsonDocument.Parse($$"""{"op":"service_status","service":"{{Service}}","system":true,"rid":"mcp-service"}""");
+        var beforeValid = capture.Calls;
+        _ = await PaoProgram.CallUnifiedMcpToolAsync(validJson.RootElement, capture, CancellationToken.None);
+        Is(beforeValid + 1, capture.Calls, "MCP rejected boolean System intent");
+        True(capture.Last!.System && capture.Last.Root is null && capture.Last.ConnectionAuthority is null,
+            "MCP public intent contained authority material");
+        foreach (var json in new[]
+        {
+            $$"""{"op":"service_status","service":"{{Service}}"}""",
+            $$"""{"op":"service_status","service":"{{Service}}","system":"AB12"}""",
+            $$"""{"op":"service_status","service":"{{Service}}","root":"AB12"}""",
+            """{"op":"service_status","service":"Spooler","system":true}"""
+        })
+        {
+            using var invalid = JsonDocument.Parse(json); var before = capture.Calls;
+            _ = await PaoProgram.CallUnifiedMcpToolAsync(invalid.RootElement, capture, CancellationToken.None);
+            Is(before, capture.Calls, "missing/nonboolean/legacy intent or arbitrary service dispatched");
+        }
+        var callsBeforeSearch = capture.Calls;
         var literalPattern = " \"keep these content quotes\" ";
         using var scalarAndContentJson = JsonDocument.Parse(JsonSerializer.Serialize(new
         {
@@ -146,7 +131,7 @@ internal static class ServiceLifecycleTests
             rid = " \"mcp-search-wrapped\" "
         }));
         var scalarAndContent = await PaoProgram.CallUnifiedMcpToolAsync(scalarAndContentJson.RootElement, capture, CancellationToken.None);
-        Is(callsBeforeMalformedCli + 3, capture.Calls, "MCP rejected a wrapped typed path and identifier");
+        Is(callsBeforeSearch + 1, capture.Calls, "MCP rejected a wrapped typed path and identifier");
         Is(Path.GetFullPath(fixtureRoot), capture.Last!.Arg["src"], "MCP did not normalize a wrapped typed path");
         Is("mcp-search-wrapped", capture.Last.Rid, "MCP did not normalize a wrapped typed search identifier");
         Is(literalPattern, capture.Last.Arg["pattern"], "MCP altered content-bearing search input");
@@ -155,7 +140,7 @@ internal static class ServiceLifecycleTests
     private static OperationRequest Request(
         string action,
         string rid,
-        string? root = null,
+        bool system = false,
         string? expect = null,
         int? pid = null,
         string? start = null)
@@ -169,7 +154,7 @@ internal static class ServiceLifecycleTests
         if (expect is not null) arg["expect"] = expect;
         if (pid is not null) arg["pid"] = pid.Value.ToString(CultureInfo.InvariantCulture);
         if (start is not null) arg["start"] = start;
-        return new("service", arg, rid, Root: root);
+        return new("service", arg, rid, System: system, ConnectionAuthority: system ? ApprovedConnectionFixture.DefaultAuthority : null);
     }
 
     private static void True(bool value, string message)

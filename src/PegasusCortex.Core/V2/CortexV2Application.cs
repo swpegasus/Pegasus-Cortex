@@ -319,6 +319,10 @@ public sealed partial class CortexV2Application
 
     public async ValueTask<CortexTaskResultV2> ExecuteTaskAsync(
         CortexTaskCommandV2 command,
+        CancellationToken cancellationToken) => await ExecuteTaskAsync(command, null, cancellationToken).ConfigureAwait(false);
+
+    public async ValueTask<CortexTaskResultV2> ExecuteTaskAsync(
+        CortexTaskCommandV2 command, CortexInvocationSourceV2? invocationSource,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
@@ -327,13 +331,16 @@ public sealed partial class CortexV2Application
             Namespace = CanonicalizeNamespace(command.Namespace)
         };
         CortexV2Policy.ValidateTask(command);
+        invocationSource?.Validate();
+        if (command.Action is not (CortexTaskActionV2.List or CortexTaskActionV2.Get or CortexTaskActionV2.History))
+            RequireSemanticTask(command, invocationSource);
         var profile = await RequirePersonalAdmissionAsync([command.Namespace], cancellationToken).ConfigureAwait(false);
         var stamped = command with
         {
             EffectiveProvenance = command.Action is
                 CortexTaskActionV2.List or CortexTaskActionV2.Get or CortexTaskActionV2.History
                 ? null
-                : Stamp(CortexProvenanceSourceV2.Agent, null, null)
+                : Stamp(CortexProvenanceSourceV2.Agent, null, null, invocationSource)
         };
         var result = await _store.ExecuteTaskAsync(stamped, cancellationToken).ConfigureAwait(false);
         if (command.Action is CortexTaskActionV2.List or CortexTaskActionV2.Get or CortexTaskActionV2.History)
@@ -345,6 +352,10 @@ public sealed partial class CortexV2Application
 
     public async ValueTask<CortexKnowledgeResultV2> ExecuteKnowledgeAsync(
         CortexKnowledgeCommandV2 command,
+        CancellationToken cancellationToken) => await ExecuteKnowledgeAsync(command, null, cancellationToken).ConfigureAwait(false);
+
+    public async ValueTask<CortexKnowledgeResultV2> ExecuteKnowledgeAsync(
+        CortexKnowledgeCommandV2 command, CortexInvocationSourceV2? invocationSource,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
@@ -353,12 +364,15 @@ public sealed partial class CortexV2Application
             Namespace = CanonicalizeNamespace(command.Namespace)
         };
         CortexV2Policy.ValidateKnowledge(command);
+        invocationSource?.Validate();
+        if (command.Action is not (CortexKnowledgeActionV2.Read or CortexKnowledgeActionV2.Analyze))
+            RequireSemanticKnowledge(command, invocationSource);
         var profile = await RequirePersonalAdmissionAsync([command.Namespace], cancellationToken).ConfigureAwait(false);
         var stamped = command with
         {
             EffectiveProvenance = command.Provenance is null
                 ? null
-                : Stamp(command.Provenance)
+                : Stamp(command.Provenance, invocationSource)
         };
         var result = await _store.ExecuteKnowledgeAsync(stamped, cancellationToken).ConfigureAwait(false);
         if (command.Action is CortexKnowledgeActionV2.Read or CortexKnowledgeActionV2.Analyze)
@@ -411,6 +425,10 @@ public sealed partial class CortexV2Application
 
     public async ValueTask<CortexFinishResultV2> FinishAsync(
         CortexFinishRequestV2 request,
+        CancellationToken cancellationToken) => await FinishAsync(request, null, cancellationToken).ConfigureAwait(false);
+
+    public async ValueTask<CortexFinishResultV2> FinishAsync(
+        CortexFinishRequestV2 request, CortexInvocationSourceV2? invocationSource,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -419,6 +437,16 @@ public sealed partial class CortexV2Application
             Namespace = CanonicalizeNamespace(request.Namespace)
         };
         CortexV2Policy.ValidateFinish(request);
+        invocationSource?.Validate();
+        var fields = new List<string?> { request.Namespace, request.TaskId, request.IdempotencyKey, request.Checkpoint,
+            request.Evidence, request.Handoff, request.TaskTitle, request.TaskContent, request.BlockedReason,
+            request.PhaseId, request.CheckpointSubject, invocationSource?.Label };
+        foreach (var value in request.Knowledge)
+        {
+            fields.AddRange([value.RecordId, value.IdempotencyKey, value.Title, value.Content, value.Provenance.SourceId, value.Provenance.Evidence]);
+            fields.AddRange(value.Tags);
+        }
+        Pegasus.Cortex.Core.Retention.CortexRetentionContentPolicy.RequireSemanticAccepted(fields.ToArray());
         // Availability is admission-only for writes: an admitted finish remains
         // one transaction against the same store and returns its valid receipt.
         await RequirePersonalAdmissionAsync([request.Namespace], cancellationToken).ConfigureAwait(false);
@@ -427,10 +455,10 @@ public sealed partial class CortexV2Application
             EffectiveProvenance = Stamp(
                 CortexProvenanceSourceV2.Agent,
                 null,
-                request.Evidence),
+                request.Evidence, invocationSource),
             Knowledge = Array.AsReadOnly(request.Knowledge.Select(value => value with
             {
-                EffectiveProvenance = Stamp(value.Provenance)
+                EffectiveProvenance = Stamp(value.Provenance, invocationSource)
             }).ToArray())
         };
         var result = await _store.FinishAsync(stamped, cancellationToken).ConfigureAwait(false);
@@ -483,22 +511,38 @@ public sealed partial class CortexV2Application
         return _personalProfileProvider is null ? mapped : CortexKnowledgeSpaces.Canonicalize(mapped);
     }
 
-    private CortexProvenanceV2 Stamp(CortexProvenanceInputV2 input) => new(
+    private static void RequireSemanticTask(CortexTaskCommandV2 command, CortexInvocationSourceV2? source)
+    {
+        var fields = new List<string?> { command.Namespace, command.TaskId, command.IdempotencyKey, command.Title, command.Content,
+            command.Assignee, command.ClaimedBy, command.Reason, command.DependencyId, command.PhaseId, command.CheckpointSubject, source?.Label };
+        if (command.Dependencies is not null) fields.AddRange(command.Dependencies);
+        Pegasus.Cortex.Core.Retention.CortexRetentionContentPolicy.RequireSemanticAccepted(fields.ToArray());
+    }
+
+    private static void RequireSemanticKnowledge(CortexKnowledgeCommandV2 command, CortexInvocationSourceV2? source)
+    {
+        var fields = new List<string?> { command.Namespace, command.RecordId, command.IdempotencyKey, command.Title, command.Content,
+            command.ReplacementRecordId, command.Provenance?.SourceId, command.Provenance?.Evidence, source?.Label };
+        if (command.Tags is not null) fields.AddRange(command.Tags);
+        Pegasus.Cortex.Core.Retention.CortexRetentionContentPolicy.RequireSemanticAccepted(fields.ToArray());
+    }
+
+    private CortexProvenanceV2 Stamp(CortexProvenanceInputV2 input, CortexInvocationSourceV2? invocationSource = null) => new(
         input.Source,
         _actor,
         input.SourceId,
         input.Evidence,
-        _timeProvider.GetUtcNow().ToUniversalTime());
+        _timeProvider.GetUtcNow().ToUniversalTime(), invocationSource);
 
     private CortexProvenanceV2 Stamp(
         CortexProvenanceSourceV2 source,
         string? sourceId,
-        string? evidence) => new(
+        string? evidence, CortexInvocationSourceV2? invocationSource = null) => new(
             source,
             _actor,
             sourceId,
             evidence,
-            _timeProvider.GetUtcNow().ToUniversalTime());
+            _timeProvider.GetUtcNow().ToUniversalTime(), invocationSource);
 
     private static void RequireSearchHit(
         CortexSearchHitV2 hit,

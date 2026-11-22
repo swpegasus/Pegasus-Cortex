@@ -29,10 +29,12 @@ internal sealed class CortexServiceMcpDispatcher(AuthenticatedServiceBroker brok
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (Volatile.Read(ref _closed) != 0) return Failure(request, "shared_mcp_stopping", unknown: false);
+        if(context.Identity is not { } identity)return Failure(request,"connection_auth_required",unknown:false);
         var body = new JsonObject
         {
             ["sessionId"] = context.SessionId, ["streamId"] = context.StreamId,
             ["taskId"] = context.TaskId, ["requestId"] = context.RequestId,
+            ["identity"] = new JsonObject { ["authority"]=identity.Authority,["subject"]=identity.Subject,["generation"]=identity.Generation },
             ["request"] = request.DeepClone()
         };
         var receipt = await RelayAsync("invoke", body, cancellationToken).ConfigureAwait(false);

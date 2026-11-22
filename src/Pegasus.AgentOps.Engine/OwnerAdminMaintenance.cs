@@ -70,14 +70,14 @@ internal sealed partial class OwnerAdminExecution
         return new(peer.Sid,peer.Session,pid,process.StartTime.ToUniversalTime().ToString("O",CultureInfo.InvariantCulture),peer.ApplicationPath);
     }
 
-    private async Task<OperationReceipt> HandleMaintenanceAsync(OperationRequest request,LocalPeer peer,RootCodeDefinition authorization,CancellationToken ct)
+    private async Task<OperationReceipt> HandleMaintenanceAsync(OperationRequest request,LocalPeer peer,ProtectedExecutionGrant authorization,CancellationToken ct)
     {
         await _maintenanceRequests.WaitAsync(ct);
         try{return await HandleMaintenanceCoreAsync(request,peer,authorization,ct);}
         finally{_maintenanceRequests.Release();}
     }
     private async Task<OperationReceipt> HandleMaintenanceCoreAsync(OperationRequest request,LocalPeer peer,
-        RootCodeDefinition authorization,CancellationToken ct)
+        ProtectedExecutionGrant authorization,CancellationToken ct)
     {
         var operation=request.Arg["op"];
         try
@@ -256,7 +256,7 @@ internal sealed partial class OwnerAdminExecution
         {
             var original=FindIntervalByJid(supplied.Jid)??throw new AgentOpsException("not_found");
             if(original.Rid!=supplied.Rid||IntervalDigest(original)!=supplied.ReceiptSha256||original.Phase!="uncertain")throw new AgentOpsException("admin_admission_mismatch");
-            ValidateIntervalOwner(original,scope,new RootCodeDefinition(original.RootLabel,null,RootAccessPolicy.Off,RootAccessPolicy.Off));
+            ValidateIntervalOwner(original,scope,new ProtectedExecutionGrant(original.RootLabel,ProtectedAccessPolicy.Off,ProtectedAccessPolicy.Off));
             if(BlockingJob() is not null)throw new AgentOpsException("admin_reconciliation_required");
         }
         else
@@ -285,11 +285,11 @@ internal sealed partial class OwnerAdminExecution
     private static bool ValidOriginalRid(string? rid)=>rid is{Length:>0 and <=1024}&&!rid.Any(char.IsControl);
     private static string IntervalDigest(MaintenanceInterval interval)=>Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(interval,Json)))).ToLowerInvariant();
     private static string MaintenanceFingerprint(OperationRequest request,LocalPeer peer,string sha)=>Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new{operation=request.Arg["op"],cfg=request.Arg.GetValueOrDefault("cfg"),epoch=request.Arg.GetValueOrDefault("epoch"),sha,bodySha=request.Body is null?null:Hash(request.Body),peer.Sid,peer.Session,peer.ApplicationPath},Json)))).ToLowerInvariant();
-    private void ValidateIntervalOwner(MaintenanceInterval interval,OwnerAdminAuthorization scope,RootCodeDefinition authorization)
+    private void ValidateIntervalOwner(MaintenanceInterval interval,OwnerAdminAuthorization scope,ProtectedExecutionGrant authorization)
     {
         if(interval.ScopeId!=scope.Id||interval.ScopeSha!=Hash(JsonSerializer.Serialize(scope,Json))||interval.TaskId!=scope.TaskId||interval.OwnerSid!=scope.OwnerSid||interval.OwnerSession!=scope.OwnerSession||interval.RootLabel!=authorization.Label)throw new AgentOpsException("admin_scope_mismatch");
     }
-    private void RequireActiveMaintenance(OwnerAdminDefinition definition,OwnerAdminAuthorization scope,RootCodeDefinition authorization)
+    private void RequireActiveMaintenance(OwnerAdminDefinition definition,OwnerAdminAuthorization scope,ProtectedExecutionGrant authorization)
     {
         var current=FindOpenInterval()??throw new AgentOpsException("maintenance_interval_required");
         var admission=FindAdmission(current.ScopeId)??throw new AgentOpsException("admin_admission_revoked");

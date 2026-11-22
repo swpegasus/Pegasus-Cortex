@@ -9,7 +9,6 @@ using Pegasus.AgentOps.Protocol;
 internal static class OwnerAdminExecutionTests
 {
     private const string TaskId = "01a12d3b-7157-7352-ac1f-a5f549ceb103";
-    private const string FixtureCode = "T7Q9"; // Test-only transient verifier, never a machine grant.
 
     internal static async Task InvocationDeadlineAtClaimAsync()
     {
@@ -38,16 +37,20 @@ internal static class OwnerAdminExecutionTests
         var scope = fixture.Scope();
         var manager = fixture.Manager;
         fixture.Launcher.Elevated = false;
-        Equal("admin_review_required", (await fixture.Admit(scope)).Err);
+        var directGrant = new ProtectedExecutionGrant(fixture.Approval.Current.ConnectionId,
+            ProtectedAccessPolicy.Off, ProtectedAccessPolicy.Off);
+        var directAdmission = new OperationRequest("admin", new Dictionary<string,string>{{"op","admit"}},
+            Guid.NewGuid().ToString("N"), Body: fixture.Body(scope));
+        Equal("admin_review_required", (await manager.HandleAsync(directAdmission, fixture.Peer, directGrant, default)).Err);
+        True((await fixture.Admit(scope)).Ok, "current Full-control ordinary Host scope admission");
         fixture.Launcher.Elevated = true;
-        True((await fixture.Admit(scope)).Ok, "initial scope admission");
         var definition = fixture.Definition(scope);
         Equal("auth", (await fixture.Broker.HandleUserAsync(fixture.Request("run", definition), fixture.Peer, default)).Err);
         Equal("auth", (await fixture.Broker.HandleApplicationAsync(fixture.Request("run", definition), default)).Err);
-        Equal("auth", (await fixture.Call(definition, root: "BAD0")).Err);
-        Equal("admin_admission_mismatch", (await fixture.Call(definition, peer: fixture.Peer with { Session = fixture.Peer.Session + 1 })).Err);
-        Equal("auth", (await fixture.Call(definition, peer: fixture.Peer with { Sid = "foreign-owner" })).Err);
-        Equal("admin_admission_mismatch", (await fixture.Call(definition, peer: fixture.Peer with { ApplicationPath = fixture.Executable })).Err);
+        Equal("full_control_required", (await fixture.Call(definition, approved: false)).Err);
+        Equal("full_control_required", (await fixture.Call(definition, peer: fixture.Peer with { Session = fixture.Peer.Session + 1 })).Err);
+        Equal("full_control_required", (await fixture.Call(definition, peer: fixture.Peer with { Sid = "foreign-owner" })).Err);
+        Equal("full_control_required", (await fixture.Call(definition, peer: fixture.Peer with { ApplicationPath = fixture.Executable })).Err);
         Equal("admin_scope_mismatch", (await fixture.Call(definition with { TaskId = Guid.NewGuid().ToString("D") })).Err);
         Equal("admin_scope_mismatch", (await fixture.Call(definition with { WriteRoots = [Path.GetPathRoot(fixture.Root)!] })).Err);
         Equal("admin_scope_mismatch", (await fixture.Call(definition with { DeclaredEffects = ["service_control"] })).Err);
@@ -63,17 +66,25 @@ internal static class OwnerAdminExecutionTests
         Throws("invalid", () => OwnerAdminExecution.Parse(fixture.Body(definition).TrimEnd('}') + ",\"unexpected\":true}"));
         Throws("invalid", () => OwnerAdminExecution.Parse(fixture.Body(definition with { NonSecretInputs = false })));
         Throws("invalid", () => OwnerAdminExecution.Parse(fixture.Body(definition with { ExecutablePath = Path.Combine(fixture.Root,"cmd.exe") })));
-        var off = RootAccessPolicy.Off;
-        fixture.Verifier.Enroll(new RootCodeDefinition("fixture", FixtureCode, off,
-            new RootAccessPolicy("deny", [fixture.Root])));
-        Equal("root_path_denied", (await fixture.Call(definition)).Err);
-        fixture.Verifier.Enroll(new RootCodeDefinition("fixture", FixtureCode,
-            new RootAccessPolicy("deny", [fixture.Peer.ApplicationPath!]), off));
-        Equal("root_app_denied", (await fixture.Call(definition)).Err);
+        var off = ProtectedAccessPolicy.Off;
+        var pathDenied = new ProtectedExecutionGrant(fixture.Approval.Current.ConnectionId, off, new("deny", [fixture.Root]));
+        Equal("root_path_denied", (await manager.HandleAsync(fixture.Request("run", definition), fixture.Peer, pathDenied, default)).Err);
+        var appDenied = new ProtectedExecutionGrant(fixture.Approval.Current.ConnectionId, new("deny", [fixture.Peer.ApplicationPath!]), off);
+        Equal("root_app_denied", (await manager.HandleAsync(new("admin",new Dictionary<string,string>{{"op","admit"}},Guid.NewGuid().ToString("N"),Body:fixture.Body(scope)), fixture.Peer, appDenied, default)).Err);
         Equal(0, fixture.Launcher.Created);
         // This exercises the real Windows ACL boundary read-only. User-owned
         // source code is not an administrator-protected executable admission.
         Throws("admin_protected_input_required", () => new WindowsOwnerAdminLauncher(fixture.Root).ValidateProtectedInputs(definition));
+
+        using var revoked = new Fixture();
+        var revokedScope = revoked.Scope();
+        True((await revoked.Admit(revokedScope)).Ok, "revocation fixture scope admission");
+        var revokedDefinition = revoked.Definition(revokedScope);
+        revoked.Launcher.PrepareHook = _ => revoked.Approval.Enabled = false;
+        var rejectedBeforeCreate = await revoked.Call(revokedDefinition);
+        Equal("connection_revoked", rejectedBeforeCreate.Err);
+        Equal(0, revoked.Launcher.Created);
+        True(revoked.Launcher.Last is null, "revocation during input validation created a process");
     }
 
     internal static async Task ReusableAndReplayAsync()
@@ -161,9 +172,9 @@ internal static class OwnerAdminExecutionTests
         var scope = fixture.Scope();
         await using var dispatch = new TestDispatcher(fixture);
         var outText = new StringWriter(); var errText = new StringWriter();
-        Equal(0, await PaoProgram.RunCliAsync(["--json","admin","admit","root="+FixtureCode,"--stdin"],dispatch,outText,errText,default,new StringReader(fixture.Body(scope))));
+        Equal(0, await PaoProgram.RunCliAsync(["--json","admin","admit","system=true","--stdin"],dispatch,outText,errText,default,new StringReader(fixture.Body(scope))));
         outText.GetStringBuilder().Clear();
-        Equal(0,await PaoProgram.RunCliAsync(["--json","admin","begin","root="+FixtureCode,"cfg="+scope.Id,"sha="+fixture.ScopeSha(scope),"rid="+Guid.NewGuid().ToString("N")],dispatch,outText,errText,default));
+        Equal(0,await PaoProgram.RunCliAsync(["--json","admin","begin","system=true","cfg="+scope.Id,"sha="+fixture.ScopeSha(scope),"rid="+Guid.NewGuid().ToString("N")],dispatch,outText,errText,default));
         using(var begun=JsonDocument.Parse(outText.ToString()))fixture.Epoch=begun.RootElement.GetProperty("data").GetProperty("epoch").GetString();
         var definition = fixture.Definition(scope);
         var body = fixture.Body(definition);
@@ -173,10 +184,10 @@ internal static class OwnerAdminExecutionTests
             Equal(OwnerAdminExecution.Digest(definition), validated.RootElement.GetProperty("data").GetProperty("sha").GetString());
         Equal(2, dispatch.Calls); // Admission + begin; pure validation made no broker call.
         outText.GetStringBuilder().Clear();
-        Equal(0, await PaoProgram.RunCliAsync(["--json","admin","run","root="+FixtureCode,"cfg="+scope.Id,"sha="+OwnerAdminExecution.Digest(definition),"rid="+definition.ExpectedRid,"--stdin"],dispatch,outText,errText,default,new StringReader(body)));
+        Equal(0, await PaoProgram.RunCliAsync(["--json","admin","run","system=true","cfg="+scope.Id,"sha="+OwnerAdminExecution.Digest(definition),"rid="+definition.ExpectedRid,"--stdin"],dispatch,outText,errText,default,new StringReader(body)));
         using var cliReceipt = JsonDocument.Parse(outText.ToString());
         var jid = cliReceipt.RootElement.GetProperty("jid").GetString()!;
-        var parameters = JsonSerializer.SerializeToElement(new { op="admin_run", cfg=scope.Id, sha=OwnerAdminExecution.Digest(definition), rid=definition.ExpectedRid, root=FixtureCode, text=body, output="structured" });
+        var parameters = JsonSerializer.SerializeToElement(new { op="admin_run", cfg=scope.Id, sha=OwnerAdminExecution.Digest(definition), rid=definition.ExpectedRid, system=true, text=body, output="structured" });
         var mcp = await PaoProgram.CallUnifiedMcpToolAsync(parameters,dispatch,default);
         Equal(jid, mcp["structuredContent"]!["jid"]!.GetValue<string>());
         Equal(1, fixture.Launcher.Created);
@@ -188,7 +199,7 @@ internal static class OwnerAdminExecutionTests
             Equal(0, await PaoProgram.RunCliAsync(["help",operation],dispatch,outText,errText,default));
             True(outText.ToString().Contains(operation,StringComparison.Ordinal), "CLI help");
         }
-        var invalid = JsonSerializer.SerializeToElement(new {op="admin_run", cfg=scope.Id, sha=OwnerAdminExecution.Digest(definition),rid=definition.ExpectedRid,root=FixtureCode,text=body,arg=new[]{"-Command","bad"}});
+        var invalid = JsonSerializer.SerializeToElement(new {op="admin_run", cfg=scope.Id, sha=OwnerAdminExecution.Digest(definition),rid=definition.ExpectedRid,system=true,text=body,arg=new[]{"-Command","bad"}});
         var rejected = await PaoProgram.CallUnifiedMcpToolAsync(invalid,dispatch,default);
         True(rejected["isError"]!.GetValue<bool>(), "closed MCP fields");
         outText.GetStringBuilder().Clear();
@@ -199,7 +210,8 @@ internal static class OwnerAdminExecutionTests
             if (!File.Exists(path)) continue;
             using var stream = new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.ReadWrite|FileShare.Delete);
             using var bytes = new MemoryStream(); stream.CopyTo(bytes);
-            True(!Encoding.UTF8.GetString(bytes.ToArray()).Contains(FixtureCode,StringComparison.Ordinal), "no grant in durable database or WAL");
+            var retained=Encoding.UTF8.GetString(bytes.ToArray());
+            True(!retained.Contains("root.verifier",StringComparison.Ordinal) && !retained.Contains("root_code",StringComparison.Ordinal), "retired credential material referenced in durable database or WAL");
         }
     }
 
@@ -227,12 +239,12 @@ internal static class OwnerAdminExecutionTests
         try
         {
             await using var dispatcher = new NamedPipeDispatcher(pipe,expectedServer:fixture.Peer);
-            var admission = await dispatcher.DispatchAsync(new("admin",new Dictionary<string,string>{["op"]="admit"},Guid.NewGuid().ToString("N"),Root:FixtureCode,Body:fixture.Body(scope)),stop.Token);
+            var admission = await dispatcher.DispatchAsync(new("admin",new Dictionary<string,string>{["op"]="admit"},Guid.NewGuid().ToString("N"),System:true,ConnectionAuthority:ApprovedConnectionFixture.DefaultAuthority,Body:fixture.Body(scope)),stop.Token);
             True(admission.Ok,"authenticated admission transport");
-            var begun=await dispatcher.DispatchAsync(new("admin",new Dictionary<string,string>{{"op","begin"},{"cfg",scope.Id},{"sha",fixture.ScopeSha(scope)}},Guid.NewGuid().ToString("N"),Root:FixtureCode),stop.Token);
+            var begun=await dispatcher.DispatchAsync(new("admin",new Dictionary<string,string>{{"op","begin"},{"cfg",scope.Id},{"sha",fixture.ScopeSha(scope)}},Guid.NewGuid().ToString("N"),System:true,ConnectionAuthority:ApprovedConnectionFixture.DefaultAuthority),stop.Token);
             True(begun.Ok,"authenticated interval begin transport");fixture.Epoch=begun.Data!["epoch"]!.ToString();
             var definition = fixture.Definition(scope);
-            var request = fixture.Request("run",definition) with {Root=FixtureCode};
+            var request = fixture.Request("run",definition) with {System=true,ConnectionAuthority=ApprovedConnectionFixture.DefaultAuthority};
             var started = await dispatcher.DispatchAsync(request,stop.Token);
             Equal("running",started.State);
             var replay = await dispatcher.DispatchAsync(request,stop.Token);
@@ -271,11 +283,11 @@ internal static class OwnerAdminExecutionTests
             var results=await Task.WhenAll(Task.Run(()=>fixture.Call(first)),Task.Run(()=>fixture.Call(second)));
             Equal(1,fixture.Launcher.Created);Equal(1,results.Count(result=>result.State=="running"));
             var original=results.Single(result=>result.State=="running");
-            var copyRequest=new OperationRequest("cp",new Dictionary<string,string>{{"src",fixture.Script},{"dst",Path.Combine(fixture.Root,"must-not-copy")}},Guid.NewGuid().ToString("N"),Root:FixtureCode);
+            var copyRequest=new OperationRequest("cp",new Dictionary<string,string>{{"src",fixture.Script},{"dst",Path.Combine(fixture.Root,"must-not-copy")}},Guid.NewGuid().ToString("N"),System:true,ConnectionAuthority:ApprovedConnectionFixture.DefaultAuthority);
             Equal("admin_lane_busy",(await fixture.Broker.HandleSystemAsync(copyRequest,fixture.Peer,default)).Err);
-            Equal("admin_lane_busy",(await fixture.Broker.HandleApplicationAsync(copyRequest with{Root=null},default)).Err);
+            Equal("admin_lane_busy",(await fixture.Broker.HandleApplicationAsync(copyRequest with{Root=null,System=false,ConnectionAuthority=null},default)).Err);
             True(!File.Exists(Path.Combine(fixture.Root,"must-not-copy")),"no overlapping privileged mutation");
-            Equal("admin_lane_busy",(await fixture.Broker.HandleUserAsync(copyRequest with{Root=null},fixture.Peer,default)).Err);
+            Equal("admin_lane_busy",(await fixture.Broker.HandleUserAsync(copyRequest with{Root=null,System=false,ConnectionAuthority=null},fixture.Peer,default)).Err);
             Equal("admin_reconciliation_required",results.Single(result=>result.State!="running").Err);
             fixture.Clock.Now=fixture.Clock.Now.AddHours(3);
             Equal(original.Jid,(await fixture.Stat(original.Jid)).Jid);
@@ -352,7 +364,7 @@ internal static class OwnerAdminExecutionTests
             await using var route=new RoutingDispatcher(user,service,system);
             var run=await route.DispatchAsync(new("run",new Dictionary<string,string>{{"cfg","fixture"}}));
             Equal("reentrant_mutation",run.Err);
-            var admin=await route.DispatchAsync(new("admin",new Dictionary<string,string>{{"op","run"}},Root:FixtureCode));
+            var admin=await route.DispatchAsync(new("admin",new Dictionary<string,string>{{"op","run"}},System:true,ConnectionAuthority:ApprovedConnectionFixture.DefaultAuthority));
             Equal("reentrant_mutation",admin.Err);
             Equal(0,user.Calls);Equal(0,service.Calls);Equal(0,system.Calls);
             True((await route.DispatchAsync(new("stat",new Dictionary<string,string>{{"src",@"C:\fixture"}}))).Ok,"ordinary read remains available");
@@ -375,8 +387,8 @@ internal static class OwnerAdminExecutionTests
         {
             await using var dispatch=new CaptureDispatcher();
             var cfg=Guid.NewGuid().ToString("N");var rid=Guid.NewGuid().ToString("N");var epoch=Guid.NewGuid().ToString("N");var sha=new string('a',64);
-            var args=new List<string>{"--json","admin",action,"cfg="+cfg,"root="+FixtureCode,"rid="+rid};
-            var fields=new Dictionary<string,object?>{{"op","admin_"+action},{"cfg",cfg},{"root",FixtureCode},{"rid",rid}};
+            var args=new List<string>{"--json","admin",action,"cfg="+cfg,"system=true","rid="+rid};
+            var fields=new Dictionary<string,object?>{{"op","admin_"+action},{"cfg",cfg},{"system",true},{"rid",rid}};
             if(action!="interval"){args.Add("sha="+sha);fields["sha"]=sha;}
             if(action=="end"){args.Add("epoch="+epoch);fields["epoch"]=epoch;}
             // This dispatcher proves transport shape only. Strict proof JSON is
@@ -386,7 +398,7 @@ internal static class OwnerAdminExecutionTests
             var output=new StringWriter();var errors=new StringWriter();
             var cliExit=await PaoProgram.RunCliAsync(args.ToArray(),dispatch,output,errors,default,action is "ack" or "end"?new StringReader(proof):null);
             True(cliExit==0,$"interval CLI {action} exit={cliExit}: {errors}");
-            Equal(action,dispatch.Last!.Arg["op"]);Equal(rid,dispatch.Last.Rid);Equal(FixtureCode,dispatch.Last.Root);
+            Equal(action,dispatch.Last!.Arg["op"]);Equal(rid,dispatch.Last.Rid);True(dispatch.Last.System && dispatch.Last.Root is null && dispatch.Last.ConnectionAuthority is null,"public intent contains no approval credential");
             Equal(action is "ack" or "end"?proof:null,dispatch.Last.Body);
             var result=await PaoProgram.CallUnifiedMcpToolAsync(JsonSerializer.SerializeToElement(fields),dispatch,default);
             True(result["isError"]?.GetValue<bool>()!=true,"fixed interval MCP operation admitted");
@@ -430,7 +442,7 @@ internal static class OwnerAdminExecutionTests
         internal OperationReceipt? OrdinaryEffect;
         private readonly MaintenanceHostIdentity _host;
         internal OwnerAdminExecution Manager { get; private set; }
-        internal RootCodeVerifier Verifier { get; }
+        internal ApprovedConnectionFixture Approval { get; }
         internal AuthenticatedServiceBroker Broker { get; private set; }
         internal Fixture(bool ordinaryUnknown=false)
         {
@@ -439,7 +451,7 @@ internal static class OwnerAdminExecutionTests
             Executable=Path.Combine(Root,"pwsh.exe"); Script=Path.Combine(Root,"reviewed.ps1");
             File.WriteAllText(Executable,"fixture executable - never launched"); File.WriteAllText(Script,"#revision one\n");
             var state = Path.Combine(Root,"state"); Directory.CreateDirectory(state);
-            Verifier=new RootCodeVerifier(Path.Combine(Root,"fixture.verifier")); Verifier.Enroll("fixture",FixtureCode);
+            Approval=new ApprovedConnectionFixture(Peer);
             Manager=new OwnerAdminExecution(state,Peer.Sid,Launcher,protectState:false,clock:Clock,beforePersist:phase=>PersistHook?.Invoke(phase));
             UserDispatch=ordinaryUnknown?(_,_,request,_)=>Task.FromResult(new OperationReceipt(false,Guid.NewGuid().ToString("N"),request.Rid!,"recovery_required",OperationNames.Public(request),"recovery_required")):null;
             Broker=MakeBroker();
@@ -447,7 +459,7 @@ internal static class OwnerAdminExecutionTests
         private readonly Func<LocalPeer,string,OperationRequest,CancellationToken,Task<OperationReceipt>>? UserDispatch;
         private AuthenticatedServiceBroker MakeBroker()
         {
-            var broker=new AuthenticatedServiceBroker(Path.Combine(Root,"router"),Peer.Sid,Verifier,false,UserDispatch,null,null,Manager);
+            var broker=new AuthenticatedServiceBroker(Path.Combine(Root,"router"),Peer.Sid,Approval.Authorize,false,UserDispatch,null,null,Manager,ownerHostVerifier:Approval.IsTrustedHost);
             // Deterministic protocol fixtures: no user host, service, or process
             // is contacted. Runtime host authentication has separate tests.
             Manager.SetMaintenanceProbes((request,_)=>Task.FromResult(Probe(request,"user")),request=>Probe(request,"broker"),_=>{});
@@ -503,10 +515,10 @@ internal static class OwnerAdminExecutionTests
             True((await End(scope)).Ok,"reviewed old interval handback");
             True((await Begin(scope)).Ok,"new interval after reviewed handback");
         }
-        internal Task<OperationReceipt> Call(OwnerAdminDefinition definition,LocalPeer? peer=null,string root=FixtureCode,string? sha=null,string? tmo=null,CancellationToken cancellation=default)
-        { var values=new Dictionary<string,string>{["cfg"]=definition.Id,["sha"]=sha??OwnerAdminExecution.Digest(definition)}; if(tmo is not null)values["tmo"]=tmo; return CallRaw("run",values,Body(definition),definition.ExpectedRid,peer,root,cancellation); }
-        internal Task<OperationReceipt> CallRaw(string op,Dictionary<string,string> values,string? body=null,string? rid=null,LocalPeer? peer=null,string root=FixtureCode,CancellationToken cancellation=default)
-        { values["op"]=op; return Broker.HandleSystemAsync(new("admin",values,rid??Guid.NewGuid().ToString("N"),Root:root,Body:body),peer??Peer,cancellation); }
+        internal Task<OperationReceipt> Call(OwnerAdminDefinition definition,LocalPeer? peer=null,bool approved=true,string? sha=null,string? tmo=null,CancellationToken cancellation=default)
+        { var values=new Dictionary<string,string>{["cfg"]=definition.Id,["sha"]=sha??OwnerAdminExecution.Digest(definition)}; if(tmo is not null)values["tmo"]=tmo; return CallRaw("run",values,Body(definition),definition.ExpectedRid,peer,approved,cancellation); }
+        internal Task<OperationReceipt> CallRaw(string op,Dictionary<string,string> values,string? body=null,string? rid=null,LocalPeer? peer=null,bool approved=true,CancellationToken cancellation=default)
+        { values["op"]=op; return Broker.HandleSystemAsync(new("admin",values,rid??Guid.NewGuid().ToString("N"),Body:body,System:true,ConnectionAuthority:approved?Approval.Current:null),peer??Peer,cancellation); }
         internal Task<OperationReceipt> Stat(string jid)=>CallRaw("stat",new(){["jid"]=jid});
         internal async Task<OperationReceipt> WaitTerminal(string jid)
         { for(var attempt=0;attempt<100;attempt++){var receipt=await Stat(jid);if(receipt.State is not("starting" or "running"))return receipt;await Task.Delay(20);}throw new TimeoutException("fixture monitor"); }
@@ -537,7 +549,7 @@ internal static class OwnerAdminExecutionTests
     {
         internal int Calls;
         public Task<OperationReceipt> DispatchAsync(OperationRequest request,CancellationToken cancellationToken=default)
-        { Calls++;return fixture.Broker.HandleSystemAsync(request,fixture.Peer,cancellationToken); }
+        { Calls++;return fixture.Broker.HandleSystemAsync(fixture.Approval.System(request),fixture.Peer,cancellationToken); }
         public ValueTask DisposeAsync()=>ValueTask.CompletedTask;
     }
     private static string Hash(string path){using var stream=File.OpenRead(path);return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();}

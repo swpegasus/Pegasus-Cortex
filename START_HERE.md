@@ -16,6 +16,15 @@ records and historical reports supply evidence, not permission.
 - **Connect an AI client:** follow [shared HTTPS MCP setup](docs/CORTEX_SHARED_MCP.md).
   Direct per-chat STDIO startup is retired. The endpoint is optional, disabled
   by default, and loopback-only unless explicitly configured otherwise.
+  Release **03.54** uses named persistent connection approval:
+  create a local connection, approve ordinary access, then **Copy Codex settings**
+  under **Connections & access → Connections & Full control**. Its generated
+  table contains a public ID and local header-helper command, not a bearer.
+  Full control is a separate optional approval shared by all chats using that
+  credential; network inclusion alone grants no access. Cerebral's private
+  application grant remains separate. Upgrading an older URL-only connection
+  requires [creating and approving a client identity](docs/MCP_CONNECTION_SETUP.md)
+  and saving its generated helper before reconnecting.
 - **Use the product:** start with the [documentation index](docs/README.md).
   [Local terminals](docs/PAO_LOCAL_TERMINALS.md) require PowerShell 7 and survive
   client disconnection only while the same ordinary owner Host remains alive.

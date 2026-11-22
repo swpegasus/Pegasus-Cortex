@@ -5,8 +5,10 @@
 The existing signed-in user host supports `PegasusCortex.Host.exe --dashboard`.
 This opens one transient window, not a second tray, queue, service, or broker
 registration. The resident tray also opens the dashboard on double-click and
-offers **Dashboard and root-code scopes** in its menu. Queue controls remain
-available separately.
+offers **Open Cortex** in its menu. Queue controls remain available separately.
+The source dashboard places connection approvals under **Connections & access →
+Connections & Full control**; discover the installed build before relying on a
+new control.
 
 For a development build, `tools/New-CortexDashboardShortcut.ps1` creates a
 create-only `Cortex Dashboard.lnk` in an explicitly selected existing directory.
@@ -55,7 +57,7 @@ previously completed samples; its own sample commits after that snapshot.
   `HOT.json` are **unknown**; no watcher or hidden file-access surveillance exists.
 
 The collector records no query, title, body, record coordinate, raw output,
-transcript, root code, credential, application/folder restriction, or environment
+transcript, legacy root code, credential, application/folder restriction, or environment
 value. Only fixed operation labels, explicit namespace names, canonical task
 GUIDs, random session IDs, timestamps and numeric aggregates are retained.
 These diagnostic tables are machine-local and never starter-corpus inputs.
@@ -82,31 +84,35 @@ collector and unobservable file reads can be absent. The first local 50-sample
 fixture measured roughly 8 ms median added collection time; this is local test
 evidence, not a production latency guarantee or an effectiveness benchmark.
 
-## Root-code application and folder domains
+## Connection approvals and Full control
 
-Open **Root codes and scopes**, select a code, then **Edit selected** (or
-double-click the code). Add new and Remove remain separate actions. Use **Add
-executable…** and **Add folder…**, or enter one canonical absolute path per line.
-Existing scope values are retained while editing; Save sends the typed upsert
-through the existing authenticated current-user service pipe. Closing or
-cancelling does not write a policy. Root codes are shown only in the existing
-user-facing control flow and are excluded from metrics and fixture reports.
+Current source replaces the four-character root-code list/editor with persistent
+connection approvals. Open **Connections & access → Connections & Full control**
+to review a connection's readable name, reported application/chat labels and full
+public IDs. Labels help identify the connection; they do not authenticate a chat
+or make separate chats into separate permissions.
 
-* **Application domain** is the exact calling executable, normally product-local
-  `pao.exe`, not an executable the request launches. Verify that distinction
-  before restricting a code.
-* **Folder domain** applies to admitted request path roots and descendants.
-* **All** permits every entry for that domain; it is stored canonically as the
-  existing `off` (no filter) policy. **Allow** permits only listed entries;
-  **Deny** excludes listed entries. Both filters must permit the operation.
-  Application entries must be existing `.exe` files. Shared UI/server
-  validation rejects malformed, relative, reparse, empty allow/deny and
-  over-limit policies.
+Ordinary access and **Full control** are separate explicit decisions. Full
+control is off by default. **Every chat sharing a connection credential shares
+its Full control authority.** Use separate connections when their permissions
+must differ. The fixed owner-elevation control writes protected machine approval
+metadata; credentials stay in owner credential custody, outside semantic records
+and request arguments. Revocation and credential-generation changes are checked
+on new dispatches, including work that was admitted to a queue but has not yet
+started its protected callback. Already-started effects retain their original
+ownership and are not undone by revocation.
 
-This UI change does not elevate permissions, alter root-code enforcement, create
-root codes, or broaden any live policy by itself. It does not promise that a
-folder scope sandboxes arbitrary actions inside a script or registered tool.
-Root-system operation authorization and existing admitted-tool rules still apply.
+Protected PAO operations additionally require `system:true`, an admitted
+operation and the optional LocalSystem execution service. `system:false` is
+ordinary intent where the operation permits that field; merely supplying the
+boolean never grants authority. Registered User tools still run as the ordinary
+owner. Reviewed owner-admin scopes keep their separate executable, input,
+owner/session, expiry and declared-effect checks. Scope declarations do not
+confine arbitrary administrator code.
+
+The Cerebral private application Full control session remains independently
+managed under **Applications**. It is not an MCP connection approval. These
+source changes neither modify a live grant nor establish installed acceptance.
 
 ## Interpreting adoption and usefulness
 

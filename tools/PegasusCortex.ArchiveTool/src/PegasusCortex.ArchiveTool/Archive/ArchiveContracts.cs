@@ -80,7 +80,7 @@ public sealed class ArchiveBoundaryException : Exception
         int? entryIndex = null,
         string? primaryCode = null,
         IReadOnlyList<Exception>? cleanupFailures = null)
-        : base(message)
+        : base(message, innerException)
     {
         Code = code;
         EntryIndex = entryIndex;
@@ -138,4 +138,7 @@ internal sealed record ArchiveExtractionHooks(
     Action<int, string>? BeforeMaterializeEntry = null,
     Action<string>? BeforeCleanupDelete = null,
     Action? AfterDestinationCommit = null,
-    Action? AfterInventoryCommit = null);
+    Action? AfterInventoryCommit = null,
+    Action<string>? AfterStagingCreated = null,
+    Action? BeforeInventoryCreate = null,
+    Action<Exception>? FailureObserved = null);

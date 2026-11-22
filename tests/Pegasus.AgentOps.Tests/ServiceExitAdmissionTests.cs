@@ -91,7 +91,7 @@ internal static class ServiceExitAdmissionTests
         var dispatched = 0;
         OperationReceipt queued;
         await using (var broker = new AuthenticatedServiceBroker(state, owner.Sid,
-            new RootCodeVerifier(Path.Combine(temp.Path, "root.verifier")), false,
+            null, false,
             (_, _, request, _) =>
             {
                 Interlocked.Increment(ref dispatched);

@@ -62,9 +62,12 @@ internal static class WindowsTaskTests
             }
             else Refuse(() => WindowsTaskOperationContract.Parse(Request(action) with
                 { Arg = new Dictionary<string, string> { ["op"] = action, ["wait"] = "true" } }));
+            Check(WindowsTaskOperationContract.Parse(Request(action) with { System = false }).RequestIdentity == value.RequestIdentity,
+                "false System intent changed ordinary task identity");
             if (WindowsTaskOperationContract.IsSystemAction(action))
-                Check(WindowsTaskOperationContract.Parse(Request(action) with { Root = "AB12" }).Action == action, "explicit root shape");
-            else Refuse(() => WindowsTaskOperationContract.Parse(Request(action) with { Root = "AB12" }));
+                Check(WindowsTaskOperationContract.Parse(Request(action) with { System = true }).Action == action, "explicit System shape");
+            else Refuse(() => WindowsTaskOperationContract.Parse(Request(action) with { System = true }));
+            Refuse(() => WindowsTaskOperationContract.Parse(Request(action) with { Root = "AB12" }));
         }
         foreach (var action in new[] { "list", "prepare", "create", "update" })
         {

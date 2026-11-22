@@ -24,8 +24,10 @@ public static class WindowsServiceOperationContract
             request.PathRoots is { Count: > 0 } || request.Arg.Keys.Any(key => key is not ("op" or "rid" or "elevate" or "wait")) ||
             request.Arg.TryGetValue("rid", out var rid) && rid != request.Rid)
             throw Invalid();
+        if(request.Root is not null)throw Invalid("root_codes_removed");
+        if(request.System&&action=="list")throw Invalid("system");
         var requiresOwnerElevation = request.Arg.TryGetValue("elevate", out var elevation);
-        if (requiresOwnerElevation && (elevation != "uac" || !IsOwnerElevationAction(action) || request.Root is not null))
+        if (requiresOwnerElevation && (elevation != "uac" || !IsOwnerElevationAction(action) || request.System))
             throw Invalid("elevate");
         if (request.Arg.TryGetValue("wait", out var wait) &&
             (!requiresOwnerElevation || wait is not ("true" or "false"))) throw Invalid("wait");

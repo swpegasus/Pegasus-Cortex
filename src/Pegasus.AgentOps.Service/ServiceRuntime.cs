@@ -340,13 +340,18 @@ internal static class ServiceRuntime
             ServiceStartupTrace.Write(configuration.StateRoot,"application-7z","unavailable."+ex.Code);
         }
         var maintenanceMode=configuration.IsFixture?new MaintenanceModeStore(configuration.StateRoot,protect:false):MaintenanceModeStore.OpenReader(requireProvisioned:true);
+        var installedRoot=Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,"..",".."));
+        bool ConnectionIsCurrent(CortexMcpConnectionAuthority authority,bool full) =>
+            !configuration.IsFixture&&Pegasus.Cortex.Product.CortexMcpConnections.Find(
+                Pegasus.Cortex.Product.CortexMcpConnections.ReadForInstallRoot(installedRoot),authority,full) is not null;
         await using var systemEngine=new AgentOpsEngine(
             Path.Combine(configuration.StateRoot,"system-direct"),
             pathNormalizer:null,
             directOnly:true,
             bundledNsis:null,
             enableUserApplications:false,
-            systemTools:new AgentOpsSystemToolBindings(applicationSevenZip),maintenanceMode:maintenanceMode);
+            systemTools:new AgentOpsSystemToolBindings(applicationSevenZip),maintenanceMode:maintenanceMode,
+            connectionAuthorization:ConnectionIsCurrent);
         if (!configuration.IsFixture) systemEngine.BindSystemWindowsTasks(configuration.OwnerSid);
         var applicationCredentials=new ApplicationCredentialRegistry(configuration.StateRoot);
         // Optional owner-admin capability fails closed without changing ordinary execution.
@@ -361,7 +366,7 @@ internal static class ServiceRuntime
         catch(Exception ex)when(ex is AgentOpsException or IOException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException or Microsoft.Data.Sqlite.SqliteException)
         { maintenanceInitialization=maintenanceInitialization.Failed(ex);ServiceStartupTrace.Write(configuration.StateRoot,"owner-admin","unavailable."+(ex is AgentOpsException failure?failure.Code:ex.GetType().Name)); }
         using var ownerAdminLifetime=ownerAdmin;
-        await using var broker=new AuthenticatedServiceBroker(configuration.StateRoot,configuration.OwnerSid,new RootCodeVerifier(Path.Combine(configuration.StateRoot,"root.verifier")),crashAfterTray,null,(request,ct)=>systemEngine.ExecuteAuthenticatedFrozenDirectAsync(request,ct),applicationCredentials,ownerAdmin,maintenanceMode,maintenanceInitialization);
+        await using var broker=new AuthenticatedServiceBroker(configuration.StateRoot,configuration.OwnerSid,ConnectionIsCurrent,crashAfterTray,null,(request,ct)=>systemEngine.ExecuteAuthenticatedFrozenDirectAsync(request,ct),applicationCredentials,ownerAdmin,maintenanceMode,maintenanceInitialization);
         broker.SetServiceExitProbe(systemEngine.InspectExitIssueAsync,
             ResolveServiceExitHostExecutable(configuration),stopApplication);
         // HTTPS belongs to this service only when the persisted startup owner

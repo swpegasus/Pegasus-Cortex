@@ -6,11 +6,19 @@ using System.Text.Json;
 using System.Globalization;
 using Pegasus.Cortex.ArchiveTool.Archive;
 using Pegasus.Cortex.ArchiveTool.Cli;
+using Pegasus.Cortex.Tests.IO;
 
-return ArchiveToolTests.RunAll();
+return ArchiveToolTests.RunAll(args);
 
 internal static class ArchiveToolTests
 {
+    private static readonly (string Name, Action Body)[] ConfinementCases =
+    [
+        ("destination ancestor swaps stay confined", DestinationAncestorSwapsStayConfined),
+        ("staged child swaps are refused without outside writes", StagedChildSwapsStayConfined),
+        ("inventory parent swaps retain exact destination ownership", InventoryParentSwapsStayConfined),
+        ("postcommit cleanup refuses replacement ordinary trees", CleanupDoesNotAdoptReplacementTree)
+    ];
     private static readonly (string Name, Action Body)[] Cases =
     [
         ("valid archive is deterministic", ValidArchiveIsDeterministic),
@@ -35,13 +43,15 @@ internal static class ArchiveToolTests
         ("concatenated gzip payload is rejected", ConcatenatedGZipPayloadIsRejected),
         ("empty concatenated gzip member is rejected", EmptyConcatenatedGZipMemberIsRejected),
         ("single-block TAR terminator is rejected", SingleBlockTarTerminatorIsRejected),
-        ("compressed trailing junk is rejected", CompressedTrailingJunkIsRejected)
+        ("compressed trailing junk is rejected", CompressedTrailingJunkIsRejected),
+        .. ConfinementCases
     ];
 
-    internal static int RunAll()
+    internal static int RunAll(string[]? args = null)
     {
+        var selected = args is ["--directory-confinement-only"] ? ConfinementCases : Cases;
         var failures = new List<string>();
-        foreach (var test in Cases)
+        foreach (var test in selected)
         {
             try
             {
@@ -55,7 +65,7 @@ internal static class ArchiveToolTests
             }
         }
 
-        Console.WriteLine($"SUMMARY passed={Cases.Length - failures.Count} failed={failures.Count}");
+        Console.WriteLine($"SUMMARY passed={selected.Length - failures.Count} failed={failures.Count}");
         return failures.Count == 0 ? 0 : 1;
     }
 
@@ -91,6 +101,142 @@ internal static class ArchiveToolTests
         Assert(root.GetProperty("archiveEntryCount").GetInt32() == 3, "archive entry count differs");
         Assert(root.GetProperty("materializedEntryCount").GetInt32() == 3, "materialized count differs");
     }
+
+    private static void DestinationAncestorSwapsStayConfined()
+    {
+        foreach (var kind in DirectorySwapFixture.AliasKinds)
+        {
+            using var scope = new DirectorySwapFixture();
+            if (!scope.ProbeAlias(kind)) continue;
+            using var archiveScope = TestScope.Create();
+            var archive = archiveScope.CreateArchive(FileEntry("./one", "safe", 0x1a4));
+            File.WriteAllText(Path.Combine(scope.Outside, "one"), "outside");
+            var retained = Path.Combine(scope.Root, "retained-project");
+            var attempted = false; var swapped = false; ArchiveBoundaryException? failure = null;
+            var observedFailure = "none";
+            try
+            {
+                StructuredArchiveExtractor.Extract(SwapRequest(scope, archive), new ArchiveExtractionHooks(
+                    AfterStagingCreated: _ => { attempted = true; swapped = scope.TrySwap(scope.Project, retained, kind); },
+                    FailureObserved: error => observedFailure = ExceptionCodes(error)));
+            }
+            catch (ArchiveBoundaryException error) { failure = error; }
+            finally { scope.Restore(scope.Project, retained); }
+            Assert(attempted && File.ReadAllText(Path.Combine(scope.Outside, "one")) == "outside", "The ancestor race touched outside data. " + RaceDiagnostic(attempted, swapped, failure, observedFailure));
+            Assert(swapped ? failure is { Code: "cleanup_failed", CleanupFailureCount: > 0 }
+                : OperatingSystem.IsWindows() && failure is null && File.ReadAllText(Path.Combine(scope.Project, "runtime", "one")) == "safe",
+                "Ancestor replacement was neither refused nor blocked by a retained Windows handle. " + RaceDiagnostic(attempted, swapped, failure, observedFailure));
+            Assert(!Directory.Exists(Path.Combine(scope.Outside, "runtime")) && !File.Exists(Path.Combine(scope.Outside, "inventory.json")),
+                "Output escaped the admitted destination parent.");
+        }
+    }
+
+    private static void StagedChildSwapsStayConfined()
+    {
+        foreach (var kind in DirectorySwapFixture.AliasKinds)
+        {
+            using var scope = new DirectorySwapFixture();
+            if (!scope.ProbeAlias(kind)) continue;
+            using var archiveScope = TestScope.Create();
+            var archive = archiveScope.CreateArchive(DirectoryEntry("./bin/"), FileEntry("./bin/one", "safe", 0x1a4));
+            File.WriteAllText(Path.Combine(scope.Outside, "one"), "outside");
+            string? staging = null; string? child = null; string? retained = null; var swapped = false; var attempted = false;
+            ArchiveBoundaryException? failure = null;
+            var observedFailure = "none";
+            try
+            {
+                StructuredArchiveExtractor.Extract(SwapRequest(scope, archive), new ArchiveExtractionHooks(
+                    AfterStagingCreated: path => staging = path,
+                    BeforeMaterializeEntry: (_, path) =>
+                    {
+                        if (attempted || path != "bin/one") return;
+                        attempted = true; child = Path.Combine(staging!, "bin"); retained = Path.Combine(staging!, "retained-bin");
+                        swapped = scope.TrySwap(child, retained, kind);
+                    }, FailureObserved: error => observedFailure = ExceptionCodes(error)));
+            }
+            catch (ArchiveBoundaryException error) { failure = error; }
+            finally { if (swapped) scope.Restore(child!, retained!); }
+            Assert(attempted && File.ReadAllText(Path.Combine(scope.Outside, "one")) == "outside", "A staged-child swap touched its outside target. " + RaceDiagnostic(attempted, swapped, failure, observedFailure));
+            Assert(swapped ? failure is { Code: "cleanup_failed", CleanupFailureCount: > 0 } : failure is null,
+                "A staged-child replacement was adopted or incomplete cleanup was hidden. " + RaceDiagnostic(attempted, swapped, failure, observedFailure));
+        }
+    }
+
+    private static void InventoryParentSwapsStayConfined()
+    {
+        foreach (var kind in DirectorySwapFixture.AliasKinds)
+        {
+            using var scope = new DirectorySwapFixture();
+            if (!scope.ProbeAlias(kind)) continue;
+            using var archiveScope = TestScope.Create();
+            var archive = archiveScope.CreateArchive(FileEntry("./one", "safe", 0x1a4));
+            var parent = Path.Combine(scope.Root, "inventories"); var retained = Path.Combine(scope.Root, "retained-inventories");
+            Directory.CreateDirectory(parent);
+            File.WriteAllText(Path.Combine(scope.Outside, "inventory.json"), "outside");
+            var request = SwapRequest(scope, archive) with { InventoryPath = Path.Combine(parent, "inventory.json") };
+            var attempted = false; var swapped = false; ArchiveBoundaryException? failure = null;
+            var observedFailure = "none";
+            try
+            {
+                StructuredArchiveExtractor.Extract(request, new ArchiveExtractionHooks(
+                    BeforeInventoryCreate: () => { attempted = true; swapped = scope.TrySwap(parent, retained, kind); },
+                    FailureObserved: error => observedFailure = ExceptionCodes(error)));
+            }
+            catch (ArchiveBoundaryException error) { failure = error; }
+            finally { scope.Restore(parent, retained); }
+            Assert(attempted && File.ReadAllText(Path.Combine(scope.Outside, "inventory.json")) == "outside", "An inventory write followed its replacement parent. " + RaceDiagnostic(attempted, swapped, failure, observedFailure));
+            Assert(swapped ? failure is { Code: "extraction_failed" } && !Directory.Exists(Path.Combine(scope.Project, "runtime"))
+                : OperatingSystem.IsWindows() && failure is null && File.Exists(request.InventoryPath),
+                "Inventory-parent ownership or the original output rollback was lost. " + RaceDiagnostic(attempted, swapped, failure, observedFailure));
+        }
+    }
+
+    private static void CleanupDoesNotAdoptReplacementTree()
+    {
+        using var scope = new DirectorySwapFixture();
+        using var archiveScope = TestScope.Create();
+        var archive = archiveScope.CreateArchive(FileEntry("./one", "safe", 0x1a4));
+        File.WriteAllText(Path.Combine(scope.Outside, "one"), "outside");
+        var destination = Path.Combine(scope.Project, "runtime");
+        var retained = Path.Combine(scope.Project, "retained-runtime");
+        var attempted = false; var swapped = false; ArchiveBoundaryException? failure = null;
+        var observedFailure = "none";
+        try
+        {
+            StructuredArchiveExtractor.Extract(SwapRequest(scope, archive), new ArchiveExtractionHooks(
+                AfterDestinationCommit: () =>
+                {
+                    attempted = true;
+                    try { Directory.Move(destination, retained); }
+                    catch (IOException) when (OperatingSystem.IsWindows()) { throw new InvalidOperationException("synthetic postcommit failure"); }
+                    Directory.Move(scope.Outside, destination); swapped = true;
+                    throw new InvalidOperationException("synthetic postcommit failure");
+                }, FailureObserved: error => observedFailure = ExceptionCodes(error)));
+        }
+        catch (ArchiveBoundaryException error) { failure = error; }
+        finally
+        {
+            if (swapped) { Directory.Move(destination, scope.Outside); Directory.Move(retained, destination); }
+        }
+        Assert(attempted && File.ReadAllText(Path.Combine(scope.Outside, "one")) == "outside", "Cleanup adopted and deleted a replacement ordinary tree. " + RaceDiagnostic(attempted, swapped, failure, observedFailure));
+        Assert(swapped ? failure is { Code: "cleanup_failed", PrimaryCode: "extraction_failed", CleanupFailureCount: > 0 }
+            : OperatingSystem.IsWindows() && failure is { Code: "extraction_failed" } && !Directory.Exists(destination),
+            "Cleanup lost the primary failure or claimed to remove a replacement tree. " + RaceDiagnostic(attempted, swapped, failure, observedFailure));
+    }
+
+    private static string RaceDiagnostic(bool attempted, bool swapped, ArchiveBoundaryException? failure, string observed) =>
+        $"attempted={attempted}; swapped={swapped}; code={failure?.Code ?? "none"}; primary={failure?.PrimaryCode ?? "none"}; cleanup={failure?.CleanupFailureCount ?? 0}; causes={observed}";
+
+    private static string ExceptionCodes(Exception error)
+    {
+        var codes = new List<string>();
+        for (Exception? current = error; current is not null && codes.Count < 4; current = current.InnerException)
+            codes.Add(current.GetType().Name + "/0x" + current.HResult.ToString("X8", CultureInfo.InvariantCulture));
+        return string.Join(",", codes);
+    }
+
+    private static ArchiveExtractionRequest SwapRequest(DirectorySwapFixture scope, string archive) => new(
+        archive, HashFile(archive), scope.Project, "runtime", Path.Combine(scope.Project, "inventory.json"));
 
     private static void GnuArchiveIsAccepted()
     {

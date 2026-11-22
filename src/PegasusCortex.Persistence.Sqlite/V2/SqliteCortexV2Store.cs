@@ -1527,11 +1527,20 @@ public sealed partial class SqliteCortexV2Store : IAsyncDisposable
             throw new ArgumentOutOfRangeException(nameof(value.ContentUtf8));
         if (value.ContentUtf8 is not null)
             _ = StrictUtf8.GetString(value.ContentUtf8);
+        if (value.Kind is "task" or "knowledge")
+        {
+            Pegasus.Cortex.Core.Retention.CortexRetentionContentPolicy.RequireSemanticAccepted(
+                value.Namespace, value.RecordId, value.Actor, value.IdempotencyKey, value.Title, value.Summary,
+                value.ContentUtf8 is null ? null : StrictUtf8.GetString(value.ContentUtf8));
+            Pegasus.Cortex.Core.Retention.CortexRetentionContentPolicy.RequireSemanticAccepted(value.Tags.ToArray());
+        }
         try
         {
             using var attributes = JsonDocument.Parse(value.AttributesJson);
             if (attributes.RootElement.ValueKind != JsonValueKind.Object)
                 throw new ArgumentException("Cortex v2 attributes must be one JSON object.", nameof(value.AttributesJson));
+            if (value.Kind is "task" or "knowledge")
+                Pegasus.Cortex.Core.Retention.CortexRetentionContentPolicy.RequireSemanticJsonAccepted(attributes.RootElement);
         }
         catch (JsonException exception)
         {

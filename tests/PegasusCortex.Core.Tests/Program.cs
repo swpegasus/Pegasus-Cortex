@@ -9,8 +9,16 @@ using Pegasus.Shared.Outcomes;
 using Pegasus.Shared.Schemas;
 using Pegasus.Shared.Security;
 
+if(args is ["--semantic-admission-only"])
+{
+    await CortexSemanticAdmissionTests.RunAsync();
+    Console.WriteLine("PASS semantic admission fixtures.");
+    return 0;
+}
+
 var tests = new (string Name, Func<Task> Run)[]
 {
+    ("V2 semantic admission rejects prohibited bodies before effects", CortexSemanticAdmissionTests.RunAsync),
     ("V2 application enforces namespaces provenance budgets and atomic finish", CortexV2ApplicationTests.RunAsync),
     ("V2 optional personal profile gates access and invalidates stale results", CortexPersonalProfileTests.RunAsync),
     ("V2 knowledge geometry is base-first deterministic and body-free", CortexKnowledgeGeometryTests.RunAsync),

@@ -28,6 +28,64 @@ if (args is ["version"])
     return 0;
 }
 
+if (args is ["mcp", "headers", "--connection", var connectionId])
+{
+    try
+    {
+        Console.WriteLine(Pegasus.Cortex.Product.CortexMcpClientCredentials.ReadHeaderJson(connectionId));
+        return 0;
+    }
+    catch (Exception error) when (error is UnauthorizedAccessException or IOException or
+        System.ComponentModel.Win32Exception or InvalidDataException or PlatformNotSupportedException)
+    {
+        // Header-helper errors never echo headers, credentials, paths or native messages.
+        Console.Error.WriteLine("Cortex MCP client credential is unavailable.");
+        return 12;
+    }
+}
+
+if (args is ["mcp","enroll","--name",var connectionName,"--application",var connectionApplication,
+    "--request-file",var connectionRequestPath])
+{
+    Pegasus.Cortex.Product.CortexMcpConnectionRequest? request=null;
+    try
+    {
+        if(File.Exists(connectionRequestPath)||Directory.Exists(connectionRequestPath))
+            throw new IOException("The public enrollment destination is occupied.");
+        request=Pegasus.Cortex.Product.CortexMcpClientCredentials.Create(connectionName,connectionApplication);
+        Pegasus.Cortex.Product.CortexMcpClientCredentials.WritePublicRequest(connectionRequestPath,request);
+        Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new {state="pending_approval",
+            connectionId=request.ConnectionId,requestFile=Path.GetFullPath(connectionRequestPath)}));
+        return 0;
+    }
+    catch(Exception error)when(error is IOException or UnauthorizedAccessException or
+        System.ComponentModel.Win32Exception or InvalidDataException or PlatformNotSupportedException)
+    {
+        // Public recovery coordinates are safe; the vault credential is never emitted.
+        Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(new {state=request is null?"not_created":"public_request_not_saved",
+            request, error=error.GetType().Name}));
+        return 12;
+    }
+}
+
+if (args is ["mcp", "config", "--connection", var configurationConnectionId])
+{
+    try
+    {
+        var product = Pegasus.Cortex.Product.CortexProductLayout.ResolveCurrent();
+        var settings = Pegasus.Cortex.Mcp.Hosting.CortexMcpSettingsStore.ReadForInstallRoot(product.InstallRoot);
+        var endpoint = new UriBuilder("https", settings.ServerName, settings.Port, "/mcp/cortex").Uri.AbsoluteUri;
+        Console.Write(Pegasus.Cortex.Product.CortexMcpClientConfiguration.Codex(
+            Path.Combine(product.InstallRoot, "PegasusCortex.exe"), configurationConnectionId, endpoint));
+        return 0;
+    }
+    catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException)
+    {
+        Console.Error.WriteLine("Cortex MCP client configuration is unavailable: " + error.GetType().Name);
+        return 12;
+    }
+}
+
 if (args.Length > 0 && args[0] == "assets")
 {
     var result = await CortexAssetProductCommandsV2.RunAsync(args, CancellationToken.None);

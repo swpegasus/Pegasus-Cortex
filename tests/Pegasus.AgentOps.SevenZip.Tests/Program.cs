@@ -15,6 +15,7 @@ var tests = new (string Name, Func<Task> Run)[]
 {
     ("typed_argument_vector_and_valid_listing", TypedArgumentVectorAsync),
     ("unsafe_archive_names_rejected", UnsafeNamesAsync),
+    ("UTF8_and_final_plus_staging_path_budgets", ExtractionPathBudgetsAsync),
     ("links_special_entries_and_encryption_rejected", SpecialEntriesAsync),
     ("case_and_shape_collisions_rejected", CollisionsAsync),
     ("listing_and_expansion_bounds_enforced", BoundsAsync),
@@ -86,6 +87,43 @@ static async Task TypedArgumentVectorAsync()
         ["l", "-slt", "-ba", "-bd", "-bb0", "-sccUTF-8", "--", archive],
         request.Arguments);
     Check(request.Arguments[^1].Contains("'brackets[] & 雪", StringComparison.Ordinal), "difficult path was altered");
+}
+
+static async Task ExtractionPathBudgetsAsync()
+{
+    using var scope = new TestScope();
+    var executable = scope.File("7z.exe", [0x4d, 0x5a]);
+    var archive = scope.File("data.7z", [1]);
+    var destination = scope.Directory("budget-output");
+    var marker = scope.File(Path.Combine("budget-output", "keep.txt"), Bytes("keep"));
+    var parentAt215 = new string('d', 215 - destination.Length - 1);
+    foreach (var path in new[]
+    {
+        new string('雪', 86) + "/x.txt",
+        new string('a', 100) + "/" + new string('b', 100) + "/x.txt",
+        parentAt215 + "/x" // final target fits; the fixed .pao-7z-GUID.tmp sibling exceeds 240
+    })
+    {
+        var runner = new FakeRunner(Listing(FileEntry(path, Bytes("x"), 1)));
+        await ThrowsCodeAsync("archive_name", () =>
+            new SevenZipOperations(runner).ExtractAsync(executable, archive, destination, "clean"));
+        Equal("keep", File.ReadAllText(marker));
+        Equal(1, System.IO.Directory.GetFileSystemEntries(destination).Length);
+        SequenceEqual(["l"], runner.Calls);
+    }
+
+    var folder = new string('雪', 85);
+    var relative = folder + "/x.txt";
+    var payload = Bytes("ok");
+    var validRunner = new FakeRunner(Listing(FileEntry(relative, payload, 1)),
+        new Dictionary<string, byte[]>(StringComparer.Ordinal)
+        {
+            [folder + Path.DirectorySeparatorChar + "x.txt"] = payload
+        });
+    var output = scope.Directory("utf8-valid");
+    var result = await new SevenZipOperations(validRunner).ExtractAsync(executable, archive, output, "clean");
+    Check(result.Ok && !result.Partial, result.Error ?? "valid UTF8 boundary failed");
+    Equal("ok", File.ReadAllText(Path.Combine(output, folder, "x.txt")));
 }
 
 static async Task UnsafeNamesAsync()

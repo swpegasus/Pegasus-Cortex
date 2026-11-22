@@ -63,7 +63,7 @@
       "Pegasus.Cortex.Core": {
         "type": "Project",
         "dependencies": {
-          "Pegasus.Cortex.Contracts": "[2.20261121.2234-a, )",
+          "Pegasus.Cortex.Contracts": "[2.20261122.354-a, )",
           "Pegasus.Shared": "[1.20260711.421-a, 1.20260711.421-a]"
         }
       }

@@ -337,16 +337,16 @@ foreach ($action in @('windows_service_read', 'windows_service_startup')) {
     $helpRun = Invoke-CortexBuildProcess -Executable $packagedPao `
         -Arguments @('help', $action) -WorkingDirectory $unified -TimeoutSeconds 30
     $helpText = $helpRun.StandardOutput.Replace("`r`n", "`n")
-    # Control selects either Root or the explicit same-owner UAC route. Root is
-    # therefore allowed, while only the body and mutation RID are unconditional.
+    # Control selects approved SYSTEM intent or the explicit same-owner UAC route.
+    # Only the body and mutation RID are unconditional; legacy root codes are absent.
     $required = if ($action -ceq 'windows_service_read') { 'Required: text' } else { 'Required: text, rid' }
     $allowedLine = @($helpText.Split("`n") | Where-Object { $_.StartsWith('Allowed: ', [StringComparison]::Ordinal) })
     $allowed = if ($allowedLine.Count -eq 1) { @($allowedLine[0].Substring(9).Split(',') | ForEach-Object { $_.Trim() }) } else { @() }
-    $expectedAllowed = @('op', 'text', 'root', 'rid', 'detail', 'elevate', 'wait', 'output')
+    $expectedAllowed = @('op', 'text', 'system', 'rid', 'detail', 'elevate', 'wait', 'output')
     Assert-True -Condition ($helpRun.ExitCode -eq 0 -and
         $helpText.StartsWith("PAO $action`n", [StringComparison]::Ordinal) -and
         $helpText.Contains("$required`n", [StringComparison]::Ordinal) -and
-        $allowed.Count -eq $expectedAllowed.Count -and
+        $allowed.Count -eq $expectedAllowed.Count -and $allowed -cnotcontains 'root' -and
         @($expectedAllowed | Where-Object { $_ -cnotin $allowed }).Count -eq 0) `
         -Message "The packaged $action help lost its exact owner/System/UAC action contract."
 }

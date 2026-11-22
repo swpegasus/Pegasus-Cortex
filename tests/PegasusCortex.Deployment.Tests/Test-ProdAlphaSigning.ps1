@@ -110,7 +110,8 @@ try {
 
     $contentTamper = Join-Path $scratch 'content-tamper'
     Copy-Item -LiteralPath $productSource -Destination $contentTamper -Recurse -ErrorAction Stop
-    [IO.File]::AppendAllText((Join-Path $contentTamper 'PegasusCortex.pdb'), 'tamper', [Text.UTF8Encoding]::new($false))
+    # The launcher is always inventoried; optional symbols may be absent on a clean builder.
+    [IO.File]::AppendAllText((Join-Path $contentTamper 'PegasusCortex.exe'), 'tamper', [Text.UTF8Encoding]::new($false))
     Assert-FailsWith -Fragment 'exact length or SHA-256' -Action {
         & $verifier -PackageRoot $contentTamper -Role product -ReleaseVersion $ReleaseVersion | Out-Null
     }

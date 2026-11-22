@@ -131,12 +131,12 @@ public static class CortexResidentRuntime
                 {
                     var started = await CortexMcpHostController.StartForInstallRootAsync(
                         product.InstallRoot, CortexMcpOwner.Application,
-                        _ => Task.FromResult(server.CreateOwnerEndpointDispatcher(admission)),
+                        _ => Task.FromResult(server.CreateOwnerEndpointDispatcher(admission,product.InstallRoot)),
                         semanticLifetime.Token);
                     Volatile.Write(ref shared, started);
                     if (semanticLifetime.IsCancellationRequested) started.RequestStop();
                     serviceGateway?.Bind(shared.State.StartupSettings,
-                        () => server.CreateOwnerEndpointDispatcher(admission));
+                        () => server.CreateOwnerEndpointDispatcher(admission,product.InstallRoot));
                     await diagnostics.WriteLineAsync("component=shared-mcp state=" +
                         shared.State.Status.ToString().ToLowerInvariant() +
                         (shared.State.Issue is { } sharedIssue ? " issue=" + sharedIssue : string.Empty));

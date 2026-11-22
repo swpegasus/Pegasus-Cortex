@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Security.Cryptography;
 using Pegasus.Cortex.ArchiveTool.Security;
 using Pegasus.Cortex.ArchiveTool.Serialization;
+using Pegasus.Cortex.RootedIo;
 
 namespace Pegasus.Cortex.ArchiveTool.Archive;
 
@@ -24,13 +25,12 @@ public static class StructuredArchiveExtractor
     {
         var limits = request.Limits ?? new ArchiveSafetyLimits();
         var validated = ArchivePathPolicy.ValidateRequest(request, limits);
-        var compressedLength = new FileInfo(validated.ArchivePath).Length;
-        if (compressedLength is <= 0 || compressedLength > limits.MaximumCompressedBytes)
-            throw Failure("archive_size_over_budget", "The compressed archive size is outside policy limits.");
-
         ArchivePreflight preflight;
         using (var archive = OpenPinnedArchive(validated.ArchivePath))
         {
+            var compressedLength = archive.Length;
+            if (compressedLength is <= 0 || compressedLength > limits.MaximumCompressedBytes)
+                throw Failure("archive_size_over_budget", "The compressed archive size is outside policy limits.");
             var initialHash = ComputeArchiveSha256(archive);
             RequirePinnedHash(initialHash, validated.ExpectedSha256);
             preflight = Preflight(archive, initialHash, compressedLength, validated);
@@ -39,42 +39,33 @@ public static class StructuredArchiveExtractor
             var secondHash = ComputeArchiveSha256(archive);
             RequirePinnedHash(secondHash, validated.ExpectedSha256);
 
-            string? ownedTree = null;
-            string? inventoryTemporaryPath = null;
-            string? ownedInventoryPath = null;
+            using var fileSystem = new SafeFileSystem(validated);
             try
             {
-                ownedTree = SafeFileSystem.CreatePrivateStagingDirectory(validated);
-                SafeFileSystem.EnsureMaterializedPathsWithinBudget(
+                var ownedTree = fileSystem.CreatePrivateStagingDirectory();
+                hooks.AfterStagingCreated?.Invoke(ownedTree);
+                fileSystem.EnsureMaterializedPathsWithinBudget(
                     ownedTree,
                     preflight.MaterializedEntries,
                     limits.MaximumCanonicalPathUtf16);
-                SafeFileSystem.CreateMaterializedDirectories(ownedTree, preflight.MaterializedEntries);
-                ExtractComparedPass(archive, ownedTree, preflight, validated, hooks);
+                fileSystem.CreateMaterializedDirectories(preflight.MaterializedEntries);
+                ExtractComparedPass(archive, fileSystem, preflight, validated, hooks);
 
                 // A final compressed-byte hash catches mutation on platforms where FileShare is advisory.
                 var finalHash = ComputeArchiveSha256(archive);
                 RequirePinnedHash(finalHash, validated.ExpectedSha256);
 
-                SafeFileSystem.ApplyModes(ownedTree, preflight.MaterializedEntries);
-                _ = SafeFileSystem.InventoryAndVerify(ownedTree, preflight.MaterializedEntries);
+                fileSystem.ApplyModes(preflight.MaterializedEntries);
+                _ = fileSystem.InventoryAndVerify(preflight.MaterializedEntries);
 
-                SafeFileSystem.CommitDirectoryNoReplace(ownedTree, validated.DestinationPath);
-                ownedTree = validated.DestinationPath;
+                fileSystem.CommitDirectoryNoReplace();
                 hooks.AfterDestinationCommit?.Invoke();
-                ArchivePathPolicy.EnsurePathIsNotReparsePoint(ownedTree, "destination_unsafe");
-                ArchivePathPolicy.EnsureExistingAncestorsAreNotReparsePoints(ownedTree, "destination_unsafe");
-                var committedInventory = SafeFileSystem.InventoryAndVerify(
-                    ownedTree,
-                    preflight.MaterializedEntries);
+                var committedInventory = fileSystem.InventoryAndVerify(preflight.MaterializedEntries);
 
-                inventoryTemporaryPath = SafeFileSystem.CreateInventoryTemporaryPath(
-                    validated.InventoryPath,
-                    limits.MaximumCanonicalPathUtf16);
-                InventoryJsonWriter.WriteCreateNew(inventoryTemporaryPath, preflight, committedInventory);
-                SafeFileSystem.CommitFileNoReplace(inventoryTemporaryPath, validated.InventoryPath);
-                inventoryTemporaryPath = null;
-                ownedInventoryPath = validated.InventoryPath;
+                hooks.BeforeInventoryCreate?.Invoke();
+                using (var inventory = fileSystem.CreateInventoryStream())
+                    InventoryJsonWriter.WriteCreateNew(inventory, preflight, committedInventory);
+                fileSystem.CommitInventoryNoReplace();
                 hooks.AfterInventoryCommit?.Invoke();
 
                 var result = new ArchiveExtractionResult(
@@ -88,18 +79,17 @@ public static class StructuredArchiveExtractor
                     committedInventory.Count);
 
                 // Ownership transfers to the caller only after both no-replace commits succeed.
-                ownedTree = null;
-                ownedInventoryPath = null;
+                fileSystem.ReleaseOwnership();
                 return result;
             }
             catch (Exception exception)
             {
+                // Test-only observation must never interfere with primary failure or owned cleanup.
+                try { hooks.FailureObserved?.Invoke(exception); }
+                catch (Exception) { }
                 var primary = exception as ArchiveBoundaryException ??
-                    Failure("extraction_failed", "Archive extraction failed closed.");
-                var cleanupFailures = new List<Exception>();
-                cleanupFailures.AddRange(SafeFileSystem.DeleteTreeNoFollow(inventoryTemporaryPath, hooks));
-                cleanupFailures.AddRange(SafeFileSystem.DeleteTreeNoFollow(ownedInventoryPath, hooks));
-                cleanupFailures.AddRange(SafeFileSystem.DeleteTreeNoFollow(ownedTree, hooks));
+                    Failure("extraction_failed", "Archive extraction failed closed.", exception);
+                var cleanupFailures = fileSystem.Cleanup(hooks);
                 if (cleanupFailures.Count != 0)
                 {
                     throw new ArchiveBoundaryException(
@@ -358,7 +348,7 @@ public static class StructuredArchiveExtractor
 
     private static void ExtractComparedPass(
         FileStream archive,
-        string stagingRoot,
+        SafeFileSystem fileSystem,
         ArchivePreflight preflight,
         ValidatedRequest request,
         ArchiveExtractionHooks hooks)
@@ -408,12 +398,11 @@ public static class StructuredArchiveExtractor
                 if (kind == MaterializedEntryKind.File)
                 {
                     totalFileBytes = checked(totalFileBytes + entry.Length);
-                    var destination = ArchivePathPolicy.ResolveEntryPath(stagingRoot, expected.RelativePath);
                     var data = entry.DataStream ?? throw EntryFailure(
                         "preflight_mismatch",
                         "A regular TAR entry lost its data stream after preflight.",
                         index);
-                    var actualHash = SafeFileSystem.WriteFileCreateNew(destination, data, entry.Length, index);
+                    var actualHash = fileSystem.WriteFileCreateNew(expected.RelativePath, data, entry.Length, index);
                     if (!string.Equals(actualHash, expected.Sha256, StringComparison.Ordinal))
                         throw EntryFailure("preflight_mismatch", "An archive file hash differs from preflight.", index);
                 }
@@ -524,13 +513,12 @@ public static class StructuredArchiveExtractor
         }
     }
 
-    private static FileStream OpenPinnedArchive(string path) => new(
-        path,
-        FileMode.Open,
-        FileAccess.Read,
-        FileShare.Read,
-        64 * 1024,
-        FileOptions.SequentialScan);
+    private static FileStream OpenPinnedArchive(string path)
+    {
+        using var parent = RootedDirectory.OpenRoot(Path.GetDirectoryName(path)!);
+        using var file = parent.OpenRead(Path.GetFileName(path));
+        return file.OpenStream();
+    }
 
     private static byte[] ComputeArchiveSha256(FileStream archive)
     {

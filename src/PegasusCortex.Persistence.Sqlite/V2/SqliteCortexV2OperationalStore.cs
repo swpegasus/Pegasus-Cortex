@@ -453,7 +453,7 @@ public sealed partial class SqliteCortexV2OperationalStore :
                     !string.Equals(previousContentHash, item.ContentHash, StringComparison.Ordinal),
                     item.ContentHash,
                     metadata.PhaseId,
-                    metadata.CheckpointSubject));
+                    metadata.CheckpointSubject, metadata.Provenance.VerifiedSource));
                 previousContentHash = item.ContentHash;
             }
             return new([command.Namespace], "history", Task: null, Items: [], events, NextCursor: null);
@@ -1307,7 +1307,7 @@ public sealed partial class SqliteCortexV2OperationalStore :
         task.Assignee, task.ClaimedBy,
         TruncateNullable(task.BlockedReason, CortexV2Limits.MaximumReceiptReasonCharacters),
         task.PhaseId,
-        TruncateNullable(task.CheckpointSubject, CortexV2Limits.MaximumCheckpointSubjectCharacters));
+        TruncateNullable(task.CheckpointSubject, CortexV2Limits.MaximumCheckpointSubjectCharacters), task.Provenance.VerifiedSource);
 
     private static CortexTaskSummaryV2 ToTaskSummary(
         SqliteCortexV2HeadProjection projection,
@@ -1322,7 +1322,7 @@ public sealed partial class SqliteCortexV2OperationalStore :
         metadata.ClaimedBy,
         TruncateNullable(metadata.BlockedReason, CortexV2Limits.MaximumReceiptReasonCharacters),
         metadata.PhaseId,
-        TruncateNullable(metadata.CheckpointSubject, CortexV2Limits.MaximumCheckpointSubjectCharacters));
+        TruncateNullable(metadata.CheckpointSubject, CortexV2Limits.MaximumCheckpointSubjectCharacters), metadata.Provenance.VerifiedSource);
 
     private static CortexKnowledgeReceiptV2 ToKnowledgeReceipt(CortexKnowledgeV2 value) => new(
         value.Namespace,
@@ -1336,7 +1336,7 @@ public sealed partial class SqliteCortexV2OperationalStore :
             value.Provenance.Source,
             value.Provenance.Actor,
             value.Provenance.SourceId,
-            value.Provenance.CapturedAtUtc));
+            value.Provenance.CapturedAtUtc, value.Provenance.VerifiedSource));
 
     private static StartupCandidate? StartupContextItem(
         SqliteCortexV2SearchHit hit,
@@ -1529,7 +1529,7 @@ public sealed partial class SqliteCortexV2OperationalStore :
         value.Source,
         value.Actor,
         value.SourceId,
-        value.CapturedAtUtc);
+        value.CapturedAtUtc, value.VerifiedSource);
 
     private static string SanitizeSearchText(string value)
     {

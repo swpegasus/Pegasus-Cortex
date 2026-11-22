@@ -4,8 +4,10 @@ This additive PAO capability executes a reviewed headless program with the same
 human owner's elevated Administrator token, session and loaded profile. It is
 separate from ordinary User tool registration and from fixed LocalSystem file
 operations. Ordinary `run`, `pwsh`, and interactive `app` remain on their existing
-User routes. Protocol 1.0, Cortex MCP schema 2 and PAO schema 3 are retained; this
-change adds fixed operations and does not remove or reinterpret existing fields.
+User routes. Protocol 1.0, Cortex MCP schema 2 and PAO schema 3 are retained.
+Reviewed scope and invocation formats remain fixed. Current source retires
+four-character root-code authorization in favor of approved connection authority
+and boolean `system` intent.
 
 SOURCE CHECKPOINT: the exclusive maintenance interval is implemented in source.
 Focused qualification and independent source review remain separate from signed
@@ -15,33 +17,41 @@ scope admission, grants, administrator execution or a dependent installer retry.
 
 ## Reusable authority and per-attempt integrity
 
-One elevated owner setup calls `pao admin admit --stdin` through an already
-authorized transient root code. Its strict JSON body is an `OwnerAdminAuthorization`:
+An MCP connection must first have an explicit, current Full control approval.
+`admin_admit` then uses `system:true` through the authenticated ordinary owner
+Host and optional LocalSystem broker to admit a reviewed reusable scope. The
+protected approval is established by the owner's fixed elevation control, not
+by a name, chat/task label, request argument or boolean. Direct internal review
+without the approved-connection callback still requires an actual elevated owner.
+The strict scope body in `text`/stdin is an `OwnerAdminAuthorization`:
 
 | Field | Contract |
 | --- | --- |
 | `version`, `id`, `taskId` | Version 1; unique 32 lowercase hex scope ID; exact task UUID. |
 | `ownerSid`, `ownerSession`, `ownerProfile` | Exact human SID, positive session ID, canonical loaded profile path. |
-| `clientApplicationPath`, `clientSha256` | Exact client executable path and SHA-256. The elevated reviewer may admit a separate managed MCP host only if the root application policy permits it too. CLI and managed MCP may have separate initial scopes because they have different authenticated executable identities. |
+| `clientApplicationPath`, `clientSha256` | Exact admitted owner-client executable path and SHA-256. Existing protected application policy and the scope's client pins remain independently enforced; a reported application or chat name is not executable identity. |
 | `expiresAtUtc` | Explicit expiry, at most seven days after initial admission. |
 | `programs`, `scripts` | Exact named paths and initial SHA-256 pins. Each entry has `allowRevisions`, false by default. True explicitly authorizes revised bytes at that exact path; it never authorizes arbitrary alternate paths. |
-| `inputRoots`, `readRoots`, `writeRoots` | Canonical bounded roots for supplied inputs and declared effects. Every declared read/write root must independently pass the current root folder policy. |
+| `inputRoots`, `readRoots`, `writeRoots` | Canonical bounded roots for supplied inputs and declared effects. Every declared read/write root must independently pass the reviewed scope and applicable protected folder policy. |
 | `declaredEffects` | Explicit set drawn from `filesystem`, `backup`, `installer`, `service_control`, `owner_process`. |
 | `allowMaintenanceIntervals` | Explicitly true to permit begin/end within this exact scope and digest. |
 | `allowOrdinaryQuiescenceAcknowledgements` | Optional separately reviewed authority for exact original unknown-effect evidence acknowledgements. Actual elevated owner review is still required for each unknown acknowledgement. |
 | `allowUnconfinedAdministratorEffects` | Must explicitly be true. An administrator child is not confined by these declarations. They are reviewed authority, not a filesystem sandbox or kernel restriction. |
 
-The service binds the scope to the existing root label, without retaining the
-code. Scope creation requires an actual elevated owner client token; service
-possession of an elevated token does not make an ordinary registration a review.
-The scope is immutable. A conflicting scope ID fails closed. Revocation is
+The service binds the scope to the approved connection's stable ID. It rechecks
+the current Full control approval rather than accepting credential material in
+the invocation. The broker supplies that check only after authenticating the
+registered ordinary owner Host. Service possession of a privileged token alone
+is not approval. The scope is immutable. A conflicting scope ID fails closed. Revocation is
 explicit and permanent for that ID; a separately reviewed successor uses a new ID.
 
 After initial setup, the ordinary owner client can run revised **in-scope**
 attempts without another elevated manual handoff. A revised executable or script
 must remain at its explicitly revision-enabled path and have fresh exact pins.
-The current root application/folder checks, owner/session/client checks, task
-scope and expiry remain conjunctive on each new launch.
+The current connection approval, applicable protected application/folder checks,
+owner/session/client checks, reviewed task scope and expiry remain conjunctive
+on each new launch. Revocation is rechecked after waiting for admission and
+before process creation; it does not undo a process already created.
 
 Each attempt supplies a strict `OwnerAdminDefinition` in stdin (CLI) or `text`
 (MCP). It includes `version`, scope `id`, exact `taskId`, owner/client/profile
@@ -63,15 +73,19 @@ normalized SHA-256, scope ID and execution RID without contacting a broker or
 launching anything. Use that returned SHA for the corresponding exact run:
 
 ```
-pao admin run cfg=SCOPE_ID sha=DEFINITION_SHA rid=ORIGINAL_RID --stdin
-pao admin stat jid=ORIGINAL_JID
-pao admin revoke cfg=SCOPE_ID
+pao admin run system=true cfg=SCOPE_ID sha=DEFINITION_SHA rid=ORIGINAL_RID --stdin
+pao admin stat system=true jid=ORIGINAL_JID
+pao admin revoke system=true cfg=SCOPE_ID
 ```
 
-Execution, status, revocation and initial admission additionally require the
-existing transient `root` field. Supply it privately for that call; never save it
-in the JSON or an invocation file. `validate` accepts no root. There is no new
-root-code discovery or automatic grant enrollment workflow.
+Execution, status, scope revocation and admission require `system:true` and the
+connection's current Full control approval. The syntax above describes the typed
+CLI fields; a bare CLI boolean cannot supply the authenticated MCP authority
+context or create approval. Use the approved MCP connection for protected work;
+its adapter supplies public authority coordinates internally. Never put a bearer
+credential in JSON, arguments or an invocation file. `validate` remains pure and
+accepts neither `system` nor authorization material. Legacy root administration
+and root-code arguments are rejected, with no automatic grant enrollment.
 
 MCP equivalents use the single PAO tool with `admin_validate`, `admin_admit`,
 `admin_run`, `admin_stat`, `admin_revoke`, `admin_reconcile`, `admin_begin`, `admin_end`, `admin_interval`, and `admin_ack`. Unknown and irrelevant fields are
@@ -85,7 +99,7 @@ and code/config inputs must be protected against medium-token modification,
 including unsafe ancestor replacement. Trusted owners/writers are LocalSystem,
 Administrators and TrustedInstaller. The service never repairs these ACLs to make
 a request pass. Stage revised code into an already approved protected task
-directory using the existing fixed, root-authorized exact copy operation, then
+directory using the existing fixed exact copy operation with `system:true` and current Full control approval, then
 verify its resulting security and hashes. No protected staging occurs merely by
 calling `validate` or `run`.
 
@@ -163,13 +177,13 @@ interval is OFF. Begin with the exact reviewed scope ID/hash and a fresh intende
 32-hex RID. Preserve that RID when retrieving an ambiguous response.
 
 ```
-pao admin begin cfg=SCOPE_ID sha=SCOPE_SHA rid=BEGIN_RID
-pao admin interval cfg=SCOPE_ID
-pao admin end cfg=SCOPE_ID sha=SCOPE_SHA epoch=ORIGINAL_EPOCH rid=END_RID --stdin
+pao admin begin system=true cfg=SCOPE_ID sha=SCOPE_SHA rid=BEGIN_RID
+pao admin interval system=true cfg=SCOPE_ID
+pao admin end system=true cfg=SCOPE_ID sha=SCOPE_SHA epoch=ORIGINAL_EPOCH rid=END_RID --stdin
 ```
 
-All three require the existing transient root field. No invocation template
-contains its value. CLI and the single MCP PAO tool expose the same closed fields;
+All three require `system:true` through the current approved Full control
+connection. Invocation templates contain no credential. CLI and the single MCP PAO tool expose the same closed fields;
 END accepts proof JSON in stdin or MCP `text`. Interval controls do not accept
 `wait`, arbitrary arguments or workspace selection.
 
@@ -247,8 +261,10 @@ the interval or prevents exact-original diagnostics and safe explicit handback.
 5. Verify an ordinary User SDK read/build remains medium-token and interactive
    `app` remains on the normal user route. Verify native library credentials
    cannot reach admin execution. Revoke the fixture scope after acceptance.
-6. CLI access is independent of MCP. Refresh/reconnect the MCP adapter only if its
-   advertised tools remain stale after the coherent update. Request a Codex
+6. Ordinary CLI access remains separate from MCP. Protected `system:true` syntax
+   alone does not enroll or authenticate a connection; qualify it through the
+   approved MCP route. Refresh/reconnect the adapter only if its advertised tools
+   remain stale after the coherent update. Request a Codex
    restart only if concrete post-update evidence makes it necessary.
 
 No installed administrator acceptance is established by source tests. The first

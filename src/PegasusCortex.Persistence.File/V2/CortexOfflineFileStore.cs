@@ -533,24 +533,7 @@ public sealed class CortexOfflineFileStore : IAsyncDisposable
             try
             {
                 var lockPath = CortexFileV2PathPolicy.OfflineWriteLockPath(_projectRoot, _taskId);
-                CortexFileV2PathPolicy.RejectFileReparsePoint(lockPath);
-                var stream = new FileStream(
-                    lockPath,
-                    FileMode.OpenOrCreate,
-                    FileAccess.ReadWrite,
-                    FileShare.None,
-                    1,
-                    FileOptions.WriteThrough);
-                try
-                {
-                    CortexFileV2PathPolicy.RejectFileReparsePoint(lockPath);
-                    return stream;
-                }
-                catch
-                {
-                    await stream.DisposeAsync().ConfigureAwait(false);
-                    throw;
-                }
+                return CortexFileV2AtomicIo.OpenWriteLease(lockPath);
             }
             catch (IOException) when (stopwatch.Elapsed < TimeSpan.FromSeconds(30))
             {

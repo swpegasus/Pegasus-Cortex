@@ -30,7 +30,11 @@ public sealed class SharedMcpServer : IAsyncDisposable
     private readonly ConcurrentDictionary<string, Session> sessions = new(StringComparer.Ordinal);
     private readonly object sessionGate = new();
     private readonly SemaphoreSlim total;
+    private readonly SemaphoreSlim authenticating;
     private readonly CancellationTokenSource lifetime = new();
+    private readonly TaskCompletionSource disposalCompleted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private TaskCompletionSource? authenticationDrained;
+    private int activeAuthentications;
     private WebApplication? app;
     private Task? sweeper;
     private int streamSequence;
@@ -63,6 +67,7 @@ public sealed class SharedMcpServer : IAsyncDisposable
         this.products = products.ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
         network = new(options.AllowedPeerCidrs.ToArray());
         total = new(options.MaximumPendingTotal, options.MaximumPendingTotal);
+        authenticating = new(options.MaximumPendingTotal, options.MaximumPendingTotal);
     }
 
     public static async Task<SharedMcpServer> StartAsync(McpServerOptions options,
@@ -132,6 +137,10 @@ public sealed class SharedMcpServer : IAsyncDisposable
         { http.Response.StatusCode = 404; return; }
         if (!tlsQualified) { http.Response.StatusCode = 503; return; }
         var product = path[5..];
+        // Authentication is product policy, after transport guards and before any session lookup.
+        // Neither a session ID nor a task/client label can manufacture or replace this identity.
+        var admission = await AuthenticateAsync(http, product);
+        if (admission is null) return;
         if (http.Request.Method == "GET")
         { http.Response.StatusCode = 405; http.Response.Headers.Allow = "POST, DELETE"; return; }
         if (http.Request.Method is not ("POST" or "DELETE"))
@@ -140,13 +149,15 @@ public sealed class SharedMcpServer : IAsyncDisposable
         var sessionId = http.Request.Headers["Mcp-Session-Id"].ToString();
         if (sessionId.Length > 0 && (!sessions.TryGetValue(sessionId, out session) || session.Product != product || session.Closed))
         { http.Response.StatusCode = 404; return; }
+        if (session is not null && session.Context.Identity != admission.Identity)
+        { http.Response.StatusCode = 403; return; }
         var protocol = http.Request.Headers["MCP-Protocol-Version"].ToString();
         if (protocol.Length > 0 && (!Protocols.Contains(protocol) || session is not null && session.Protocol != protocol))
         { await Write(http, Error(null, -32600, "Unsupported or mismatched MCP protocol version."), 400); return; }
         if (http.Request.Method == "DELETE")
         {
             if (session is null) { http.Response.StatusCode = 400; return; }
-            Close(session); http.Response.StatusCode = 204; return;
+            Close(session, McpSessionCloseReason.Deleted); http.Response.StatusCode = 204; return;
         }
         if (!(http.Request.ContentType ?? "").Split(';')[0].Trim().Equals("application/json", StringComparison.OrdinalIgnoreCase))
         { http.Response.StatusCode = 415; return; }
@@ -189,20 +200,26 @@ public sealed class SharedMcpServer : IAsyncDisposable
             { await Write(http, Error(id, -32602, "Initialization requires protocolVersion, capabilities and clientInfo."), 400); return; }
             lock (sessionGate)
             {
-                if (sessions.Count < options.MaximumSessions)
+                if (disposed == 0 && sessions.Count < options.MaximumSessions && total.Wait(0))
                 {
                     session = new(Guid.NewGuid().ToString("N"), product, Interlocked.Increment(ref streamSequence),
-                        Protocols.Contains(requested) ? requested : Protocols[0]);
+                        Protocols.Contains(requested) ? requested : Protocols[0], admission.Identity, lifetime.Token);
                     sessions[session.Id] = session;
+                    // Owned by this session and awaited by DisposeAsync, including noncooperative cleanup.
+                    session.Cleanup = CloseWhenDrainedAsync(session, dispatcher);
                 }
             }
-            if (session is null || !total.Wait(0))
-            { if (session is not null) Close(session); await Write(http, Error(id, -32000, "Session or pending capacity reached."), 503); return; }
+            if (session is null)
+            { await Write(http, Error(id, -32000, "Session or pending capacity reached."), 503); return; }
             try
             {
-                using var startup = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
+                using var startup = CancellationTokenSource.CreateLinkedTokenSource(session.Cancellation.Token);
                 using var startupTimer = new Timer(_ => CancelSafely(startup), null, options.RequestTimeout, Timeout.InfiniteTimeSpan);
+                if (dispatcher is IMcpSessionLifecycle lifecycle)
+                    await lifecycle.SessionOpenedAsync(session.Context, startup.Token);
+                startup.Token.ThrowIfCancellationRequested();
                 var result = (JsonObject)(await dispatcher.InitializeAsync(startup.Token)).DeepClone();
+                startup.Token.ThrowIfCancellationRequested();
                 result["protocolVersion"] = session.Protocol;
                 // This JSON-response profile has no server-initiated requests or notification channel.
                 if (result["capabilities"] is JsonObject capabilities)
@@ -211,19 +228,32 @@ public sealed class SharedMcpServer : IAsyncDisposable
                     foreach (var capability in capabilities.ToArray())
                         if (capability.Value is JsonObject obj) { obj.Remove("listChanged"); obj.Remove("subscribe"); }
                 }
+                lock (session.Gate)
+                {
+                    if (session.Closed) throw new OperationCanceledException();
+                    session.Initialized = true;
+                }
                 http.Response.Headers["Mcp-Session-Id"] = session.Id;
                 await Write(http, Result(id, result));
             }
-            catch (Exception) { Close(session); await Write(http, Error(id, -32001, "Product backend unavailable; no operation was replayed."), 503); }
-            finally { total.Release(); }
+            catch (Exception) { Close(session, McpSessionCloseReason.InitializationFailed); await Write(http, Error(id, -32001, "Product backend unavailable; no operation was replayed."), 503); }
+            finally { total.Release(); ReleaseCallback(session); }
             return;
         }
         if (session is null) { await Write(http, Error(id, -32600, "Mcp-Session-Id required."), 400); return; }
-        session.LastUse = DateTime.UtcNow;
         if (id is null)
         {
-            if (method == "notifications/initialized") session.Ready = true;
-            else if (method == "notifications/cancelled" && request["params"]?["requestId"] is { } cancelId && ValidId(cancelId))
+            lock (session.Gate)
+            {
+                if (session.Closed) { http.Response.StatusCode = 404; return; }
+                session.LastUse = DateTime.UtcNow;
+                if (method == "notifications/initialized")
+                {
+                    if (!session.Initialized) { http.Response.StatusCode = 400; return; }
+                    session.Ready = true;
+                }
+            }
+            if (method == "notifications/cancelled" && request["params"]?["requestId"] is { } cancelId && ValidId(cancelId))
                 session.Cancel(IdKey(cancelId));
             http.Response.StatusCode = 202; return;
         }
@@ -237,10 +267,13 @@ public sealed class SharedMcpServer : IAsyncDisposable
             if (!session.Closed && session.Pending.Count < options.MaximumPendingPerSession &&
                 !session.Pending.ContainsKey(key) && total.Wait(0))
             {
-                var context = new McpRequestContext(product, session.Id, session.StreamId, TaskLabel(request), id.ToJsonString());
-                pending = new(context, CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token));
+                var context = new McpRequestContext(product, session.Id, session.StreamId, TaskLabel(request), id.ToJsonString())
+                    { Identity = session.Context.Identity };
+                pending = new(context, CancellationTokenSource.CreateLinkedTokenSource(session.Cancellation.Token));
                 pending.StartTimeout(options.RequestTimeout);
                 session.Pending[key] = pending;
+                session.ActiveCallbacks++;
+                session.LastUse = DateTime.UtcNow;
             }
         }
         if (pending is null) { await Write(http, Error(id, -32000, "Duplicate ID, closed session or pending capacity reached."), 429); return; }
@@ -273,6 +306,45 @@ public sealed class SharedMcpServer : IAsyncDisposable
             // Capacity is retained until even a noncooperative dispatcher actually finishes.
             total.Release(); Trace("settled", pending.Context);
             pending.Dispose();
+            ReleaseCallback(session);
+        }
+    }
+
+    private async Task<McpAuthenticationResult?> AuthenticateAsync(HttpContext http, string product)
+    {
+        lock (sessionGate)
+        {
+            if (disposed != 0) { http.Response.StatusCode = 503; return null; }
+            if (options.Authenticator is null) return McpAuthenticationResult.Anonymous;
+            if (!authenticating.Wait(0)) { http.Response.StatusCode = 503; return null; }
+            if (activeAuthentications++ == 0)
+                authenticationDrained = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        }
+        try
+        {
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token, http.RequestAborted);
+            deadline.CancelAfter(options.RequestTimeout);
+            var input = new McpAuthenticationRequest(product, http.Request.Method, new Uri(Address, "mcp/" + product),
+                http.Connection.RemoteIpAddress!, http.Request.Headers.Select(h =>
+                    new KeyValuePair<string, string[]>(h.Key, h.Value.Select(v => v ?? "").ToArray())));
+            var result = await options.Authenticator!.AuthenticateAsync(input, deadline.Token);
+            deadline.Token.ThrowIfCancellationRequested();
+            if (result is null) { http.Response.StatusCode = 503; return null; }
+            // Standard Authorization cannot silently downgrade even if a verifier mistakenly says Anonymous.
+            // A product accepting custom credential headers must apply the same rule in its verifier.
+            if (result.RejectionStatus is not null || result.Identity is null && http.Request.Headers.ContainsKey("Authorization"))
+            {
+                http.Response.StatusCode = result.RejectionStatus ?? 401;
+                if (result.Challenge is { } challenge) http.Response.Headers.WWWAuthenticate = challenge;
+                return null;
+            }
+            return result;
+        }
+        catch (Exception) { http.Response.StatusCode = 503; return null; }
+        finally
+        {
+            authenticating.Release();
+            lock (sessionGate) if (--activeAuthentications == 0) authenticationDrained!.TrySetResult();
         }
     }
 
@@ -327,16 +399,51 @@ public sealed class SharedMcpServer : IAsyncDisposable
         catch (AggregateException) { /* Product callbacks cannot break cancellation of sibling work. */ }
     }
 
-    private void Close(Session session)
+    private void Close(Session session, McpSessionCloseReason reason)
     {
         Pending[] pending;
         lock (session.Gate)
         {
+            if (session.Closed) return;
             session.Closed = true;
+            session.ActiveCallbacks++; // The cancellation pass must also finish before close cleanup.
             pending = session.Pending.Values.ToArray();
+            session.CloseRequested.TrySetResult(reason);
         }
-        sessions.TryRemove(session.Id, out _);
-        foreach (var item in pending) item.Cancel();
+        try
+        {
+            CancelSafely(session.Cancellation);
+            foreach (var item in pending) item.Cancel();
+        }
+        finally { ReleaseCallback(session); }
+    }
+
+    private static void ReleaseCallback(Session session)
+    {
+        lock (session.Gate)
+            if (--session.ActiveCallbacks == 0 && session.Closed) session.Drained.TrySetResult();
+    }
+
+    private async Task CloseWhenDrainedAsync(Session session, IMcpDispatcher dispatcher)
+    {
+        var reason = await session.CloseRequested.Task;
+        await session.Drained.Task;
+        try
+        {
+            if (dispatcher is IMcpSessionLifecycle lifecycle)
+                await lifecycle.SessionClosedAsync(session.Context, reason);
+        }
+        catch (Exception)
+        {
+            // Cleanup failure is observable but must not close another product or leak a session slot.
+            Trace("session-close-failed", new(session.Product, session.Id, session.StreamId, null, "null")
+                { Identity = session.Context.Identity });
+        }
+        finally
+        {
+            session.Cancellation.Dispose();
+            sessions.TryRemove(session.Id, out _);
+        }
     }
 
     private async Task SweepAsync()
@@ -346,7 +453,7 @@ public sealed class SharedMcpServer : IAsyncDisposable
         {
             while (await timer.WaitForNextTickAsync(lifetime.Token))
                 foreach (var session in sessions.Values)
-                    if (DateTime.UtcNow - session.LastUse > options.SessionIdleTimeout) Close(session);
+                    if (DateTime.UtcNow - session.LastUse > options.SessionIdleTimeout) Close(session, McpSessionCloseReason.IdleExpired);
         }
         catch (OperationCanceledException) { }
     }
@@ -379,31 +486,64 @@ public sealed class SharedMcpServer : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        if (Interlocked.Exchange(ref disposed, 1) != 0) return;
-        CancelSafely(lifetime);
-        foreach (var session in sessions.Values) Close(session);
-        if (sweeper is not null) await sweeper;
-        if (app is not null)
+        if (Interlocked.Exchange(ref disposed, 1) != 0) { await disposalCompleted.Task; return; }
+        try
         {
-            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(3));
-            try { await app.StopAsync(deadline.Token); } catch (OperationCanceledException) { }
-            await app.DisposeAsync();
+            // Allocation and verifier admission use the same gate; capture every owned callback before teardown.
+            Session[] closing;
+            Task authentication;
+            lock (sessionGate)
+            {
+                closing = sessions.Values.ToArray();
+                authentication = authenticationDrained?.Task ?? Task.CompletedTask;
+            }
+            CancelSafely(lifetime);
+            foreach (var session in closing) Close(session, McpSessionCloseReason.ServerShutdown);
+            if (sweeper is not null) await sweeper;
+            Exception? transportFailure = null;
+            if (app is not null)
+            {
+                using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+                try { await app.StopAsync(deadline.Token); }
+                catch (OperationCanceledException) { }
+                catch (Exception error) { transportFailure = error; }
+                try { await app.DisposeAsync(); }
+                catch (Exception error) { transportFailure ??= error; }
+            }
+            // Cancellation cannot prove completion. Keep borrowed dispatchers/resources alive until actual settlement.
+            await authentication;
+            await Task.WhenAll(closing.Select(s => s.Cleanup));
+            if (transportFailure is not null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(transportFailure).Throw();
+            disposalCompleted.TrySetResult();
         }
-        // Do not dispose the semaphore while an uncooperative product operation may still release it.
+        catch (Exception error) { disposalCompleted.TrySetException(error); throw; }
     }
 
-    private sealed class Session(string id, string product, int streamId, string protocol)
+    private sealed class Session(string id, string product, int streamId, string protocol,
+        McpAuthenticatedIdentity? identity, CancellationToken cancellationToken)
     {
         public string Id { get; } = id;
         public string Product { get; } = product;
         public int StreamId { get; } = streamId;
         public string Protocol { get; } = protocol;
+        public McpSessionContext Context { get; } = new(product, id, streamId, protocol, identity);
+        public CancellationTokenSource Cancellation { get; } = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        public TaskCompletionSource<McpSessionCloseReason> CloseRequested { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Drained { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public Task Cleanup = Task.CompletedTask;
+        public int ActiveCallbacks = 1; // The open/initialize path owns the first reservation.
         public object Gate { get; } = new();
-        public bool Closed;
-        public bool Ready;
+        public volatile bool Closed;
+        public bool Initialized;
+        public volatile bool Ready;
         public DateTime LastUse = DateTime.UtcNow;
         public Dictionary<string, Pending> Pending { get; } = new(StringComparer.Ordinal);
-        public void Cancel(string id) { lock (Gate) if (Pending.TryGetValue(id, out var pending)) pending.Cancel(); }
+        public void Cancel(string id)
+        {
+            Pending? pending;
+            lock (Gate) Pending.TryGetValue(id, out pending);
+            pending?.Cancel(); // Product cancellation callbacks never execute under the session lock.
+        }
     }
     private sealed record Pending(McpRequestContext Context, CancellationTokenSource Cancellation)
     {

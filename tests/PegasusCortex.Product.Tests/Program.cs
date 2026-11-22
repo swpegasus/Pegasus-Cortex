@@ -1,6 +1,12 @@
 using Pegasus.Cortex.Product;
 using System.Text.Json;
 
+if (args is ["--mcp-connections-only"])
+{
+    McpConnectionApprovalTests.Run();
+    return 0;
+}
+
 if (args is ["--installed-user-layout"])
 {
     if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("The installed user identity check requires Windows.");

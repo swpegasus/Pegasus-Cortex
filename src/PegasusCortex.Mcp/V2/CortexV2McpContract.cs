@@ -22,8 +22,8 @@ public static class CortexV2McpContract
     [
         Tool("cortex_status", "Local status, including optional personal-profile availability when managed.", EmptySchema(), readOnly: true),
         Tool("cortex_namespaces", "List namespaces.", NamespacesSchema(), readOnly: true),
-        Tool("cortex_start", "Load one bounded task brief from explicit project and knowledge spaces; compact format is the default. Request detailed format for the full preview metadata. An unavailable optional personal profile omits knowledge.user and reports the actual effective spaces.", StartSchema(), readOnly: true),
-        Tool("cortex_search", "Search compact previews in explicit spaces; selected knowledge spaces compose geometrically before exact reads. An unavailable optional personal profile omits knowledge.user; restart a stale personal-sensitive cursor.", SearchSchema(), readOnly: true),
+        Tool("cortex_start", "Bounded task brief in explicit spaces. Default compact; detailed adds full preview metadata. Unavailable personal profile omits knowledge.user; reports effective spaces.", StartSchema(), readOnly: true),
+        Tool("cortex_search", "Compact search in explicit spaces; knowledge composes geometrically before exact reads. Unavailable personal profile omits knowledge.user; restart stale personal-sensitive cursors.", SearchSchema(), readOnly: true),
         Tool("cortex_read", "Read one or up to eight exact full records.", ReadSchema(), readOnly: true),
         Tool("cortex_task", "Manage tasks.", TaskSchema(), readOnly: false),
         Tool("cortex_knowledge", "Manage knowledge.", KnowledgeSchema(), readOnly: false),
@@ -126,8 +126,8 @@ public static class CortexV2McpContract
         ["idempotencyKey"] = Identifier(),
         ["title"] = String(CortexV2Limits.MaximumTitleCharacters),
         ["content"] = String(CortexV2Limits.MaximumContentCharacters, 0),
-        ["assignee"] = Identifier(),
-        ["claimedBy"] = Identifier(),
+        ["assignee"] = DeclaredParticipant(),
+        ["claimedBy"] = DeclaredParticipant(),
         ["reason"] = String(CortexV2Limits.MaximumReasonCharacters),
         ["dependencyId"] = Identifier(),
         ["dependencies"] = IdentifierArray(CortexV2Limits.MaximumDependencies),
@@ -202,10 +202,24 @@ public static class CortexV2McpContract
 
     private static JsonObject ProvenanceSchema() => ObjectSchema(new JsonObject
     {
-        ["source"] = Enum<CortexProvenanceSourceV2>(),
-        ["sourceId"] = Identifier(),
+        ["source"] = DeclaredSource(),
+        ["sourceId"] = DeclaredParticipant(),
         ["evidence"] = String(CortexV2Limits.MaximumEvidenceCharacters)
     }, ["source"]);
+
+    private static JsonObject DeclaredParticipant()
+    {
+        var value = Identifier();
+        value["description"] = "Caller-declared label; host source separate.";
+        return value;
+    }
+
+    private static JsonObject DeclaredSource()
+    {
+        var value = Enum<CortexProvenanceSourceV2>();
+        value["description"] = "Caller-declared category; host source separate.";
+        return value;
+    }
 
     private static JsonObject ObjectSchema(JsonObject properties, IEnumerable<string> required) => new()
     {

@@ -183,7 +183,24 @@ internal static class Program
                 encodingLoss|=part.TryGetProperty("encodingLoss",out var loss)&&loss.GetBoolean();
                 ended|=part.TryGetProperty("ended",out var end)&&end.GetBoolean();
                 accumulated.Append(S(part,"text"));
-                if(accumulated.ToString().Contains(expected,StringComparison.Ordinal))return;
+                var currentText=accumulated.ToString();
+                if(currentText.Contains(expected,StringComparison.Ordinal))
+                {
+                    if(stage=="sleep-started")
+                    {
+                        bool? Flag(string prefix)
+                        {
+                            var yes=currentText.Contains(prefix+"True:"+marker,StringComparison.Ordinal);
+                            var no=currentText.Contains(prefix+"False:"+marker,StringComparison.Ordinal);
+                            return yes==no?null:yes;
+                        }
+                        var controlInput=Flag("CTRL_MODE:");
+                        var inputRedirected=Flag("INPUT_REDIRECTED:");
+                        Facts.Add(new{group="interrupt-input-mode",treatControlCAsInput=controlInput,isInputRedirected=inputRedirected,
+                            modeObserved=controlInput.HasValue,inputRedirectedObserved=inputRedirected.HasValue});
+                    }
+                    return;
+                }
                 await Task.Delay(75);
             }
             // Only synthetic-marker facts and a digest are retained. Terminal
@@ -219,6 +236,9 @@ internal static class Program
             throw new InvalidOperationException("expected-runtime-marker-not-observed");
         }
         await WaitFor("prepared-ready","READY"+marker);
+        await Ok("send",sid,"[Console]::WriteLine(('CAPTURED:'+$env:PEGASUS_AGENTOPS_CAPTURED+':'+'"+marker+"'))");
+        await WaitFor("captured-output-fence","CAPTURED:1:"+marker);
+        Check(true,"real-conpty-fixed-captured-output-marker");
         await Ok("send",sid,"[Console]::WriteLine(('STATE:'+$env:PAO_TERMINAL_VALUE+':'+(Get-Location).Path+':'+[Console]::IsOutputRedirected))");
         await WaitFor("prepared-state","STATE:prepared:"+work+":False");
         await Ok("disconnect",sid);
@@ -250,20 +270,28 @@ internal static class Program
             try { await engine.ExecuteAsync(new("terminal",new Dictionary<string,string>{{"op","read"},{"sid",sid}}),canceled.Token); Check(false,"read-cancellation-observed"); }
             catch(OperationCanceledException) { Check(true,"read-cancellation-observed"); }
         }
-        await Ok("send",sid,"[Console]::WriteLine(('SLEEP'+'"+marker+"')); Start-Sleep -Seconds 15");
+        await Ok("send",sid,"[Console]::WriteLine(('CTRL_MODE:'+[Console]::TreatControlCAsInput+':'+'"+marker+"')); "+
+            "[Console]::WriteLine(('INPUT_REDIRECTED:'+[Console]::IsInputRedirected+':'+'"+marker+"')); "+
+            "[Console]::WriteLine(('SLEEP'+'"+marker+"')); Start-Sleep -Seconds 15");
         await WaitFor("sleep-started","SLEEP"+marker);
         var interruptReadinessCursor=cursor;
         var interruptTimer=Stopwatch.StartNew();
-        await Ok("interrupt",sid);
+        var interruptReceipt=await Ok("interrupt",sid);
+        var interruptDeliveryMilliseconds=interruptTimer.ElapsedMilliseconds;
         // The earlier diagnostic run reached this pipeline but did not observe
         // the next command's marker. Delivery does not prove prompt readiness.
         // SLEEP consumed all preceding prompt bytes; this fresh read starts beyond
         // that cursor, so an old prompt cannot release the next command.
         await WaitFor("interrupt-prompt-ready",promptMarker);
         var promptCursor=cursor;
+        var interruptPromptMilliseconds=interruptTimer.ElapsedMilliseconds;
         Check(promptCursor>interruptReadinessCursor,"interrupt-prompt-is-fresh");
         await Ok("send",sid,"[Console]::WriteLine(('INTERRUPTED'+'"+marker+"'))");
         await WaitFor("interrupt-returned","INTERRUPTED"+marker);
+        Facts.Add(new{group="interrupt-observation",delivery=S(interruptReceipt,"delivery"),
+            deliveryElapsedMilliseconds=interruptDeliveryMilliseconds,promptElapsedMilliseconds=interruptPromptMilliseconds,
+            elapsedMilliseconds=interruptTimer.ElapsedMilliseconds,interruptReadinessCursor,promptCursor,returnedCursor=cursor,
+            freshPromptObserved=promptCursor>interruptReadinessCursor});
         Check(interruptTimer.Elapsed<TimeSpan.FromSeconds(8),"interrupt-canceled-running-pipeline");
         Facts.Add(new{group="prepared-function-and-observation-cancellation",functionValue="function-ready",canceledReadPreservedSession=true,interruptPreservedShell=true,
             interruptReadinessCursor,promptCursor,interruptReturnedCursor=cursor,interruptElapsedMilliseconds=interruptTimer.ElapsedMilliseconds,

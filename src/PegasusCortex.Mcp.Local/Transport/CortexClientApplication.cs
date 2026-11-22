@@ -38,11 +38,15 @@ internal sealed class CortexClientApplication : ICortexMcpProtocolApplication
     // execution grant. Private-pipe clients retain their registered-key checks;
     // privileged PAO still uses the existing independent execution authorizer.
     internal static CortexClientApplication ForOwnerEndpoint(
-        ICortexMcpProtocolApplication application, UserHostAdmission admission)
+        ICortexMcpProtocolApplication application, UserHostAdmission admission, Func<bool>? connectionIsCurrent=null)
     {
         ArgumentNullException.ThrowIfNull(application);
         ArgumentNullException.ThrowIfNull(admission);
-        return new(application, () => new ClientPolicy(true, true), null, admission);
+        return new(application, () =>
+        {
+            if(connectionIsCurrent is not null&&!connectionIsCurrent())throw new UnauthorizedAccessException("connection_revoked");
+            return new ClientPolicy(true,true);
+        }, null, admission);
     }
 
     public JsonArray ListTools()

@@ -163,7 +163,7 @@ internal static class ApplicationAuthorizationTests
         await using var engine=new AgentOpsEngine(systemState,pathNormalizer:null,directOnly:true,
             bundledNsis:null,enableUserApplications:false,
             systemTools:new AgentOpsSystemToolBindings(fixedSevenZip));
-        await using var broker=new AuthenticatedServiceBroker(state,owner,new RootCodeVerifier(Path.Combine(state,"root.verifier")),false,null,(request,ct)=>engine.ExecuteAuthenticatedFrozenDirectAsync(request,ct));
+        await using var broker=new AuthenticatedServiceBroker(state,owner,null,false,null,(request,ct)=>engine.ExecuteAuthenticatedFrozenDirectAsync(request,ct));
         var destination=Path.Combine(temp.Path,"created-by-application");
         var receipt=await broker.HandleApplicationAsync(new OperationRequest("mkdir",new Dictionary<string,string>{{"dst",destination}},"application-mkdir"),CancellationToken.None);
         Require(receipt.Ok&&receipt.State=="done"&&Directory.Exists(destination),"typed application mutation failed");
@@ -200,7 +200,7 @@ internal static class ApplicationAuthorizationTests
             bundledNsis:null,enableUserApplications:false,
             systemTools:new AgentOpsSystemToolBindings(null));
         await using var broker=new AuthenticatedServiceBroker(state,owner,
-            new RootCodeVerifier(Path.Combine(state,"root.verifier")),false,null,
+            null,false,null,
             (request,ct)=>engine.ExecuteAuthenticatedFrozenDirectAsync(request,ct));
         var archive=Path.Combine(temp.Path,"missing-tool.zip");
         await File.WriteAllBytesAsync(archive,[0x50,0x4b,0x05,0x06,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);

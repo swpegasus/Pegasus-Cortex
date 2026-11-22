@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Pegasus.AgentOps.Protocol;
+using Pegasus.Cortex.Product;
 
 [assembly: InternalsVisibleTo("Pegasus.AgentOps.Tray")]
 [assembly: InternalsVisibleTo("Pegasus.AgentOps.Service")]
@@ -47,6 +48,7 @@ public sealed partial class AgentOpsEngine : IAsyncDisposable
     private readonly AgentOpsSystemToolBindings? _systemTools;
     private readonly IWindowsServiceLifecycle _serviceLifecycle;
     private readonly IProcessThreadInventory? _threadInventory;
+    private readonly Func<CortexMcpConnectionAuthority,bool,bool>? _connectionAuthorization;
 
     public AgentOpsEngine(
         string? stateRoot = null,
@@ -71,12 +73,14 @@ public sealed partial class AgentOpsEngine : IAsyncDisposable
         IProcessThreadInventory? threadInventory = null,
         WindowsServiceOperations? windowsServices = null,
         ICopyFileTransfer? copyFileTransfer = null,
-        ZipOperations? zipOperations = null)
+        ZipOperations? zipOperations = null,
+        Func<CortexMcpConnectionAuthority,bool,bool>? connectionAuthorization = null)
     {
         _maintenanceMode = maintenanceMode ?? (OperatingSystem.IsWindows()
             ? MaintenanceModeStore.OpenReader(requireProvisioned: false) : new UnavailableMaintenanceModeSource());
         _userHostAdmission = userHostAdmission;
         _threadInventory = threadInventory;
+        _connectionAuthorization = connectionAuthorization;
         _copyFileTransfer = copyFileTransfer;
         _zipOperations = zipOperations ?? new ZipOperations();
         _windowsServices = windowsServices ?? new WindowsServiceOperations();
@@ -97,14 +101,16 @@ public sealed partial class AgentOpsEngine : IAsyncDisposable
 
     public async Task<OperationReceipt> ExecuteAsync(OperationRequest request, CancellationToken cancellationToken = default)
     {
-        if ((request.Op is ("app" or "terminal" or "registry" or "certificate") || ProcessThreadOperations.IsRequest(request)) && request.Root is not null)
-            return new(false, Guid.NewGuid().ToString("N"), request.Rid ?? Guid.NewGuid().ToString("N"), "failed", OperationNames.Public(request), "auth");
+        if(request.Op.StartsWith('_'))return new(false,Guid.NewGuid().ToString("N"),request.Rid??Guid.NewGuid().ToString("N"),
+            "failed",OperationNames.Public(request),"private_operation");
+        if(request.Root is not null)return new(false,Guid.NewGuid().ToString("N"),request.Rid??Guid.NewGuid().ToString("N"),
+            "failed",OperationNames.Public(request),"root_codes_removed");
+        // SYSTEM intent is admitted only by the authenticated service broker;
+        // passing that intent to the ordinary engine cannot select its authority.
+        if(request.System)return new(false,Guid.NewGuid().ToString("N"),request.Rid??Guid.NewGuid().ToString("N"),
+            "failed",OperationNames.Public(request),"user_dispatch_required");
         if (_directOnly)
             return new(false, Guid.NewGuid().ToString("N"), request.Rid ?? Guid.NewGuid().ToString("N"), "failed", OperationNames.Public(request), "precondition");
-        // A rejected presented root credential must not be rescued by a stored
-        // ordinary-user RID, including while shutdown admission is closed.
-        if (request.Root is not null)
-            return await ExecuteAsync(request, cancellationToken, authenticatedFrozen: false);
         using var admission = _userHostAdmission?.TryEnter();
         if (_userHostAdmission is not null && admission is null) return HostStopping(request);
         return await ExecuteAsync(request, cancellationToken, authenticatedFrozen: false);
@@ -279,14 +285,8 @@ public sealed partial class AgentOpsEngine : IAsyncDisposable
             if (authenticatedFrozen || _certificateOwner is null || !_certificateOwner.IsCurrentOwner())
                 return new(false, Guid.NewGuid().ToString("N"), request.Rid ?? Guid.NewGuid().ToString("N"), "failed", OperationNames.Public(request), "auth");
         }
-        if (request.Root is not null)
-        {
-            // Consume the developer PIN at the submission boundary. It is intentionally
-            // absent from queued work, durable state, logs, and receipts.
-            var validShape = Regex.IsMatch(request.Root, "^[A-Z0-9]{4}$", RegexOptions.CultureInvariant);
-            request = request with { Root = null, Arg = request.Arg.Where(x => x.Key is not ("root" or "stdin") && !x.Key.StartsWith("env", StringComparison.Ordinal)).ToDictionary(x => x.Key, x => x.Value, StringComparer.Ordinal) };
-            return new OperationReceipt(false, Guid.NewGuid().ToString("N"), request.Rid ?? Guid.NewGuid().ToString("N"), "failed", OperationNames.Public(request), validShape ? "service_unavailable" : "auth");
-        }
+        if(request.Root is not null)return new(false,Guid.NewGuid().ToString("N"),request.Rid??Guid.NewGuid().ToString("N"),
+            "failed",OperationNames.Public(request),"root_codes_removed");
         var cleanArg=request.Arg.Where(x => x.Key is not ("root" or "stdin")&&x.Key!=OperationRequest.BodyOmittedKey&&x.Key!=AuthenticatedFrozenKey && !x.Key.StartsWith("env", StringComparison.Ordinal)).ToDictionary(x => x.Key, x => x.Value, StringComparer.Ordinal);
         if(request.Body is not null){if(System.Text.Encoding.UTF8.GetByteCount(request.Body)>OperationRequest.MaxBodyBytes)return new OperationReceipt(false,Guid.NewGuid().ToString("N"),request.Rid??Guid.NewGuid().ToString("N"),"failed",OperationNames.Public(request),"invalid");cleanArg[OperationRequest.BodyOmittedKey]="1";}
         request = request with { Arg = cleanArg, PathRoots=authenticatedFrozen ? request.PathRoots : null };
@@ -512,6 +512,14 @@ public sealed partial class AgentOpsEngine : IAsyncDisposable
         var publicOp=OperationNames.Public(req);
         try
         {
+            if(req.ConnectionAuthority is { } authority)
+            {
+                bool active;
+                try{active=_connectionAuthorization?.Invoke(authority,req.System)==true;}
+                catch(Exception error)when(error is IOException or UnauthorizedAccessException or
+                    System.Security.Cryptography.CryptographicException or System.Text.Json.JsonException){active=false;}
+                if(!active)throw new AgentOpsException("connection_revoked");
+            }
             if (req.Op == "connection_profile") return await ExecuteConnectionProfileReceiptAsync(req, jid, rid, sequence, ct, persist);
             if (req.Op == "installed_program") return ExecuteInstalledProgramReceipt(req, jid, rid, ct);
             if (req.Op == "windows_device") return ExecuteWindowsDeviceReceipt(req, jid, rid, ct);

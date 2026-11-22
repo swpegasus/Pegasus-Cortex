@@ -242,6 +242,8 @@ internal sealed class BoundedMutationScheduler
         // but still occupies resident memory and therefore counts here.
         var bytes = 512L;
         Add(request.Op); Add(request.Rid); Add(request.Ws); Add(request.Cwd); Add(request.Root); Add(request.Body);
+        if(request.ConnectionAuthority is { } authority)
+        { Add(authority.Authority);Add(authority.ConnectionId);Add(authority.CredentialGeneration);bytes+=16; }
         foreach (var pair in request.Arg) { Add(pair.Key); Add(pair.Value); }
         if (request.PathRoots is not null)
             foreach (var pair in request.PathRoots) { Add(pair.Key); Add(pair.Value); }

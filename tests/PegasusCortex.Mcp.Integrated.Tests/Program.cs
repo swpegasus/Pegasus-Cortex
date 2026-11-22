@@ -5,6 +5,12 @@ using Pegasus.Cortex.Mcp.Integrated.Runtime;
 using Pegasus.Cortex.Mcp.Knowledge;
 using Pegasus.Cortex.Service.Configuration;
 
+if(args is ["--metadata-read-bounds-only"])
+{
+    await ProtectedLocalFileReadBoundsTests.RunAsync();
+    Console.WriteLine("PASS integrated protected metadata opened-handle bounds.");
+    return 0;
+}
 var tests = new (string Name, Func<Task> Run)[]
 {
     ("protected integrated authority separates review and authenticates rows",

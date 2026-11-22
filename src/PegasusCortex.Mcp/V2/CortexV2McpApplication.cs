@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Pegasus.Cortex.Contracts.V2;
 using Pegasus.Cortex.Core.V2;
+using Pegasus.Cortex.Core.Retention;
 using Pegasus.Cortex.Mcp.Protocol;
 
 namespace Pegasus.Cortex.Mcp.V2;
@@ -14,12 +15,20 @@ public sealed class CortexV2McpApplication : ICortexMcpProtocolApplication
 {
     private readonly CortexV2Application _application;
     private readonly CortexUsageRecorder? _usage;
+    private readonly CortexInvocationSourceV2? _invocationSource;
 
     public CortexV2McpApplication(CortexV2Application application, CortexUsageRecorder? usage = null)
     {
         _application = application ?? throw new ArgumentNullException(nameof(application));
         _usage = usage;
     }
+
+    private CortexV2McpApplication(CortexV2Application application, CortexUsageRecorder? usage, CortexInvocationSourceV2 source)
+        : this(application, usage) => _invocationSource = source.Validate();
+
+    /// <summary>Creates only an immutable invocation facade; the application, store and usage owner remain shared.</summary>
+    public CortexV2McpApplication WithInvocationSource(CortexInvocationSourceV2 source) =>
+        new(_application, _usage, source ?? throw new ArgumentNullException(nameof(source)));
 
     public JsonArray ListTools() => CortexV2McpContract.ListTools();
 
@@ -86,9 +95,9 @@ public sealed class CortexV2McpApplication : ICortexMcpProtocolApplication
                 "cortex_read" => values.TryGetProperty("records", out _)
                     ? await _application.ReadBatchAsync(Deserialize<CortexReadBatchRequestV2>(values), cancellationToken).ConfigureAwait(false)
                     : await _application.ReadAsync(Deserialize<CortexReadRequestV2>(values), cancellationToken).ConfigureAwait(false),
-                "cortex_task" => await _application.ExecuteTaskAsync(Deserialize<CortexTaskCommandV2>(values), cancellationToken).ConfigureAwait(false),
-                "cortex_knowledge" => await _application.ExecuteKnowledgeAsync(Deserialize<CortexKnowledgeCommandV2>(values), cancellationToken).ConfigureAwait(false),
-                "cortex_finish" => await _application.FinishAsync(Deserialize<CortexFinishRequestV2>(values), cancellationToken).ConfigureAwait(false),
+                "cortex_task" => await _application.ExecuteTaskAsync(Deserialize<CortexTaskCommandV2>(values), _invocationSource, cancellationToken).ConfigureAwait(false),
+                "cortex_knowledge" => await _application.ExecuteKnowledgeAsync(Deserialize<CortexKnowledgeCommandV2>(values), _invocationSource, cancellationToken).ConfigureAwait(false),
+                "cortex_finish" => await _application.FinishAsync(Deserialize<CortexFinishRequestV2>(values), _invocationSource, cancellationToken).ConfigureAwait(false),
                 _ => throw new InvalidOperationException("The V2 tool dispatch table is incomplete.")
             };
             // Default only the MCP preview presentation. Exact reads and the
@@ -105,12 +114,13 @@ public sealed class CortexV2McpApplication : ICortexMcpProtocolApplication
         {
             var code = exception switch
             {
+                CortexRetentionContentRejectedException => "cortex_content_prohibited",
                 CortexPayloadUnavailableException => CortexPayloadUnavailableException.Code,
                 CortexPersonalProfileException personal => personal.Code,
                 CortexV2ResponseBudgetExceededException => "cortex_v2_response_too_large",
                 _ => "cortex_v2_rejected"
             };
-            return Error(code, exception.Message, name);
+            return Error(code, exception.Message, name, (exception as CortexRetentionContentRejectedException)?.FindingCodes);
         }
     }
 
@@ -373,7 +383,7 @@ public sealed class CortexV2McpApplication : ICortexMcpProtocolApplication
         return summary.Length <= 512 ? summary : summary[..512];
     }
 
-    private static JsonObject Error(string code, string message, string operation)
+    private static JsonObject Error(string code, string message, string operation, IReadOnlyList<string>? findingCodes = null)
     {
         var structured = new JsonObject
         {
@@ -384,6 +394,8 @@ public sealed class CortexV2McpApplication : ICortexMcpProtocolApplication
                 ["operation"] = operation
             }
         };
+        if (findingCodes is not null)
+            structured["error"]!["findingCodes"] = new JsonArray(findingCodes.Select(value => JsonValue.Create(value)).ToArray());
         return new JsonObject
         {
             ["content"] = new JsonArray(new JsonObject

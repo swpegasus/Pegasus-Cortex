@@ -18,6 +18,9 @@ offers the same starting points as an interactive site.
 - [Shared MCP connection](CORTEX_SHARED_MCP.md): first-time HTTPS setup,
   loopback defaults, Application or existing Service ownership, certificates and
   restart behavior. Per-chat direct STDIO startup is retired.
+- [MCP client setup and upgrades](MCP_CONNECTION_SETUP.md): create your own
+  connection ID, approve access, save the Codex helper and reconnect. Required
+  when upgrading an older URL-only connection to 03.54.
 - [Local continuity and knowledge](LOCAL_OPERATIONAL_V2.md): task/knowledge
   contracts, exact reads, starter guidance and explicit offline bindings.
 - [Local terminals](PAO_LOCAL_TERMINALS.md): PowerShell 7 prerequisite,

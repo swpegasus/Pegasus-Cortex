@@ -1,5 +1,11 @@
 # Cortex shared HTTPS MCP
 
+Release **03.54** replaces URL-only access and root codes with named persistent
+connection approvals. When upgrading from 22.34, follow the
+[connection setup and migration steps](MCP_CONNECTION_SETUP.md) before reconnecting
+your MCP client. The connection ID identifies an approval; the private credential
+proves that the client owns that identity.
+
 The optional shared endpoint uses the product-neutral `SharedMcp` library.
 Each HTTP session has independent request IDs, cancellation and stream labels;
 it shares the existing Cortex application and bounded dispatcher rather than
@@ -19,10 +25,90 @@ The removed per-chat relay is not a fallback when HTTPS is unavailable. Native
 product connections, the reusable MCP protocol implementation and explicit local
 profile service/bridge modes remain separate supported paths.
 
-Optional Codex registration writes only the shared `Cortex` HTTPS URL. It can
-remove the exact managed legacy `pegasus_cortex` entry, but never creates or
-re-enables it. The accompanying plugin supplies skills and guidance only and
-declares no second MCP connection.
+Codex uses one shared `Cortex` HTTPS entry. The generated settings select its
+endpoint and local credential helper; a URL alone is not connection approval.
+Managed registration can remove the exact legacy `pegasus_cortex` entry, but
+never creates or re-enables it. The accompanying plugin supplies skills and
+guidance only and declares no second MCP connection.
+
+## First connection and ordinary access
+
+1. In Cortex, open **Connections & access → Connections & Full control**.
+   Enter a readable connection name and application name, such as your Codex
+   installation. The optional chat label is descriptive.
+2. Select **Create local connection**. Cortex creates a random 256-bit credential
+   in the current Windows user's Credential Manager and a public enrollment
+   request containing its digest and connection ID. Creation does not approve it.
+3. Select the request and choose **Approve ordinary access**. Confirm the fixed
+   Cortex Windows elevation prompt. Wait for the page to confirm current approval;
+   if the outcome is unconfirmed, use **Refresh** before another change.
+4. Select the approved row and choose **Copy Codex settings**. Replace the existing
+   `[mcp_servers.Cortex]` table in Codex's configuration with the generated table,
+   rather than adding a duplicate. It contains the configured HTTPS URL, public
+   connection ID and `http_headers_helper` command string, never the bearer.
+5. Reload the Codex connection. Its local helper reads the credential from that
+   same Windows user's vault and supplies headers directly to the HTTP client.
+   Approval persists across reconnects until revoked; reconnecting does not create
+   another grant or turn a chat label into identity.
+
+For privileged operations, separately choose **Grant Full control…** and confirm
+its red warning and fixed elevation prompt. Full control is off by default.
+**Every chat sharing this credential shares its Full control authority.** Use
+separate connections when permissions must differ. **Revoke Full control** removes
+that extra authority while retaining ordinary approval; **Revoke all access…**
+disables the connection, including reconnects. New dispatches recheck current
+generation and approval. Already-started effects retain their original ownership.
+
+Protected PAO requests additionally use boolean `system:true` and require the
+optional execution service and the actual authenticated ordinary owner Host.
+A bare `pao system=true` intent cannot manufacture authority. Registered User tools
+keep their ordinary owner token. Cerebral's private application Full control grant
+under **Applications** remains separate from MCP connection approvals. Service
+controls are under **Settings & support → Administrator service**; approving a
+connection does not install, start or enable the service.
+
+## Generate settings or enroll another Windows client
+
+The installed launcher can print the same public Codex table for its configured
+HTTPS endpoint:
+
+```powershell
+PegasusCortex.exe mcp config --connection <PUBLIC_CONNECTION_ID>
+```
+
+The generated helper is one command **string**, not an argument array. Keep the
+actual generated launcher path and ID. Do not run `mcp headers` to capture or paste
+its output: that command supplies private authorization headers to Codex directly.
+The configuration and public request file are the shareable setup material.
+
+On another Windows client, create its credential in that client's own user vault
+and write only its public enrollment request to an unused destination:
+
+```powershell
+PegasusCortex.exe mcp enroll --name "Office Codex" --application "Codex" --request-file <NEW_PUBLIC_REQUEST.json>
+```
+
+Transfer that public digest request to the server and use **Import public request…**,
+then approve it there. Keep the credential on the originating client. Generate
+that client's helper settings with its own installed launcher, then set only the
+public table's URL to the server's explicitly allowed HTTPS endpoint. Keep its
+local helper path and connection ID. Do not copy another user's vault or assume
+the server's helper can read the client's credential. Client trust in the server's
+CA and the server's allowed network remain separate setup requirements.
+
+Codex documents `http_headers_helper` for HTTP MCP connections made from the local
+execution environment. It is not supported for STDIO or remote-executor MCP.
+See the official [MCP guide](https://learn.chatgpt.com/docs/extend/mcp) and
+[configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference).
+The helper is invoked locally even when the explicitly configured Cortex endpoint
+is on an admitted LAN/VPN host. Existing explicit bearer/OAuth configuration can
+take precedence over helper authorization; replace the old Cortex table with the
+generated one instead of mixing credential sources.
+
+TLS and peer-network admission remain required. Default binding is loopback only;
+LAN/VPN inclusion is explicit and does not grant ordinary access or Full control.
+A different client must also trust the selected server CA and use its valid HTTPS
+name. The server certificate proves the endpoint, not a chat's authority.
 
 ## Results and requested detail
 

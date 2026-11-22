@@ -95,8 +95,9 @@ public static class CortexSignedProductPackageVerifier
                 foreach (var name in new[] { "pegasus-prod-alpha-root.cer", "pegasus-prod-alpha-publisher.cer" })
                     CortexUserSessionStartup.RequireOwnedFile(root, Path.Combine(root, "trust", name), 16 * 1024);
             ValidateCertificateIdentities(rootCertificate, publisherCertificate);
-            var manifestBytes = File.ReadAllBytes(manifestPath);
-            VerifyDetachedCms(manifestBytes, File.ReadAllBytes(signaturePath), publisherCertificate);
+            var manifestBytes = ReadMetadataBytes(manifestPath, 4 * 1024 * 1024, "package manifest");
+            VerifyDetachedCms(manifestBytes,
+                ReadMetadataBytes(signaturePath, 4 * 1024 * 1024, "manifest signature"), publisherCertificate);
             using var manifestDocument = JsonDocument.Parse(manifestBytes, JsonOptions());
             var manifest = manifestDocument.RootElement;
             RequireString(manifest, "schema", PackageSchema);
@@ -303,15 +304,36 @@ public static class CortexSignedProductPackageVerifier
         RequireString(entry, "file", expectedFile);
         RequireString(entry, "thumbprint", expectedThumbprint);
         var path = RequireOrdinaryFile(root, "trust/" + expectedFile);
-        if (ComputeSha256(path) != RequiredSha256(entry, "sha256"))
+        var bytes = ReadMetadataBytes(path, 16 * 1024, "public trust certificate");
+        if (Convert.ToHexStringLower(SHA256.HashData(bytes)) != RequiredSha256(entry, "sha256"))
             throw new InvalidDataException("A public trust certificate digest is invalid.");
-        return X509CertificateLoader.LoadCertificateFromFile(path);
+        return X509CertificateLoader.LoadCertificate(bytes);
     }
 
     private static JsonDocument ReadJson(string path, string description)
     {
-        try { return JsonDocument.Parse(File.ReadAllBytes(path), JsonOptions()); }
+        try { return JsonDocument.Parse(ReadMetadataBytes(path, 4 * 1024 * 1024, description), JsonOptions()); }
         catch (JsonException exception) { throw new InvalidDataException($"The {description} is malformed.", exception); }
+    }
+
+    private static byte[] ReadMetadataBytes(string path, int maximumBytes, string description)
+    {
+        using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        return ReadBoundedMetadata(input, maximumBytes, description);
+    }
+
+    internal static byte[] ReadBoundedMetadata(Stream input, int maximumBytes, string description)
+    {
+        ArgumentNullException.ThrowIfNull(input);
+        if (maximumBytes < 1) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        var length = input.Length;
+        if (length is < 1 || length > maximumBytes)
+            throw new InvalidDataException($"The {description} is outside its byte limit.");
+        var bytes = new byte[checked((int)length)];
+        input.ReadExactly(bytes);
+        if (input.ReadByte() != -1 || input.Length != length)
+            throw new InvalidDataException($"The {description} changed during its bounded read.");
+        return bytes;
     }
 
     private static JsonDocumentOptions JsonOptions() => new()

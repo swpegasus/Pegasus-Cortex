@@ -94,83 +94,52 @@ public static class LocalPipeFactory
 }
 
 [SupportedOSPlatform("windows")]
-public sealed record RootAccessPolicy(string Mode,IReadOnlyList<string> Values)
+public sealed record ProtectedAccessPolicy(string Mode,IReadOnlyList<string> Values)
 {
-    public static RootAccessPolicy Off { get; }=new("off",[]);
+    public static ProtectedAccessPolicy Off { get; }=new("off",[]);
 }
 
-public sealed record RootCodeDefinition(string Label,string? Code,RootAccessPolicy Applications,RootAccessPolicy Folders,bool LegacyHidden=false);
+public sealed record ProtectedExecutionGrant(string Label,ProtectedAccessPolicy Applications,ProtectedAccessPolicy Folders);
 
 [SupportedOSPlatform("windows")]
-public sealed class RootCodeVerifier
+public static class ProtectedAccessRules
 {
-    private sealed record Entry(string Label,string? Code,byte[]? Salt,byte[]? Hash,RootAccessPolicy Applications,RootAccessPolicy Folders);
-    private sealed record Store(int Version,List<Entry> Entries);
-    private sealed record LegacyEntry(string Label,byte[] Salt,byte[] Hash);
-    private sealed record LegacyStore(int Version,List<LegacyEntry> Entries);
-    private readonly string _path;private readonly object _gate=new();private const int Iterations=120_000;private static readonly JsonSerializerOptions Json=new(JsonSerializerDefaults.Web);
-    public RootCodeVerifier(string path)=>_path=Path.GetFullPath(path);
-
-    public void Enroll(string label,string code)
-    {
-        Enroll(new RootCodeDefinition(label,code,RootAccessPolicy.Off,RootAccessPolicy.Off));
-    }
-    public void Enroll(RootCodeDefinition definition)
-    {
-        ArgumentNullException.ThrowIfNull(definition);ValidateLabel(definition.Label);ValidateShape(definition.Code??string.Empty);
-        var applications=NormalizePolicy(definition.Applications,application:true);var folders=NormalizePolicy(definition.Folders,application:false);
-        lock(_gate){var store=Read();var index=store.Entries.FindIndex(x=>StringComparer.Ordinal.Equals(x.Label,definition.Label));if(store.Entries.Where((_,entryIndex)=>entryIndex!=index).Any(entry=>ConstantTimeMatch(entry,definition.Code!)))throw new InvalidOperationException("root_code_duplicate");if(index<0&&store.Entries.Count>=10)throw new InvalidOperationException("root_code_limit");var entry=new Entry(definition.Label,definition.Code,null,null,applications,folders);if(index<0)store.Entries.Add(entry);else store.Entries[index]=entry;Write(store);}
-    }
-    public void Enroll(string code)=>Enroll("default",code);
-    public bool Remove(string label){ValidateLabel(label);lock(_gate){var store=Read();var removed=store.Entries.RemoveAll(x=>StringComparer.Ordinal.Equals(x.Label,label))==1;if(removed)Write(store);return removed;}}
-    public IReadOnlyList<string> Labels(){lock(_gate)return Read().Entries.Select(x=>x.Label).OrderBy(x=>x,StringComparer.Ordinal).ToArray();}
-    public IReadOnlyList<RootCodeDefinition> Definitions(){lock(_gate)return Read().Entries.Select(ToDefinition).OrderBy(x=>x.Label,StringComparer.Ordinal).ToArray();}
-
-    public bool Verify(string? code)=>Match(code) is not null;
-    public RootCodeDefinition? Match(string? code)
-    {
-        if(code is null||!System.Text.RegularExpressions.Regex.IsMatch(code,"^[A-Z0-9]{4}$",System.Text.RegularExpressions.RegexOptions.CultureInvariant)||!File.Exists(_path))return null;
-        try{lock(_gate){Entry? matched=null;foreach(var entry in Read().Entries)if(ConstantTimeMatch(entry,code))matched=entry;return matched is null?null:ToDefinition(matched);}}
-        catch(Exception ex)when(ex is CryptographicException or JsonException or IOException){return null;}
-    }
-
-    public static bool AllowsApplication(RootCodeDefinition definition,string? applicationPath)
+    public static bool AllowsApplication(ProtectedExecutionGrant definition,string? applicationPath)
     {
         var policy=definition.Applications;if(policy.Mode=="off")return true;if(string.IsNullOrWhiteSpace(applicationPath))return false;
         string canonical;try{canonical=Path.GetFullPath(applicationPath);}catch{return false;}
         var listed=policy.Values.Any(value=>StringComparer.OrdinalIgnoreCase.Equals(value,canonical));return policy.Mode=="allow"?listed:!listed;
     }
 
-    public static bool AllowsFolders(RootCodeDefinition definition,OperationRequest request)
+    public static bool AllowsFolders(ProtectedExecutionGrant definition,OperationRequest request)
     {
         var policy=definition.Folders;if(policy.Mode=="off")return true;
         var paths=request.Arg.Where(x=>x.Key is "src" or "dst" or "cwd" or "workspace_root").Select(x=>x.Value).Where(Path.IsPathFullyQualified).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
-        if(paths.Length==0)return true;
         foreach(var path in paths)
         {
-            var listed=policy.Mode=="allow"
-                ?policy.Values.Any(root=>PathNormalizer.Contains(root,path))
-                :policy.Values.Any(root=>PathNormalizer.Contains(root,path)||PathNormalizer.Contains(path,root));
+            var listed=policy.Mode=="allow"?policy.Values.Any(root=>PathNormalizer.Contains(root,path)):
+                policy.Values.Any(root=>PathNormalizer.Contains(root,path)||PathNormalizer.Contains(path,root));
             if(policy.Mode=="allow"&&!listed||policy.Mode=="deny"&&listed)return false;
         }
         return true;
     }
 
-    private Store Read(){if(!File.Exists(_path))return new Store(2,[]);var bytes=File.ReadAllBytes(_path);if(bytes.Length>0&&bytes[0]==(byte)'{'){var store=JsonSerializer.Deserialize<Store>(bytes,Json)??throw new CryptographicException("root_store");ValidateStore(store);return store;}byte[]? plain=null;try{plain=MachineDpapi.Unprotect(bytes);var legacy=JsonSerializer.Deserialize<LegacyStore>(plain,Json)??throw new CryptographicException("root_store");if(legacy.Version!=1||legacy.Entries.Count>10)throw new CryptographicException("root_store_version");return new Store(2,legacy.Entries.Select(x=>new Entry(x.Label,null,x.Salt,x.Hash,RootAccessPolicy.Off,RootAccessPolicy.Off)).ToList());}finally{if(plain is not null)CryptographicOperations.ZeroMemory(plain);}}
-    private void Write(Store store){ValidateStore(store);var bytes=JsonSerializer.SerializeToUtf8Bytes(store,Json);Directory.CreateDirectory(Path.GetDirectoryName(_path)!);var tmp=_path+"."+Guid.NewGuid().ToString("N")+".tmp";try{File.WriteAllBytes(tmp,bytes);Restrict(tmp);File.Move(tmp,_path,true);}finally{CryptographicOperations.ZeroMemory(bytes);if(File.Exists(tmp))File.Delete(tmp);}}
-    private static void Restrict(string path){var security=new FileSecurity();security.SetAccessRuleProtection(true,false);var current=WindowsIdentity.GetCurrent().User??throw new AgentOpsException("auth");foreach(var sid in new[]{new SecurityIdentifier("S-1-5-18"),new SecurityIdentifier("S-1-5-32-544"),current})security.AddAccessRule(new FileSystemAccessRule(sid,FileSystemRights.FullControl,AccessControlType.Allow));new FileInfo(path).SetAccessControl(security);}
-    private static byte[] Hash(ReadOnlySpan<byte> salt,string code){var codeBytes=Encoding.ASCII.GetBytes(code);try{return Rfc2898DeriveBytes.Pbkdf2(codeBytes,salt,Iterations,HashAlgorithmName.SHA256,32);}finally{CryptographicOperations.ZeroMemory(codeBytes);}}
-    private static bool ConstantTimeMatch(Entry entry,string code){if(entry.Code is not null){var expected=Encoding.ASCII.GetBytes(entry.Code);var actual=Encoding.ASCII.GetBytes(code);try{return CryptographicOperations.FixedTimeEquals(expected,actual);}finally{CryptographicOperations.ZeroMemory(expected);CryptographicOperations.ZeroMemory(actual);}}if(entry.Salt is null||entry.Hash is null)return false;var derived=Hash(entry.Salt,code);try{return CryptographicOperations.FixedTimeEquals(derived,entry.Hash);}finally{CryptographicOperations.ZeroMemory(derived);}}
-    private static RootCodeDefinition ToDefinition(Entry entry)=>new(entry.Label,entry.Code,entry.Applications,entry.Folders,entry.Code is null);
-    public static RootAccessPolicy NormalizePolicy(RootAccessPolicy? policy,bool application)
+    public static ProtectedAccessPolicy NormalizePolicy(ProtectedAccessPolicy? policy,bool application)
     {
-        policy??=RootAccessPolicy.Off;var mode=policy.Mode?.Trim().ToLowerInvariant();if(mode=="all")mode="off";if(mode is not("off" or "allow" or "deny")||policy.Values is null)throw new ArgumentException("root_policy");
-        if(policy.Values.Count>32)throw new ArgumentException("root_policy_limit");var values=new List<string>();foreach(var raw in policy.Values){if(string.IsNullOrWhiteSpace(raw)||raw.Length>1024||!Path.IsPathFullyQualified(raw))throw new ArgumentException("root_policy_path");var canonical=new WindowsPathContextNormalizer().Normalize(Path.GetFullPath(raw)).CanonicalPath;if(application&&(!string.Equals(Path.GetExtension(canonical),".exe",StringComparison.OrdinalIgnoreCase)||!File.Exists(canonical)))throw new ArgumentException("root_policy_app");values.Add(canonical);}values=values.Distinct(StringComparer.OrdinalIgnoreCase).ToList();if(mode=="off")values.Clear();else if(values.Count==0)throw new ArgumentException("root_policy_empty");return new RootAccessPolicy(mode,values);
+        policy??=ProtectedAccessPolicy.Off;var mode=policy.Mode?.Trim().ToLowerInvariant();if(mode=="all")mode="off";
+        if(mode is not("off" or "allow" or "deny")||policy.Values is null||policy.Values.Count>32)throw new ArgumentException("protected_policy");
+        var values=new List<string>();
+        foreach(var raw in policy.Values)
+        {
+            if(string.IsNullOrWhiteSpace(raw)||raw.Length>1024||!Path.IsPathFullyQualified(raw))throw new ArgumentException("protected_policy_path");
+            var canonical=new WindowsPathContextNormalizer().Normalize(Path.GetFullPath(raw)).CanonicalPath;
+            if(application&&(!string.Equals(Path.GetExtension(canonical),".exe",StringComparison.OrdinalIgnoreCase)||!File.Exists(canonical)))throw new ArgumentException("protected_policy_app");
+            values.Add(canonical);
+        }
+        values=values.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        if(mode=="off")values.Clear();else if(values.Count==0)throw new ArgumentException("protected_policy_empty");
+        return new(mode,values);
     }
-    private static void ValidateStore(Store store){if(store.Version!=2||store.Entries.Count>10)throw new CryptographicException("root_store_version");foreach(var entry in store.Entries){ValidateLabel(entry.Label);if(entry.Code is not null)ValidateShape(entry.Code);else if(entry.Salt is null||entry.Hash is null)throw new CryptographicException("root_store_entry");var applications=NormalizePolicy(entry.Applications,true);var folders=NormalizePolicy(entry.Folders,false);if(!PolicyEquals(entry.Applications,applications)||!PolicyEquals(entry.Folders,folders))throw new CryptographicException("root_store_policy");}}
-    private static bool PolicyEquals(RootAccessPolicy left,RootAccessPolicy right)=>StringComparer.Ordinal.Equals(left.Mode,right.Mode)&&left.Values.SequenceEqual(right.Values,StringComparer.OrdinalIgnoreCase);
-    private static void ValidateShape(string code){if(!System.Text.RegularExpressions.Regex.IsMatch(code,"^[A-Z0-9]{4}$",System.Text.RegularExpressions.RegexOptions.CultureInvariant))throw new ArgumentException("root_code");}
-    private static void ValidateLabel(string label){if(string.IsNullOrWhiteSpace(label)||label.Length>32||label.Any(x=>!(char.IsAsciiLetterOrDigit(x)||x is '-' or '_')))throw new ArgumentException("root_label");}
 }
 
 internal static class MachineDpapi
@@ -280,11 +249,15 @@ public sealed partial class AuthenticatedServiceBroker:IAsyncDisposable
     private static readonly HashSet<string> SystemReadOnly=new(StringComparer.Ordinal){"diag","stat","ls","rd","sha","net"};
     private sealed record TrayRoute(LocalPeer Peer,string PipeName,long Generation,MaintenanceHostIdentity? Identity=null);
     private readonly MaintenanceInitializationObservation _maintenanceInitialization;
-    private readonly OwnerAdminExecution? _ownerAdmin;private readonly string _ownerSid;private readonly RootCodeVerifier _root;private readonly RoutedJobStore _store;private readonly WorkspaceRegistry _workspaces;private readonly ApplicationCredentialRegistry? _applicationCredentials;private readonly SemaphoreSlim _fifo=new(1,1);private readonly SemaphoreSlim _drainGate=new(1,1);private readonly ConcurrentDictionary<string,TaskCompletionSource<OperationReceipt>> _waiters=new();private readonly ConcurrentDictionary<string,CancellationTokenSource> _jobCancellation=new();private readonly ConcurrentDictionary<string,OperationRequest> _ephemeralRequests=new();private readonly ConcurrentDictionary<string,OperationReceipt> _liveReceipts=new();private readonly ConcurrentDictionary<long,Task> _drains=new();private readonly bool _crashAfterTrayExecution;private readonly Func<LocalPeer,string,OperationRequest,CancellationToken,Task<OperationReceipt>>? _trayDispatch;private readonly Func<OperationRequest,CancellationToken,Task<OperationReceipt>>? _systemDispatch;private long _generation;private long _drainId;private volatile TrayRoute? _tray;
-    public AuthenticatedServiceBroker(string stateRoot,string ownerSid,RootCodeVerifier root,bool crashAfterTrayExecution=false):this(stateRoot,ownerSid,root,crashAfterTrayExecution,null){}
-    internal AuthenticatedServiceBroker(string stateRoot,string ownerSid,RootCodeVerifier root,bool crashAfterTrayExecution,Func<LocalPeer,string,OperationRequest,CancellationToken,Task<OperationReceipt>>? trayDispatch,Func<OperationRequest,CancellationToken,Task<OperationReceipt>>? systemDispatch=null,ApplicationCredentialRegistry? applicationCredentials=null,OwnerAdminExecution? ownerAdmin=null,IMaintenanceModeSource? maintenanceMode=null,MaintenanceInitializationObservation? maintenanceInitialization=null,ServiceExitAdmission? serviceExitAdmission=null){_serviceExitAdmission=serviceExitAdmission??new ServiceExitAdmission();_maintenanceInitialization=maintenanceInitialization??MaintenanceInitializationObservation.Started;_maintenanceMode=maintenanceMode!;_ownerAdmin=ownerAdmin;_ownerSid=ownerSid;_root=root;_crashAfterTrayExecution=crashAfterTrayExecution;_trayDispatch=trayDispatch;_systemDispatch=systemDispatch;_applicationCredentials=applicationCredentials;Directory.CreateDirectory(stateRoot);_store=new RoutedJobStore(stateRoot,recover:false);_workspaces=new WorkspaceRegistry(new AgentOpsPaths(stateRoot));InitializeMaintenanceBroker(stateRoot);}
+    private readonly OwnerAdminExecution? _ownerAdmin;private readonly string _ownerSid;private readonly Func<CortexMcpConnectionAuthority,bool,bool>? _connectionAuthorization;private readonly Func<LocalPeer,bool>? _ownerHostVerifier;private readonly RoutedJobStore _store;private readonly WorkspaceRegistry _workspaces;private readonly ApplicationCredentialRegistry? _applicationCredentials;private readonly SemaphoreSlim _fifo=new(1,1);private readonly SemaphoreSlim _drainGate=new(1,1);private readonly ConcurrentDictionary<string,TaskCompletionSource<OperationReceipt>> _waiters=new();private readonly ConcurrentDictionary<string,CancellationTokenSource> _jobCancellation=new();private readonly ConcurrentDictionary<string,OperationRequest> _ephemeralRequests=new();private readonly ConcurrentDictionary<string,OperationReceipt> _liveReceipts=new();private readonly ConcurrentDictionary<long,Task> _drains=new();private readonly bool _crashAfterTrayExecution;private readonly Func<LocalPeer,string,OperationRequest,CancellationToken,Task<OperationReceipt>>? _trayDispatch;private readonly Func<OperationRequest,CancellationToken,Task<OperationReceipt>>? _systemDispatch;private long _generation;private long _drainId;private volatile TrayRoute? _tray;
+    public AuthenticatedServiceBroker(string stateRoot,string ownerSid,Func<CortexMcpConnectionAuthority,bool,bool>? connectionAuthorization,bool crashAfterTrayExecution=false):this(stateRoot,ownerSid,connectionAuthorization,crashAfterTrayExecution,null){}
+    internal AuthenticatedServiceBroker(string stateRoot,string ownerSid,Func<CortexMcpConnectionAuthority,bool,bool>? connectionAuthorization,bool crashAfterTrayExecution,Func<LocalPeer,string,OperationRequest,CancellationToken,Task<OperationReceipt>>? trayDispatch,Func<OperationRequest,CancellationToken,Task<OperationReceipt>>? systemDispatch=null,ApplicationCredentialRegistry? applicationCredentials=null,OwnerAdminExecution? ownerAdmin=null,IMaintenanceModeSource? maintenanceMode=null,MaintenanceInitializationObservation? maintenanceInitialization=null,ServiceExitAdmission? serviceExitAdmission=null,Func<LocalPeer,bool>? ownerHostVerifier=null){_ownerHostVerifier=ownerHostVerifier;_serviceExitAdmission=serviceExitAdmission??new ServiceExitAdmission();_maintenanceInitialization=maintenanceInitialization??MaintenanceInitializationObservation.Started;_maintenanceMode=maintenanceMode!;_ownerAdmin=ownerAdmin;_ownerSid=ownerSid;_connectionAuthorization=connectionAuthorization;_crashAfterTrayExecution=crashAfterTrayExecution;_trayDispatch=trayDispatch;_systemDispatch=systemDispatch;_applicationCredentials=applicationCredentials;Directory.CreateDirectory(stateRoot);_store=new RoutedJobStore(stateRoot,recover:false);_workspaces=new WorkspaceRegistry(new AgentOpsPaths(stateRoot));InitializeMaintenanceBroker(stateRoot);}
     public async Task<OperationReceipt> HandleUserAsync(OperationRequest request,LocalPeer peer,CancellationToken ct)
     {
+        if(request.Op.StartsWith('_'))return Fail(request,"private_operation");
+        if(request.System)return Fail(request,"user_dispatch_required");
+        if(request.ConnectionAuthority is { } claimed&&
+            (!IsAdmittedOwnerHost(peer)||!ConnectionIsCurrent(claimed,false)))return Fail(request,"auth");
         if(ProcessThreadOperations.IsRequest(request))return Fail(request,"user_dispatch_required");
         if(request.Op is "registry" or "certificate" or "windows_service" or "windows_task" or "installed_program" or "connection_profile" or "windows_device" or "windows_network" or "windows_account")return Fail(request,"user_dispatch_required");
         if(!IsOwner(peer))return Fail(request,"auth");
@@ -297,7 +270,7 @@ public sealed partial class AuthenticatedServiceBroker:IAsyncDisposable
         if(!TryEnterOrdinaryControl(request,out var controlTransition))return Fail(request,"maintenance_busy");
         using var controlLease=controlTransition;
         if(request.Op=="application_access")return ApplicationAccess(request);
-        if(request.Op=="root")return RootAdmin(request);
+        if(request.Op=="root")return Fail(request,"root_codes_removed");
         if(request.Op=="queue")
         {
             var control=request.Arg.GetValueOrDefault("op","stat");
@@ -319,6 +292,7 @@ public sealed partial class AuthenticatedServiceBroker:IAsyncDisposable
         if(request.Op=="certificate")return Fail(request,"auth");
         if(ProcessThreadOperations.IsRequest(request))return Fail(request,"auth");
         if(request.Op==ServiceExitOperation)return await ServiceExitAsync(request,peer,ct);
+        if(request.Op.StartsWith('_'))return Fail(request,"private_operation");
         if(!_serviceExitAdmission.TryEnter(out var serviceAdmission))return Fail(request,"service_exiting");
         using var serviceLease=serviceAdmission;
         if (request.Op == "windows_task")
@@ -328,9 +302,12 @@ public sealed partial class AuthenticatedServiceBroker:IAsyncDisposable
             try { _ = WindowsTaskOperationContract.Parse(request); }
             catch (WindowsTaskContractException) { return Fail(request, "invalid"); }
         }
-        var code=request.Root;request=request with{Root=null,PathRoots=null,Arg=request.Arg.Where(x=>x.Key is not("root" or "stdin")&&!x.Key.StartsWith("env",StringComparison.Ordinal)).ToDictionary(x=>x.Key,x=>x.Value,StringComparer.Ordinal)};
-        var authorization=_root.Match(code);if(!IsOwner(peer)||authorization is null||!SystemAllowed.Contains(request.Op))return Fail(request,"auth");
-        if(!RootCodeVerifier.AllowsApplication(authorization,peer.ApplicationPath))return Fail(request,"root_app_denied");
+        if(request.Root is not null)return Fail(request,"root_codes_removed");
+        if(!request.System||request.ConnectionAuthority is not { } connection||!IsAdmittedOwnerHost(peer)||
+            !ConnectionIsCurrent(connection,true)||!SystemAllowed.Contains(request.Op))return Fail(request,"full_control_required");
+        var authorization=new ProtectedExecutionGrant(connection.ConnectionId,ProtectedAccessPolicy.Off,ProtectedAccessPolicy.Off);
+        request=request with{Root=null,PathRoots=null,Arg=request.Arg.Where(x=>x.Key is not("root" or "stdin")&&!x.Key.StartsWith("env",StringComparison.Ordinal)).ToDictionary(x=>x.Key,x=>x.Value,StringComparer.Ordinal)};
+        if(!ProtectedAccessRules.AllowsApplication(authorization,peer.ApplicationPath))return Fail(request,"root_app_denied");
         if (request.Op == "windows_task")
         {
             if (_systemDispatch is null) return Fail(request, "service_unavailable");
@@ -375,7 +352,7 @@ public sealed partial class AuthenticatedServiceBroker:IAsyncDisposable
             if(_ownerAdmin is null)return Fail(request,"admin_capability_unavailable");
             if(request.Arg.GetValueOrDefault("op")!="run")
             {
-                var result=await _ownerAdmin.HandleAsync(request,peer,authorization,ct);
+                var result=await _ownerAdmin.HandleAsync(request,peer,authorization,ct,()=>ConnectionIsCurrent(connection,true));
                 if(!MaintenanceClosed()){ResumeRouterRecovery();ScheduleDrain();}
                 return result;
             }
@@ -384,9 +361,10 @@ public sealed partial class AuthenticatedServiceBroker:IAsyncDisposable
             await _fifo.WaitAsync(ct);
             try
             {
+                if(!ConnectionIsCurrent(connection,true))return Fail(request,"connection_revoked");
                 if(!_ownerAdmin.HasOriginalRid(request.Rid)&&_store.FirstUnresolvedMutation(_ownerSid) is{} original)
                     return Fail(request,"admin_reconciliation_required") with{Data=new Dictionary<string,object?>{{"original_jid",original.Jid},{"original_rid",original.Rid},{"original_state",original.State},{"owner","broker"}}};
-                return await _ownerAdmin.HandleAsync(request,peer,authorization,ct);
+                return await _ownerAdmin.HandleAsync(request,peer,authorization,ct,()=>ConnectionIsCurrent(connection,true));
             }
             finally{_fifo.Release();}
         }
@@ -412,12 +390,13 @@ public sealed partial class AuthenticatedServiceBroker:IAsyncDisposable
         }
         if(_systemDispatch is null)return request.Op=="diag"?new OperationReceipt(true,Guid.NewGuid().ToString("N"),request.Rid??Guid.NewGuid().ToString("N"),"done","diag",Data:new Dictionary<string,object?>{{"service","ok"}}):Fail(request,"service_unavailable");
         OperationRequest clean;try{clean=FreezeUserRequest(request);}catch(AgentOpsException ex){return Fail(request,ex.Code);}catch(UnauthorizedAccessException){return Fail(request,"access");}catch(Exception ex)when(ex is ArgumentException or IOException){return Fail(request,"invalid");}
-        if(!RootCodeVerifier.AllowsFolders(authorization,clean))return Fail(request,"root_path_denied");
+        if(!ProtectedAccessRules.AllowsFolders(authorization,clean))return Fail(request,"root_path_denied");
         clean=clean with{Arg=new Dictionary<string,string>(clean.Arg,StringComparer.Ordinal){{SystemContextKey,"1"}}};if(SystemReadOnly.Contains(clean.Op))return await _systemDispatch(clean,ct);
         var job=ClaimOrdinary(clean);if(job is null)return Fail(request,"maintenance_busy");if(job.Request is null)return job.Receipt;var waiter=Waiter(job.Receipt.Jid);_jobCancellation.GetOrAdd(job.Receipt.Jid,_=>new CancellationTokenSource());ScheduleDrain();var current=_store.Find(job.Receipt.Jid);if(current is not null&&IsTerminal(current.Receipt.State))return SignalTerminal(job.Receipt.Jid);return await waiter.Task.WaitAsync(ct);
     }
     internal async Task<OperationReceipt> HandleApplicationAsync(OperationRequest request,CancellationToken ct)
     {
+        if(request.Op.StartsWith('_')||request.ConnectionAuthority is not null)return Fail(request,"private_operation");
         if(ProcessThreadOperations.IsRequest(request))return Fail(request,"auth");
         if(request.Op is "registry" or "certificate" or "windows_service" or "windows_task" or "installed_program" or "connection_profile" or "windows_device" or "windows_network" or "windows_account")return Fail(request,"auth");
         if(!_serviceExitAdmission.TryEnter(out var serviceAdmission))return Fail(request,"service_exiting");
@@ -431,6 +410,15 @@ public sealed partial class AuthenticatedServiceBroker:IAsyncDisposable
             return Fail(request,"auth");
         request=request with{Root=null,PathRoots=null,Arg=request.Arg.Where(x=>x.Key is not("root" or "stdin")&&!x.Key.StartsWith("env",StringComparison.Ordinal)).ToDictionary(x=>x.Key,x=>x.Value,StringComparer.Ordinal)};
         if(request.Op=="service")return Fail(request,"auth");
+        if(request.Op is "tool" or "recipe" or "run" or "pwsh" or "git" or "dotnet" or "do" or "nsis")
+        {
+            // These families resolve declared User tools and owner registries.
+            // Full control is permission, not a change to a tool's Windows token.
+            var route=_tray;
+            if(request.System)return Fail(request,"user_dispatch_required");
+            if(route is null||!IsAdmittedOwnerHost(route.Peer))return Fail(request,"user_host_unavailable");
+            return await HandleUserAsync(request,route.Peer,ct);
+        }
         if(AdminFences(request))return Fail(request,"admin_lane_busy");
         if(!TryEnterOrdinaryControl(request,out var controlTransition))return Fail(request,"maintenance_busy");
         using var controlLease=controlTransition;
@@ -450,25 +438,12 @@ public sealed partial class AuthenticatedServiceBroker:IAsyncDisposable
         if(SystemReadOnly.Contains(clean.Op))return await _systemDispatch(clean,ct);
         var job=ClaimOrdinary(clean);if(job is null)return Fail(request,"maintenance_busy");if(job.Request is null)return job.Receipt;if(IsLiveEphemeral(job.Request))_ephemeralRequests.TryAdd(job.Receipt.Jid,job.Request!);var waiter=Waiter(job.Receipt.Jid);_jobCancellation.GetOrAdd(job.Receipt.Jid,_=>new CancellationTokenSource());ScheduleDrain();var current=_store.Find(job.Receipt.Jid);if(current is not null&&IsTerminal(current.Receipt.State))return SignalTerminal(job.Receipt.Jid);return await waiter.Task.WaitAsync(ct);
     }
-    private OperationReceipt RetrySystemJob(OperationRequest request,RootCodeDefinition authorization)
+    private OperationReceipt RetrySystemJob(OperationRequest request,ProtectedExecutionGrant authorization)
     {
         if(request.Arg.GetValueOrDefault("op")!="retry"||request.Arg.GetValueOrDefault("jid") is not{Length:>0} jid)return Fail(request,"auth");
-        var original=_store.Find(jid);if(original?.RetryRequest is not null&&!RootCodeVerifier.AllowsFolders(authorization,original.RetryRequest))return Fail(request,"root_path_denied");
+        var original=_store.Find(jid);if(original?.RetryRequest is not null&&!ProtectedAccessRules.AllowsFolders(authorization,original.RetryRequest))return Fail(request,"root_path_denied");
         try{var retried=_store.Retry(jid,string.IsNullOrWhiteSpace(request.Rid)?Guid.NewGuid().ToString("N"):request.Rid!,_ownerSid,system:true);ScheduleDrain();return retried.Receipt;}
         catch(AgentOpsException ex){return Fail(request,ex.Code);}
-    }
-    private OperationReceipt RootAdmin(OperationRequest request)
-    {
-        try
-        {
-            var op=request.Arg.GetValueOrDefault("op","ls");
-            if(op=="ls")return new(true,Guid.NewGuid().ToString("N"),request.Rid??Guid.NewGuid().ToString("N"),"done","root",Data:new Dictionary<string,object?>{{"labels",_root.Labels()},{"codes",_root.Definitions()}});
-            var label=request.Arg.GetValueOrDefault("label");if(string.IsNullOrWhiteSpace(label))return Fail(request,"invalid");
-            if(op=="rm")return new(true,Guid.NewGuid().ToString("N"),request.Rid??Guid.NewGuid().ToString("N"),"done","root",Data:new Dictionary<string,object?>{{"label",label},{"removed",_root.Remove(label)}});
-            if(op!="upsert"||request.Body is null)return Fail(request,"invalid");var body=request.Body.Trim();if(body.StartsWith('{')){var submission=JsonSerializer.Deserialize<RootCodeSubmission>(body,new JsonSerializerOptions(JsonSerializerDefaults.Web))??throw new ArgumentException("root_code");_root.Enroll(new RootCodeDefinition(label,submission.Code,submission.Applications??RootAccessPolicy.Off,submission.Folders??RootAccessPolicy.Off));}else _root.Enroll(label,body);
-            return new(true,Guid.NewGuid().ToString("N"),request.Rid??Guid.NewGuid().ToString("N"),"done","root",Data:new Dictionary<string,object?>{{"label",label}});
-        }
-        catch(ArgumentException){return Fail(request,"invalid");}catch(InvalidOperationException ex)when(ex.Message is "root_code_limit" or "root_code_duplicate"){return Fail(request,"precondition");}catch(UnauthorizedAccessException){return Fail(request,"access");}catch(Exception ex)when(ex is IOException or CryptographicException){return Fail(request,"integrity");}
     }
     private OperationReceipt ApplicationAccess(OperationRequest request)
     {
@@ -527,7 +502,13 @@ public sealed partial class AuthenticatedServiceBroker:IAsyncDisposable
             try
             {
                 OperationReceipt inner;
-                if(AdminFences(job.Request!)){_store.Release(job);return SignalCurrent(job.Receipt.Jid);}
+                // Private HTTP relay messages are never durable/public user jobs.
+                // Also fence old queued entries created before this admission rule.
+                if(job.Request!.Op.StartsWith('_'))
+                    inner=Fail(job.Request!,"private_operation");
+                else if(job.Request!.ConnectionAuthority is { } connection&&!ConnectionIsCurrent(connection,systemContext))
+                    inner=Fail(job.Request!,"connection_revoked");
+                else if(AdminFences(job.Request!)){_store.Release(job);return SignalCurrent(job.Receipt.Jid);}
                 else if(localContext){var context=Context(job.Request!);inner=context with{Jid=job.Receipt.Jid,Rid=job.Receipt.Rid};}
                 else if(systemContext)inner=_systemDispatch is null?Fail(job.Request!,"service_unavailable"):await _systemDispatch(job.Request!,jobCancellation.Token);
                 else if(_trayDispatch is not null)inner=await _trayDispatch(route!.Peer,route.PipeName,job.Request!,jobCancellation.Token);
@@ -601,6 +582,21 @@ public sealed partial class AuthenticatedServiceBroker:IAsyncDisposable
     private bool AdminFences(OperationRequest request)=>MaintenanceRequestPolicy.IsMutation(request)&&(MaintenanceClosed()||_ownerAdmin?.BlockingJob() is not null);
     private static bool IsTerminal(string state)=>state is "done" or "failed" or "canceled" or "recovery_required" or "attention";
     private bool IsOwner(LocalPeer peer)=>peer.Session>0&&StringComparer.Ordinal.Equals(peer.Sid,_ownerSid);
+    private bool ConnectionIsCurrent(CortexMcpConnectionAuthority authority,bool fullControl)
+    {
+        try{return _connectionAuthorization?.Invoke(authority,fullControl)==true;}
+        catch(Exception error)when(error is IOException or UnauthorizedAccessException or CryptographicException or JsonException or InvalidDataException){return false;}
+    }
+    private bool IsAdmittedOwnerHost(LocalPeer peer)
+    {
+        if(_ownerHostVerifier is not null)return _ownerHostVerifier(peer);
+        var route=_tray;
+        if(!IsOwner(peer)||peer.Elevated||route?.Identity is not { } identity||_serviceExitHost is null||
+            peer.ProcessId!=identity.Pid||peer.Session!=identity.Session||
+            !StringComparer.OrdinalIgnoreCase.Equals(identity.ApplicationPath,_serviceExitHost))return false;
+        try{return OwnerAdminExecution.HostIdentity(peer)==identity;}
+        catch(Exception error)when(error is AgentOpsException or ArgumentException or System.ComponentModel.Win32Exception){return false;}
+    }
     private TaskCompletionSource<OperationReceipt> Waiter(string jid)=>_waiters.GetOrAdd(jid,_=>new TaskCompletionSource<OperationReceipt>(TaskCreationOptions.RunContinuationsAsynchronously));
     private OperationReceipt SignalTerminal(string jid){var receipt=_liveReceipts.TryRemove(jid,out var live)?live:_store.Find(jid)!.Receipt;if(_waiters.TryRemove(jid,out var waiter))waiter.TrySetResult(receipt);return receipt;}
     private OperationReceipt SignalCurrent(string jid){var receipt=_store.Find(jid)!.Receipt;if(_waiters.TryRemove(jid,out var waiter))waiter.TrySetResult(receipt);return receipt;}
@@ -616,5 +612,3 @@ public sealed partial class AuthenticatedServiceBroker:IAsyncDisposable
     }
     public async ValueTask DisposeAsync(){foreach(var cancellation in _jobCancellation.Values)cancellation.Cancel();try{await Task.WhenAll(_drains.Values.ToArray());}catch{}foreach(var cancellation in _jobCancellation.Values)cancellation.Dispose();_jobCancellation.Clear();_ephemeralRequests.Clear();_liveReceipts.Clear();_store.Dispose();_fifo.Dispose();_drainGate.Dispose();}
 }
-
-internal sealed record RootCodeSubmission(string Code,RootAccessPolicy? Applications,RootAccessPolicy? Folders);

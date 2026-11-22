@@ -74,6 +74,11 @@ internal sealed class ConPtyTerminalProcess
             pump = Task.Run(() => DrainAsync(drainingOutput, append));
             Marshal.ThrowExceptionForHR(CreatePseudoConsole(new Coord((short)width, (short)height),
                 inputRead.DangerousGetHandle(), outputWrite.DangerousGetHandle(), 0, out console));
+            // The resident Host starts in a new process group with inheritable
+            // Ctrl+C suppression. Restore normal terminal signal policy before
+            // creating the shell, as node-pty does after CreatePseudoConsole.
+            // A null handler changes only that attribute, not registered handlers.
+            if (!SetConsoleCtrlHandler(0, false)) throw NativeFailure();
             nuint size = 0;
             _ = InitializeProcThreadAttributeList(0, 1, 0, ref size);
             attributes = Marshal.AllocHGlobal(checked((int)size));
@@ -83,7 +88,10 @@ internal sealed class ConPtyTerminalProcess
             // Explicit null standard handles force connections to ConPTY even when the
             // parent has redirected pipes (microsoft/terminal discussion15814).
             var si = new StartupInfoEx { Startup = new StartupInfo { Size = Marshal.SizeOf<StartupInfoEx>(), Flags = 0x00000100 }, Attributes = attributes };
-            var environmentText = string.Join('\0', invocation.Environment.Entries.OrderBy(p => p.Key, StringComparer.OrdinalIgnoreCase)
+            // A retained terminal captures output too. Keep credential-producing helpers
+            // out of that output channel even when invoked by an interactive shell.
+            var capturedEnvironment = CapturedCredentialOutputFence.MarkCaptured(invocation).Environment.Entries;
+            var environmentText = string.Join('\0', capturedEnvironment.OrderBy(p => p.Key, StringComparer.OrdinalIgnoreCase)
                 .Select(p => p.Key + "=" + p.Value)) + "\0\0";
             environment = Marshal.StringToHGlobalUni(environmentText);
             var command = new StringBuilder(string.Join(' ', new[] { invocation.ExecutablePath }.Concat(invocation.Arguments).Select(Quote)));
@@ -194,6 +202,8 @@ internal sealed class ConPtyTerminalProcess
     [DllImport("kernel32.dll", SetLastError = true)] [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool CreatePipe(out SafeFileHandle read, out SafeFileHandle write, nint attributes, uint size);
     [DllImport("kernel32.dll")] private static extern int CreatePseudoConsole(Coord size, nint input, nint output, uint flags, out nint console);
+    [DllImport("kernel32.dll", SetLastError = true)] [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetConsoleCtrlHandler(nint handler, [MarshalAs(UnmanagedType.Bool)] bool add);
     [DllImport("kernel32.dll")] private static extern int ResizePseudoConsole(nint console, Coord size);
     [DllImport("kernel32.dll")] private static extern void ClosePseudoConsole(nint console);
     [DllImport("kernel32.dll", SetLastError = true)] [return: MarshalAs(UnmanagedType.Bool)]
