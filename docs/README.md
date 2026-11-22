@@ -5,6 +5,12 @@ process identity or test result does not identify the currently installed build.
 Use the installed About window, the actual connection and the signed release
 inventory for that build's identity and evidence.
 
+For an introduction before the contracts, open [the Cortex handbook](handbook/README.md).
+It explains the file-based origins, context and geometric retrieval, the tool
+hierarchy, and a local-first Cerebral/Cortex case study with smaller-model and
+data-boundary tradeoffs. The [visual product guide](https://cerebral.shaynewinter.com/cortex/)
+offers the same starting points as an interactive site.
+
 ## Installation, connection and everyday use
 
 - [Install or build Cortex](BUILD_FROM_SOURCE.md): the complete Windows x64
